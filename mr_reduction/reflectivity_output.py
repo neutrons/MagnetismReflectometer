@@ -1,12 +1,13 @@
 """
     Write reflectivity output file
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
 sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 import math
 import time
-import logging
+
 
 def write_reflectivity(ws_list, output_path, cross_section):
     """
@@ -15,7 +16,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
     # Sanity check
     if len(ws_list) == 0:
         return
-        
+
     direct_beam_options=['DB_ID', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
                          'bg_pos', 'bg_width', 'dpix', 'tth', 'number', 'File']
     dataset_options=['scale', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
@@ -82,7 +83,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
     toks = ['%8s' % item for item in dataset_options]
     fd.write("# %s\n" % '  '.join(toks))
     i_direct_beam = 0
-    
+
     data_block = ''
     for ws in ws_list:
         i_direct_beam += 1
@@ -116,7 +117,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
         else:
             pixel_width = 0.0007
         tth -= ((direct_beam_pix - scatt_pos) * pixel_width) / det_distance * 180.0 / math.pi
-        
+
         item = dict(scale=1, DB_ID=i_direct_beam, P0=0, PN=0, tth=tth,
                     fan=constant_q_binning,
                     x_pos=scatt_pos,
@@ -138,7 +139,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
             else:
                 _clean_dict[key] = "%8g" % item[key]
         fd.write(template.format(**_clean_dict))
-        
+
         x = ws.readX(0)
         y = ws.readY(0)
         dy = ws.readE(0)

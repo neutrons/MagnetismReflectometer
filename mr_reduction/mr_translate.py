@@ -1,4 +1,4 @@
-#pylint: disable=line-too-long
+#pylint: disable=line-too-long,unused-variable, exec-used
 """
     Translator to be used to process filtered event data and produce
     nexus files readable by QuickNXS.
@@ -22,11 +22,12 @@ MAPPING_UNPOL=(
 
     TODO: Use PolarizerLabel and AnalyzerLabel PVs to make sure Off is +
 """
+from __future__ import (absolute_import, division, print_function)
 import os
 import nxs
 from nxs import NXfield, NXgroup
 import numpy as np
-import mr_filter_events
+from . import mr_filter_events
 
 
 def translate_entry(raw_event_file, filtered_file, entry_name, histo=True):
@@ -227,14 +228,14 @@ def translate(raw_event_file, identifier='quick', events=True, histo=True, sub_d
     """
     # Create a filtered file
     xs_event_files, xs_histo_files = mr_filter_events.filter_cross_sections(raw_event_file, events=events, histo=histo)
-    print xs_event_files
-    print xs_histo_files
+    print(xs_event_files)
+    print(xs_histo_files)
     if events:
         process(raw_event_file, xs_event_files, histo=False, sub_dir=sub_dir)
     if histo:
         process(raw_event_file, xs_histo_files, histo=True, sub_dir=sub_dir)
 
-def process(raw_event_file, filtered_files, histo=False, sub_dir=None):
+def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifier='quicknxs'):
     # Assemble the entries
     tree = nxs.NXroot()
     for entry_name, filtered_file in filtered_files.items():

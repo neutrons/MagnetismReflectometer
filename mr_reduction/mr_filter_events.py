@@ -1,10 +1,12 @@
+#pylint: disable=bare-except
 """
     Filter MR data and separate cross-section for compatibility with legacy software.
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
-#sys.path.append("/opt/mantidnightly/bin")
-sys.path.append("/SNS/users/m2d/mantid_build/bin")
-import os
+sys.path.append("/opt/mantidnightly/bin")
+#sys.path.append("/SNS/users/m2d/mantid_build/bin")
+
 import logging
 from mantid.simpleapi import *
 
@@ -16,6 +18,7 @@ ANA_VETO = "SF2_Veto"
 TOF_MIN = 10000
 TOF_MAX = 100000
 TOF_BIN = 400.0
+
 
 def _filter_cross_sections(file_path, events=True, histo=False):
     """
@@ -30,7 +33,7 @@ def _filter_cross_sections(file_path, events=True, histo=False):
     xs_list = MRFilterCrossSections(file_path, PolState=POL_STATE, AnaState=ANA_STATE, PolVeto='', AnaVeto='')
     for ws in xs_list:
         entry = ws.getRun().getProperty("cross_section_id").value
-        
+
         if events:
             events_file = "/tmp/filtered_%s_%s.nxs" % (entry, "events")
             SaveNexus(InputWorkspace=ws, Filename=events_file, Title='entry_%s' % entry)
@@ -142,4 +145,3 @@ def filter_cross_sections(file_path, events=True, histo=False):
         cross_sections_histo.update(xs_histo)
 
     return cross_sections, cross_sections_histo
-

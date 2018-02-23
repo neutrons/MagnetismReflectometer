@@ -1,19 +1,22 @@
+#pylint: disable=dangerous-default-value
 """
     Meta-data information for MR reduction
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
 sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
 
-    
+
 class DataInfo(object):
     """
         Class to provide a convenient interface to the meta-data extracted
         by MRInspectData.
     """
+    # Number of events under which we can't consider a direct beam file
     n_events_cutoff = 2000
-    
+
     def __init__(self, ws, cross_section, use_roi=True, update_peak_range=False, use_roi_bck=False,
                  use_tight_bck=False, bck_offset=3, huber_x_cut=4.95,
                  force_peak_roi=False, peak_roi=[0,0], force_bck_roi=False, bck_roi=[0,0]):
@@ -24,7 +27,7 @@ class DataInfo(object):
                       ForcePeakROI=force_peak_roi, PeakROI=peak_roi,
                       #ForceLowResPeakROI=False, LowResPeakROI=[0, 0],
                       ForceBckROI=force_bck_roi, BckROI=bck_roi)
-                 
+
         self.cross_section = cross_section
         self.run_number = ws.getRunNumber()
 
@@ -70,4 +73,3 @@ class DataInfo(object):
         roi_background_min = run_object.getProperty("roi_background_min").value
         roi_background_max = run_object.getProperty("roi_background_max").value
         self.roi_background = [roi_background_min, roi_background_max]
-

@@ -1,14 +1,16 @@
 """
     Merging tools for REF_M
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
 import os
 import pandas
 import time
 import numpy as np
-import mantid
 import logging
+import mantid
 from mantid.simpleapi import *
+
 
 def match_run_for_cross_section(run, ipts, cross_section):
     """
@@ -147,7 +149,7 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
 def select_cross_section(run, ipts):
     best_xs = None
     best_error = None
-    
+
     for xs in ['Off_Off', 'On_Off', 'Off_On', 'On_On']:
         file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, run, xs)
         if os.path.isfile(file_path):
@@ -158,7 +160,7 @@ def select_cross_section(run, ipts):
                 best_xs = xs
                 best_error = relative_error
     return best_xs
-    
+
 def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer):
     direct_beam_options=['DB_ID', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
                          'bg_pos', 'bg_width', 'dpix', 'tth', 'number', 'File']
@@ -219,11 +221,11 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
                           x_title=u"Q (1/\u212b)", x_log=True,
                           y_title="Reflectivity", y_log=True, show_dx=False, publish=publish)
         else:
-            print "Nothing to plot"
+            print("Nothing to plot")
     except:
         logging.error(str(sys.exc_value))
         logging.error("No publisher module found")
-    
+
 def combined_curves(run, ipts):
     """
     """
@@ -245,4 +247,3 @@ def combined_curves(run, ipts):
                                              direct_beam_info, data_info, item[1])
 
     return matched_runs, scaling_factors
-

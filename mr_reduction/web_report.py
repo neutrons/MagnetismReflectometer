@@ -1,15 +1,17 @@
+#pylint: disable=bare-except,dangerous-default-value
 """
     Report class sed to populate the web monitor
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
 sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
 import numpy as np
-import math
 import logging
 import plotly.offline as py
 import plotly.graph_objs as go
+
 
 def process_collection(summary_content=None, report_list=[], publish=True, run_number=None):
     """
@@ -39,23 +41,11 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             from postprocessing.publish_plot import publish_plot
             publish_plot("REF_M", run_number, files={'file': plot_html})
         except:
-            logging.error("Could not publish web report: %s" % sys.exc_value)
+            logging.error("Could not publish web report: %s", sys.exc_value)
 
     return plot_html, script
 
-def print_report(report_list=[]):
-    for r in report_list:
-        script += r.script
-        plot_html += "<div>%s</div>\n" % r.report
-        plot_html += "<table style='width:100%'>\n"
-        plot_html += "<tr>\n"
-        for p in r.plots:
-            plot_html += "<td>%s</td>\n" % p
-        plot_html += "</tr>\n"
-        plot_html += "</table>\n"
-        
-        
-    
+
 class Report(object):
     """
         Take the output of the reduction and generate 
@@ -105,7 +95,7 @@ class Report(object):
         dangle0 = run_object['DANGLE0'].getStatistics().mean
         dirpix = run_object['DIRPIX'].getStatistics().mean
         p_charge = run_object['gd_prtn_chrg'].value
-        
+
         meta = "<p>\n<table style='width:80%'>"
         meta += "<tr><td>Run:</td><td><b>%s</b></td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value, direct_beam)
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
@@ -146,7 +136,6 @@ class Report(object):
     def generate_plots(self, ws):
         """
             Generate diagnostics plots
-            #TODO: show background range
         """
         n_x = int(ws.getInstrument().getNumberParameter("number-of-x-pixels")[0])
         n_y = int(ws.getInstrument().getNumberParameter("number-of-y-pixels")[0])
@@ -212,7 +201,7 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
                            marker = dict(color = 'rgba(152, 0, 0, .8)',))
         data.append(x_left)
         data.append(x_right)
-    
+
     if x_bck_range is not None:
         x_left=go.Scatter(name='', x=[x_bck_range[0], x_bck_range[0]], y=[min(y), max(y)],
                           marker = dict(color = 'rgba(152, 152, 152, .8)',))
@@ -220,7 +209,7 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
                            marker = dict(color = 'rgba(152, 152, 152, .8)',))
         data.append(x_left)
         data.append(x_right)
-    
+
     if y_range is not None:
         y_left=go.Scatter(name='', y=[y_range[0], y_range[0]], x=[min(x), max(x)],
                           marker = dict(color = 'rgba(152, 0, 0, .8)',))
@@ -228,7 +217,7 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
                            marker = dict(color = 'rgba(152, 0, 0, .8)',))
         data.append(y_left)
         data.append(y_right)
-    
+
     if y_bck_range is not None:
         y_left=go.Scatter(name='', y=[y_bck_range[0], y_bck_range[0]], x=[min(x), max(x)],
                           marker = dict(color = 'rgba(152, 152, 152, .8)',))
@@ -236,7 +225,7 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
                            marker = dict(color = 'rgba(152, 152, 152, .8)',))
         data.append(y_left)
         data.append(y_right)
-    
+
     x_layout = dict(title=x_label, zeroline=False, exponentformat="power",
                     showexponent="all", showgrid=True,
                     showline=True, mirror="all", ticks="inside")
@@ -303,4 +292,3 @@ def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_rang
 
     fig = go.Figure(data=data, layout=layout)
     return py.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
-

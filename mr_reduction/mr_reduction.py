@@ -1,31 +1,42 @@
+#pylint: disable=bare-except, dangerous-default-value
 """
     Reduction for MR
 """
+from __future__ import (absolute_import, division, print_function)
 import sys
+import os
 sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
-import numpy as np
 import math
-from scipy.optimize import curve_fit
 import json
-import time
 import logging
 
-from reflectivity_output import write_reflectivity
-from data_info import DataInfo
-from web_report import Report, process_collection
+from .reflectivity_output import write_reflectivity
+from .data_info import DataInfo
+from .web_report import Report, process_collection
 
-    
+
 class ReductionProcess(object):
+    """
+        MR automated reduction
+    """
     tolerance=0.02
-    
+    pol_state = "PolarizerState"
+    pol_veto = "PolarizerVeto"
+    ana_state = "AnalyzerState"
+    ana_veto = "AnalyzerVeto"
+
     def __init__(self, data_run, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
                  huber_x_cut=4.95, use_sangle=True, use_roi=True,
                  force_peak_roi=False, peak_roi=[0,0],
                  force_bck_roi=False, bck_roi=[0,0]):
         """
+            The automated reduction is initializable such that most of what we need can be
+            changed at initialization time. That way the post-processing framework only
+            needs to create the object and execute the reduction.
+
             @param data_run: run number or file path
         """
         try:
@@ -40,7 +51,7 @@ class ReductionProcess(object):
         self.const_q_binning = const_q_binning
         # Q-value below which const-q binning will not be used [NOT CURRENTLY IMPLEMENTED]
         self.const_q_cutoff = const_q_cutoff
-        
+
         # Options
         self.use_roi = use_roi
         self.use_sangle = use_sangle
@@ -54,33 +65,68 @@ class ReductionProcess(object):
         self.forced_peak_roi = peak_roi
         self.force_bck_roi = force_bck_roi
         self.forced_bck_roi = bck_roi
-        
+
         self.huber_x_cut = huber_x_cut
-        
+
         # Script for re-running the reduction
         self.script = ''
-        
+
+    def _extract_data_info(self, xs_list):
+        """
+            Extract data info for the cross-section with the most events
+            :param list xs_list: workspace group
+        """
+        n_max_events = 0
+        i_main = 0
+        for i in range(len(xs_list)):
+            n_events = xs_list[i].getNumberEvents()
+            if n_events > n_max_events:
+                n_max_events = n_events
+                i_main = i
+
+        entry = xs_list[i_main].getRun().getProperty("cross_section_id").value
+        data_info = DataInfo(xs_list[i_main], entry,
+                     use_roi=self.use_roi,
+                     update_peak_range=self.update_peak_range,
+                     use_roi_bck=self.use_roi_bck,
+                     use_tight_bck=self.use_tight_bck,
+                     huber_x_cut=self.huber_x_cut,
+                     bck_offset=self.bck_offset,
+                     force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
+                     force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
+        return data_info
+
     def reduce(self):
         """
+            Perform the reduction
         """
         report_list = []
 
-        #TODO: Set the PV names
-        xs_list = MRFilterCrossSections(self.file_path)
+        # Load cross-sections
+        xs_list = MRFilterCrossSections(Filename=self.file_path,
+                                        PolState=self.pol_state,
+                                        AnaState=self.ana_state,
+                                        PolVeto=self.pol_veto,
+                                        AnaVeto=self.ana_veto)
+
+        # Extract data info (find peaks, etc...)
+        data_info = self._extract_data_info(xs_list) # set to None for re-extraction with each cross-section
+
+        # Reduce each cross-section
         for ws in xs_list:
             try:
                 self.run_number = ws.getRunNumber()
-                report = self.reduce_cross_section(self.run_number, ws=ws)
+                report = self.reduce_cross_section(self.run_number, ws=ws, data_info=data_info)
                 report_list.append(report)
             except:
                 # No data for this cross-section, skip to the next
-                logging.info("Cross section: %s" % str(sys.exc_value))
-            
+                logging.info("Cross section: %s", str(sys.exc_value))
+
         # Generate stitched plot
         ref_plot = None
         try:
-            from reflectivity_merge import combined_curves, plot_combined
-            
+            from .reflectivity_merge import combined_curves, plot_combined
+
             ipts_number = self.ipts.split('-')[1]
             matched_runs, scaling_factors = combined_curves(run=int(self.run_number), ipts=ipts_number)
             ref_plot = plot_combined(matched_runs, scaling_factors, ipts_number, publish=False)
@@ -98,10 +144,10 @@ class ReductionProcess(object):
             fd.write(script)
             fd.close()
         except:
-            logging.error("Could not write reduction script: %s" % sys.exc_value)
+            logging.error("Could not write reduction script: %s", sys.exc_value)
         return html_report
 
-    def reduce_cross_section(self, run_number, ws=None, entry='Off_Off'):
+    def reduce_cross_section(self, run_number, ws, data_info=None):
         """
             Reduce a given cross-section of a data run
             Returns a reflectivity workspace and an information value
@@ -112,42 +158,38 @@ class ReductionProcess(object):
                  1: scattering run
         """
         # Find reflectivity peak of scattering run
-        if ws is None:
-            ws = LoadEventNexus(Filename="REF_M_%s" % run_number,
-                                NXentryName='entry-%s' % entry,
-                                OutputWorkspace="MR_%s" % run_number)
-        else:
-            entry = ws.getRun().getProperty("cross_section_id").value
+        entry = ws.getRun().getProperty("cross_section_id").value
 
         self.ipts = ws.getRun().getProperty("experiment_identifier").value
 
         # Determine peak position and ranges
-        data_info = DataInfo(ws, entry,
-                             use_roi=self.use_roi,
-                             update_peak_range=self.update_peak_range,
-                             use_roi_bck=self.use_roi_bck,
-                             use_tight_bck=self.use_tight_bck,
-                             huber_x_cut=self.huber_x_cut,
-                             bck_offset=self.bck_offset,
-                             force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
-                             force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
-        
+        if data_info is None:
+            data_info = DataInfo(ws, entry,
+                                 use_roi=self.use_roi,
+                                 update_peak_range=self.update_peak_range,
+                                 use_roi_bck=self.use_roi_bck,
+                                 use_tight_bck=self.use_tight_bck,
+                                 huber_x_cut=self.huber_x_cut,
+                                 bck_offset=self.bck_offset,
+                                 force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
+                                 force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
+
         if data_info.data_type < 1:
             return Report(ws, data_info, data_info, None)
 
         # Find direct beam run
         norm_run = self.find_direct_beam(ws)
         if norm_run is None:
-            logging.warning("Run %s [%s]: Could not find direct beam with matching slit, trying with wl only" % (run_number, entry))
+            logging.warning("Run %s [%s]: Could not find direct beam with matching slit, trying with wl only", run_number, entry)
             norm_run = self.find_direct_beam(ws, skip_slits=True)
 
         apply_norm = True
         direct_info = None
         if norm_run is None:
-            logging.warning("Run %s [%s]: Could not find direct beam run: skipping" % (run_number, entry))
+            logging.warning("Run %s [%s]: Could not find direct beam run: skipping", run_number, entry)
             apply_norm = False
         else:
-            logging.info("Run %s [%s]: Direct beam run: %s" % (run_number, entry, norm_run))
+            logging.info("Run %s [%s]: Direct beam run: %s", run_number, entry, norm_run)
 
             # Find peak in direct beam run
             for norm_entry in ['entry', 'entry-Off_Off', 'entry-On_Off', 'entry-Off_On', 'entry-On_On']:
@@ -156,7 +198,7 @@ class ReductionProcess(object):
                                                NXentryName=norm_entry,
                                                OutputWorkspace="MR_%s" % norm_run)
                     if ws_direct.getNumberEvents() > 10000:
-                        logging.info("Found direct beam entry: %s [%s]" % (norm_run, norm_entry))
+                        logging.info("Found direct beam entry: %s [%s]", norm_run, norm_entry)
                         direct_info = DataInfo(ws_direct, norm_entry,
                                                use_roi=self.use_roi,
                                                update_peak_range=self.update_peak_range,
@@ -167,7 +209,7 @@ class ReductionProcess(object):
                         break
                 except:
                     # No data in this cross-section
-                    logging.debug("Direct beam %s: %s" % (norm_entry, sys.exc_value))
+                    logging.debug("Direct beam %s: %s", norm_entry, sys.exc_value)
 
         if direct_info is None:
             direct_info = data_info
@@ -221,10 +263,9 @@ class ReductionProcess(object):
         s2_ = scatt_ws.getRun().getProperty("S2HWidth").getStatistics().mean
         s3_ = scatt_ws.getRun().getProperty("S3HWidth").getStatistics().mean
         run_ = int(scatt_ws.getRunNumber())
-        dangle_ = abs(scatt_ws.getRun().getProperty("DANGLE").getStatistics().mean)
+        #dangle_ = abs(scatt_ws.getRun().getProperty("DANGLE").getStatistics().mean)
 
         closest = None
-        #TODO: If we don't find anything, look into /SNS/REF_M/shared/autoreduce/direct_beams
         if not os.path.isdir(data_dir):
             data_dir = db_dir
         for item in os.listdir(data_dir):
@@ -244,7 +285,7 @@ class ReductionProcess(object):
                         except:
                             # If there's no data in the entry, LoadEventNexus will fail.
                             # This is expected so we just need to proceed with the next entry.
-                            logging.debug("Finding direct beam: %s [%s]: %s" % (item, entry, sys.exc_value))
+                            logging.debug("Finding direct beam: %s [%s]: %s", item, entry, sys.exc_value)
 
                     if not is_valid:
                         meta_data = dict(run=0, invalid=True)
@@ -318,7 +359,7 @@ class ReductionProcess(object):
                 # If we don't allow runs taken later than the run we are processing...
                 if not allow_later_runs and run_number > run_:
                     continue
-                
+
                 if math.fabs(wl-wl_) < self.tolerance \
                     and (skip_slits is True or \
                     (math.fabs(s1-s1_) < self.tolerance \
@@ -357,7 +398,7 @@ class ReductionProcess(object):
                     # If we don't allow runs taken later than the run we are processing...
                     if not allow_later_runs and run_number > run_:
                         continue
-                    
+
                     if math.fabs(wl-wl_) < self.tolerance \
                         and (skip_slits is True or \
                         (math.fabs(s1-s1_) < self.tolerance \
@@ -368,7 +409,6 @@ class ReductionProcess(object):
                         elif abs(run_number-run_) < abs(closest-run_):
                             closest = run_number
 
-        #TODO: refactor this
         if closest is None:
             for item in os.listdir(db_dir):
                 if item.endswith(".json"):
@@ -397,7 +437,7 @@ class ReductionProcess(object):
                     # If we don't allow runs taken later than the run we are processing...
                     if not allow_later_runs and run_number > run_:
                         continue
-                    
+
                     if math.fabs(wl-wl_) < self.tolerance \
                         and (skip_slits is True or \
                         (math.fabs(s1-s1_) < self.tolerance \
@@ -409,4 +449,3 @@ class ReductionProcess(object):
                             closest = run_number
 
         return closest
-
