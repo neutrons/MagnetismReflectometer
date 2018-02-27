@@ -7,6 +7,6 @@ Automated reduction code based on Mantid.
 
 
 # TODO - Mantid:
-- Write output algorithm that takes in a group workspace
-- Q resolution.
+- Write output algorithm that takes in a group workspace.
+- Q resolution (currently done in reflectivity_output.py).
 - Refactor MRInspectData, add a property for the event number cut-off.

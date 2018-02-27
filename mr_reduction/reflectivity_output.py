@@ -143,13 +143,20 @@ def write_reflectivity(ws_list, output_path, cross_section):
         x = ws.readX(0)
         y = ws.readY(0)
         dy = ws.readE(0)
-        dx = ws.readDx(0)
+        #dx = ws.readDx(0)
         tth = ws.getRun().getProperty("SANGLE").getStatistics().mean * math.pi / 180.0
         quicknxs_scale = (float(norm_x_max)-float(norm_x_min)) * (float(norm_y_max)-float(norm_y_min))
         quicknxs_scale /= (float(peak_max)-float(peak_min)) * (float(low_res_max)-float(low_res_min))
         quicknxs_scale *= 0.005 / math.sin(tth)
+        dq_over_q = compute_resolution(ws)
         for i in range(len(x)):
-            data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i], y[i]*quicknxs_scale, dy[i]*quicknxs_scale, dx[i], tth)
+            dq = x[i] * dq_over_q # Should eventually be dx[i]
+
+            data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i],
+                                                                        y[i]*quicknxs_scale,
+                                                                        dy[i]*quicknxs_scale,
+                                                                        dq,
+                                                                        tth)
 
     fd.write("#\n") 
     fd.write("# [Global Options]\n") 
@@ -162,3 +169,29 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write(u"# %s\n" % data_block)
 
     fd.close()
+
+def compute_resolution(ws, sample_length=10):
+    """
+        Calculate dQ/Q using the slit information.
+        :param workspace ws: reflectivity workspace
+        :param float sample_length: sample length in mm
+    """
+    #TODO: Read the slit distances relative to the sample from the logs once
+    # they are available with the new DAS.
+    slits =[[ws.getRun().getProperty("S1HWidth").getStatistics().mean, 2600.],
+            [ws.getRun().getProperty("S2HWidth").getStatistics().mean, 2019.],
+            [ws.getRun().getProperty("S3HWidth").getStatistics().mean, 714.]]
+    theta = ws.getRun().getProperty("two_theta").value/2.0
+    res=[]
+    s_width=sample_length*math.sin(theta)
+    for width, dist in slits:
+        # Calculate the maximum opening angle dTheta
+        if s_width > 0.:
+            d_theta = math.atan((s_width/2.*(1.+width/s_width))/dist)*2.
+        else:
+            d_theta = math.atan(width/2./dist)*2.
+        # The standard deviation for a uniform angle distribution is delta/sqrt(12)
+        res.append(d_theta*0.28867513)
+
+    dq_over_q = min(res) / math.tan(theta)
+    return dq_over_q
