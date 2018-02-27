@@ -30,6 +30,7 @@ class DataInfo(object):
 
         self.cross_section = cross_section
         self.run_number = ws.getRunNumber()
+        self.workspace_name = str(ws)
 
         run_object = ws.getRun()
         self.is_direct_beam = run_object.getProperty("is_direct_beam").value.lower()=='true'

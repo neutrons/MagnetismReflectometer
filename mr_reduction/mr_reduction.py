@@ -1,4 +1,4 @@
-#pylint: disable=bare-except, dangerous-default-value
+#pylint: disable=bare-except, dangerous-default-value, todo
 """
     Reduction for MR
 """
@@ -8,20 +8,20 @@ import os
 sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
-import math
-import json
 import logging
 
 from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
-
+from .mr_direct_beam_finder import DirectBeamFinder
 
 class ReductionProcess(object):
     """
         MR automated reduction
     """
     tolerance=0.02
+    # Minimum number of events needed to go ahead with the reduction
+    min_number_events=200
     pol_state = "PolarizerState"
     pol_veto = "PolarizerVeto"
     ana_state = "AnalyzerState"
@@ -94,7 +94,12 @@ class ReductionProcess(object):
                      bck_offset=self.bck_offset,
                      force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
                      force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
-        return data_info
+
+        # Find direct beam information
+        apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
+        if direct_info is None:
+            direct_info = data_info
+        return data_info, direct_info, apply_norm, norm_run
 
     def reduce(self):
         """
@@ -110,13 +115,18 @@ class ReductionProcess(object):
                                         AnaVeto=self.ana_veto)
 
         # Extract data info (find peaks, etc...)
-        data_info = self._extract_data_info(xs_list) # set to None for re-extraction with each cross-section
+        # Set data_info to None for re-extraction with each cross-section
+        data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
 
         # Reduce each cross-section
         for ws in xs_list:
             try:
                 self.run_number = ws.getRunNumber()
-                report = self.reduce_cross_section(self.run_number, ws=ws, data_info=data_info)
+                report = self.reduce_cross_section(self.run_number, ws=ws,
+                                                   data_info=data_info,
+                                                   apply_norm=apply_norm,
+                                                   norm_run=norm_run,
+                                                   direct_info=direct_info)
                 report_list.append(report)
             except:
                 # No data for this cross-section, skip to the next
@@ -147,7 +157,8 @@ class ReductionProcess(object):
             logging.error("Could not write reduction script: %s", sys.exc_value)
         return html_report
 
-    def reduce_cross_section(self, run_number, ws, data_info=None):
+    def reduce_cross_section(self, run_number, ws, data_info=None,
+                             apply_norm=False, norm_run=None, direct_info=None):
         """
             Reduce a given cross-section of a data run
             Returns a reflectivity workspace and an information value
@@ -174,49 +185,17 @@ class ReductionProcess(object):
                                  force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
                                  force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
 
-        if data_info.data_type < 1:
+        if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
             return Report(ws, data_info, data_info, None)
 
-        # Find direct beam run
-        norm_run = self.find_direct_beam(ws)
-        if norm_run is None:
-            logging.warning("Run %s [%s]: Could not find direct beam with matching slit, trying with wl only", run_number, entry)
-            norm_run = self.find_direct_beam(ws, skip_slits=True)
+        # Determine the name of the direct beam workspace as needed
+        ws_norm = ''
+        if apply_norm and norm_run is not None:
+            ws_norm = CloneWorkspace(InputWorkspace=direct_info.workspace_name)
 
-        apply_norm = True
-        direct_info = None
-        if norm_run is None:
-            logging.warning("Run %s [%s]: Could not find direct beam run: skipping", run_number, entry)
-            apply_norm = False
-        else:
-            logging.info("Run %s [%s]: Direct beam run: %s", run_number, entry, norm_run)
-
-            # Find peak in direct beam run
-            for norm_entry in ['entry', 'entry-Off_Off', 'entry-On_Off', 'entry-Off_On', 'entry-On_On']:
-                try:
-                    ws_direct = LoadEventNexus(Filename="REF_M_%s" % norm_run,
-                                               NXentryName=norm_entry,
-                                               OutputWorkspace="MR_%s" % norm_run)
-                    if ws_direct.getNumberEvents() > 10000:
-                        logging.info("Found direct beam entry: %s [%s]", norm_run, norm_entry)
-                        direct_info = DataInfo(ws_direct, norm_entry,
-                                               use_roi=self.use_roi,
-                                               update_peak_range=self.update_peak_range,
-                                               use_roi_bck=self.use_roi_bck,
-                                               use_tight_bck=self.use_tight_bck,
-                                               huber_x_cut=self.huber_x_cut,
-                                               bck_offset=self.bck_offset)
-                        break
-                except:
-                    # No data in this cross-section
-                    logging.debug("Direct beam %s: %s", norm_entry, sys.exc_value)
-
-        if direct_info is None:
-            direct_info = data_info
-
-        MagnetismReflectometryReduction(#RunNumbers=[run_number,],
-                                        InputWorkspace=ws,
-                                        NormalizationRunNumber=norm_run,
+        MagnetismReflectometryReduction(InputWorkspace=ws,
+                                        NormalizationWorkspace=ws_norm,
+                                        #NormalizationRunNumber=norm_run,
                                         SignalPeakPixelRange=data_info.peak_range,
                                         SubtractSignalBackground=True,
                                         SignalBackgroundPixelRange=data_info.background,
@@ -249,203 +228,48 @@ class ReductionProcess(object):
 
         return Report(ws, data_info, direct_info, mtd["r_%s_%s" % (run_number, entry)])
 
-    def find_direct_beam(self, scatt_ws, skip_slits=False, allow_later_runs=False):
+    def find_direct_beam(self, scatt_ws):
         """
             Find the appropriate direct beam run
-            #TODO: refactor this
+            :param workspace scatt_ws: scattering workspace we are trying to match
         """
-        data_dir = "/SNS/REF_M/%s/data" % self.ipts
-        ar_dir = "/SNS/REF_M/%s/shared/autoreduce" % self.ipts
-        db_dir = "/SNS/REF_M/shared/autoreduce/direct_beams/"
+        run_number = scatt_ws.getRunNumber()
+        entry = scatt_ws.getRun().getProperty("cross_section_id").value
+        db_finder = DirectBeamFinder(scatt_ws, skip_slits=False,
+                                     tolerance=self.tolerance,
+                                     huber_x_cut=self.huber_x_cut,
+                                     experiment=self.ipts)
+        norm_run = db_finder.search()
+        if norm_run is None:
+            logging.warning("Run %s [%s]: Could not find direct beam with matching slit, trying with wl only", run_number, entry)
+            norm_run = db_finder.search(skip_slits=True)
 
-        wl_ = scatt_ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-        s1_ = scatt_ws.getRun().getProperty("S1HWidth").getStatistics().mean
-        s2_ = scatt_ws.getRun().getProperty("S2HWidth").getStatistics().mean
-        s3_ = scatt_ws.getRun().getProperty("S3HWidth").getStatistics().mean
-        run_ = int(scatt_ws.getRunNumber())
-        #dangle_ = abs(scatt_ws.getRun().getProperty("DANGLE").getStatistics().mean)
+        apply_norm = True
+        direct_info = None
+        if norm_run is None:
+            logging.warning("Run %s [%s]: Could not find direct beam run: skipping", run_number, entry)
+            apply_norm = False
+        else:
+            logging.info("Run %s [%s]: Direct beam run: %s", run_number, entry, norm_run)
 
-        closest = None
-        if not os.path.isdir(data_dir):
-            data_dir = db_dir
-        for item in os.listdir(data_dir):
-            if item.endswith("_event.nxs") or item.endswith("h5"):
-                summary_path = os.path.join(ar_dir, item+'.json')
-                if not os.path.isfile(summary_path):
-                    is_valid = False
-                    for entry in ['entry', 'entry-Off_Off', 'entry-On_Off', 'entry-Off_On', 'entry-On_On']:
-                        try:
-                            ws = LoadEventNexus(Filename=os.path.join(data_dir, item),
-                                                NXentryName=entry,
-                                                MetaDataOnly=False,
-                                                OutputWorkspace="meta_data")
-                            if ws.getNumberEvents() > 1000:
-                                is_valid = True
-                                break
-                        except:
-                            # If there's no data in the entry, LoadEventNexus will fail.
-                            # This is expected so we just need to proceed with the next entry.
-                            logging.debug("Finding direct beam: %s [%s]: %s", item, entry, sys.exc_value)
+            # Find peak in direct beam run
+            for norm_entry in ['entry', 'entry-Off_Off', 'entry-On_Off', 'entry-Off_On', 'entry-On_On']:
+                try:
+                    ws_direct = LoadEventNexus(Filename="REF_M_%s" % norm_run,
+                                               NXentryName=norm_entry,
+                                               OutputWorkspace="MR_%s" % norm_run)
+                    if ws_direct.getNumberEvents() > 10000:
+                        logging.info("Found direct beam entry: %s [%s]", norm_run, norm_entry)
+                        direct_info = DataInfo(ws_direct, norm_entry,
+                                               use_roi=self.use_roi,
+                                               update_peak_range=self.update_peak_range,
+                                               use_roi_bck=self.use_roi_bck,
+                                               use_tight_bck=self.use_tight_bck,
+                                               huber_x_cut=self.huber_x_cut,
+                                               bck_offset=self.bck_offset)
+                        break
+                except:
+                    # No data in this cross-section
+                    logging.debug("Direct beam %s: %s", norm_entry, sys.exc_value)
 
-                    if not is_valid:
-                        meta_data = dict(run=0, invalid=True)
-                        fd = open(summary_path, 'w')
-                        fd.write(json.dumps(meta_data))
-                        fd.close()
-                        continue
-
-                    run_number = int(ws.getRunNumber())
-                    sangle = ws.getRun().getProperty("SANGLE").getStatistics().mean
-                    dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
-                    dangle0 = ws.getRun().getProperty("DANGLE0").getStatistics().mean
-                    direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
-                    det_distance = ws.getRun().getProperty("SampleDetDis").getStatistics().mean / 1000.0
-                    pixel_width = 0.0007
-
-                    huber_x = ws.getRun().getProperty("HuberX").getStatistics().mean
-                    wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-                    s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
-                    s2 = ws.getRun().getProperty("S2HWidth").getStatistics().mean
-                    s3 = ws.getRun().getProperty("S3HWidth").getStatistics().mean
-                    try:
-                        data_info = DataInfo(ws, entry,
-                                             use_roi=self.use_roi,
-                                             update_peak_range=self.update_peak_range,
-                                             use_roi_bck=self.use_roi_bck,
-                                             use_tight_bck=self.use_tight_bck,
-                                             huber_x_cut=self.huber_x_cut,
-                                             bck_offset=self.bck_offset,
-                                             force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
-                                             force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
-
-                        peak_pos = data_info.peak_position if data_info.peak_position is not None else direct_beam_pix
-                    except:
-                        data_info = None
-                        peak_pos = direct_beam_pix
-                    theta_d = (dangle - dangle0) / 2.0
-                    theta_d += ((direct_beam_pix - peak_pos) * pixel_width) * 180.0 / math.pi / (2.0 * det_distance)
-
-                    meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle, huber_x=huber_x)
-                    fd = open(summary_path, 'w')
-                    fd.write(json.dumps(meta_data))
-                    fd.close()
-                    if data_info is not None and data_info.data_type == 0:
-                        standard_path = os.path.join(db_dir, item+'.json')
-                        fd = open(standard_path, 'w')
-                        fd.write(json.dumps(meta_data))
-                        fd.close()
-                else:
-                    fd = open(summary_path, 'r')
-                    meta_data = json.loads(fd.read())
-                    fd.close()
-                    if 'invalid' in meta_data.keys():
-                        continue
-                    run_number = meta_data['run']
-                    dangle = meta_data['dangle']
-                    theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
-                    sangle = meta_data['sangle'] if 'sangle' in meta_data else 0
-
-                    wl = meta_data['wl']
-                    s1 = meta_data['s1']
-                    s2 = meta_data['s2']
-                    s3 = meta_data['s3']
-                    if 'huber_x' in meta_data:
-                        huber_x = meta_data['huber_x']
-                    else:
-                        huber_x = 0
-                #if run_number == run_ or (dangle > self.tolerance and huber_x < 9) :
-                if run_number == run_ or ((theta_d > self.tolerance or sangle > self.tolerance) and huber_x < self.huber_x_cut):
-                    continue
-                # If we don't allow runs taken later than the run we are processing...
-                if not allow_later_runs and run_number > run_:
-                    continue
-
-                if math.fabs(wl-wl_) < self.tolerance \
-                    and (skip_slits is True or \
-                    (math.fabs(s1-s1_) < self.tolerance \
-                    and math.fabs(s2-s2_) < self.tolerance \
-                    and math.fabs(s3-s3_) < self.tolerance)):
-                    if closest is None:
-                        closest = run_number
-                    elif abs(run_number-run_) < abs(closest-run_):
-                        closest = run_number
-
-        if closest is None and os.path.isdir(ar_dir):
-            for item in os.listdir(ar_dir):
-                if item.endswith(".json"):
-                    summary_path = os.path.join(ar_dir, item)
-                    fd = open(summary_path, 'r')
-                    meta_data = json.loads(fd.read())
-                    fd.close()
-                    if 'invalid' in meta_data.keys():
-                        continue
-                    run_number = meta_data['run']
-                    dangle = meta_data['dangle']
-                    theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
-                    sangle = meta_data['sangle'] if 'sangle' in meta_data else 0
-
-                    wl = meta_data['wl']
-                    s1 = meta_data['s1']
-                    s2 = meta_data['s2']
-                    s3 = meta_data['s3']
-                    if 'huber_x' in meta_data:
-                        huber_x = meta_data['huber_x']
-                    else:
-                        huber_x = 0
-                    #if run_number == run_ or (dangle > self.tolerance and huber_x < 9) :
-                    if run_number == run_ or ((theta_d > self.tolerance or sangle > self.tolerance) and huber_x < self.huber_x_cut):
-                        continue
-                    # If we don't allow runs taken later than the run we are processing...
-                    if not allow_later_runs and run_number > run_:
-                        continue
-
-                    if math.fabs(wl-wl_) < self.tolerance \
-                        and (skip_slits is True or \
-                        (math.fabs(s1-s1_) < self.tolerance \
-                        and math.fabs(s2-s2_) < self.tolerance \
-                        and math.fabs(s3-s3_) < self.tolerance)):
-                        if closest is None:
-                            closest = run_number
-                        elif abs(run_number-run_) < abs(closest-run_):
-                            closest = run_number
-
-        if closest is None:
-            for item in os.listdir(db_dir):
-                if item.endswith(".json"):
-                    summary_path = os.path.join(db_dir, item)
-                    fd = open(summary_path, 'r')
-                    meta_data = json.loads(fd.read())
-                    fd.close()
-                    if 'invalid' in meta_data.keys():
-                        continue
-                    run_number = meta_data['run']
-                    dangle = meta_data['dangle']
-                    theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
-                    sangle = meta_data['sangle'] if 'sangle' in meta_data else 0
-
-                    wl = meta_data['wl']
-                    s1 = meta_data['s1']
-                    s2 = meta_data['s2']
-                    s3 = meta_data['s3']
-                    if 'huber_x' in meta_data:
-                        huber_x = meta_data['huber_x']
-                    else:
-                        huber_x = 0
-                    #if run_number == run_ or (dangle > self.tolerance and huber_x < 9) :
-                    if run_number == run_ or ((theta_d > self.tolerance or sangle > self.tolerance) and huber_x < self.huber_x_cut):
-                        continue
-                    # If we don't allow runs taken later than the run we are processing...
-                    if not allow_later_runs and run_number > run_:
-                        continue
-
-                    if math.fabs(wl-wl_) < self.tolerance \
-                        and (skip_slits is True or \
-                        (math.fabs(s1-s1_) < self.tolerance \
-                        and math.fabs(s2-s2_) < self.tolerance \
-                        and math.fabs(s3-s3_) < self.tolerance)):
-                        if closest is None:
-                            closest = run_number
-                        elif abs(run_number-run_) < abs(closest-run_):
-                            closest = run_number
-
-        return closest
+        return apply_norm, norm_run, direct_info

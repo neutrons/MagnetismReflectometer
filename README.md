@@ -9,3 +9,4 @@ Automated reduction code based on Mantid.
 # TODO - Mantid:
 - Write output algorithm that takes in a group workspace
 - Q resolution.
+- Refactor MRInspectData, add a property for the event number cut-off.
