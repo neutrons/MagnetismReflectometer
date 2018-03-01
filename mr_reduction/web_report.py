@@ -4,7 +4,6 @@
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
 import numpy as np

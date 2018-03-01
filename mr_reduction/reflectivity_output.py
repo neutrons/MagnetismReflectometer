@@ -2,8 +2,6 @@
     Write reflectivity output file
 """
 from __future__ import (absolute_import, division, print_function)
-import sys
-sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 import math
 import time

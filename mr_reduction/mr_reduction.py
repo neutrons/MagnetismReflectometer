@@ -5,11 +5,14 @@
 from __future__ import (absolute_import, division, print_function)
 import sys
 import os
-sys.path.insert(0,'/opt/mantidnightly/bin')
-import mantid
-from mantid.simpleapi import *
 import logging
 
+from .settings import MANTID_PATH
+sys.path.insert(0, MANTID_PATH)
+import mantid
+from mantid.simpleapi import *
+
+from .settings import POL_STATE, ANA_STATE, POL_VETO, ANA_VETO
 from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
@@ -23,10 +26,10 @@ class ReductionProcess(object):
     tolerance=0.02
     # Minimum number of events needed to go ahead with the reduction
     min_number_events=200
-    pol_state = "PolarizerState"
-    pol_veto = "PolarizerVeto"
-    ana_state = "AnalyzerState"
-    ana_veto = "AnalyzerVeto"
+    pol_state = POL_STATE
+    pol_veto = POL_VETO
+    ana_state = ANA_STATE
+    ana_veto = ANA_VETO
 
     def __init__(self, data_run, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,

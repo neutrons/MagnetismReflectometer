@@ -4,19 +4,13 @@
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-sys.path.append("/opt/mantidnightly/bin")
+from .settings import POL_STATE, ANA_STATE, POL_VETO, ANA_VETO
+from .settings import TOF_MIN, TOF_MAX, TOF_BIN
+from .settings import MANTID_PATH
+sys.path.append(MANTID_PATH)
 
 import logging
 from mantid.simpleapi import *
-
-POL_STATE = "SF1"
-ANA_STATE = "SF2"
-POL_VETO = "SF1_Veto"
-ANA_VETO = "SF2_Veto"
-
-TOF_MIN = 10000
-TOF_MAX = 100000
-TOF_BIN = 400.0
 
 
 def _filter_cross_sections(file_path, events=True, histo=False):
