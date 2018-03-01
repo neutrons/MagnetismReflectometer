@@ -1,11 +1,23 @@
 #!/usr/bin/env python
 import logging
 import sys, os
-import time
-#sys.path.append("/opt/mantidnightly/bin")
 
-import warnings
-warnings.simplefilter('ignore', RuntimeWarning)
+class ContextFilter(logging.Filter):
+    """ Simple log filter to take out non-Mantid logs from .err file """
+
+    def filter(self, record):
+        filtered_logs = ["Optimal parameters not found"]
+        msg = record.getMessage()
+        if record.levelname == 'WARNING':
+            return 0
+        for item in filtered_logs:
+            if item in msg:
+                return 0
+        return 1
+
+logger = logging.getLogger()
+f = ContextFilter()
+logger.addFilter(f)
 
 from mr_reduction import mr_reduction as refm
 from mr_reduction import mr_translate
