@@ -5,7 +5,6 @@
 from __future__ import (absolute_import, division, print_function)
 import sys
 sys.path.append("/opt/mantidnightly/bin")
-#sys.path.append("/SNS/users/m2d/mantid_build/bin")
 
 import logging
 from mantid.simpleapi import *

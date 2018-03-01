@@ -1,4 +1,4 @@
-#pylint: disable=bare-except, dangerous-default-value, todo
+#pylint: disable=bare-except, dangerous-default-value
 """
     Reduction for MR
 """
@@ -14,6 +14,7 @@ from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
 from .mr_direct_beam_finder import DirectBeamFinder
+
 
 class ReductionProcess(object):
     """
