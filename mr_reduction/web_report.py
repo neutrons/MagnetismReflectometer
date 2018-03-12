@@ -15,6 +15,10 @@ import plotly.graph_objs as go
 def process_collection(summary_content=None, report_list=[], publish=True, run_number=None):
     """
         Process a collection of reports into on final report
+        :param str summary_content: html content at the top of the report
+        :param list report_list: list of html contents to be appended at the bottom of the page
+        :param bool publish: if True, the report will be sent to the live data server
+        :param int run_number: run number to associate this report with
     """
     plot_html = ''
     script = ''
@@ -36,10 +40,17 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
     if run_number is None and len(report_list)>0:
         run_number = report_list[0].data_info.run_number
     if publish:
-        try:
+        # Depending on where we run, we might get our publisher from
+        # different places, or not at all.
+        _publisher_found = False
+        try: # version on autoreduce
             from postprocessing.publish_plot import publish_plot
+            _publisher_found = True
+        except ImportError: # version on instrument computers
+            from finddata import publish_plot
+        if _publisher_found:
             publish_plot("REF_M", run_number, files={'file': plot_html})
-        except:
+        else:
             logging.error("Could not publish web report: %s", sys.exc_value)
 
     return plot_html, script
@@ -49,7 +60,6 @@ class Report(object):
     """
         Take the output of the reduction and generate 
         diagnostics plots, and a block of meta data.
-            
     """
     def __init__(self, ws, data_info, direct_info, reflectivity_ws):
         self.data_info = data_info
@@ -186,6 +196,17 @@ class Report(object):
         return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
 
 def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", title='', x_bck_range=None, y_bck_range=None):
+    """
+        Generate a 2D plot
+        :param array x: x-axis values
+        :param array y: y-axis values
+        :param array z: z-axis counts
+        :param str x_label: x-axis label
+        :param str y_label: y-axis label
+        :param str title: plot title
+        :param array x_bck_range: array of length 2 to specify a background region in x
+        :param array y_bck_range: array of length 2 to specify a background region in y
+    """
     colorscale=[[0, "rgb(0,0,131)"], [0.125, "rgb(0,60,170)"], [0.375, "rgb(5,255,255)"],
                 [0.625, "rgb(255,255,0)"], [0.875, "rgb(250,0,0)"], [1, "rgb(128,0,0)"]]
 
@@ -247,7 +268,15 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
     return py.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
 
 def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_range=None):
-
+    """
+        Generate a simple 1D plot
+        :param array x: x-axis values
+        :param array y: y-axis values
+        :param str x_label: x-axis label
+        :param str y_label: y-axis label
+        :param str title: plot title
+        :param array bck_range: array of length 2 to specify a background region in x
+    """
     data = [go.Scatter(name='', x=x, y=y)]
 
     if x_range is not None:

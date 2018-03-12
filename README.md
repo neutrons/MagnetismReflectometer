@@ -5,9 +5,16 @@ Automated reduction code based on Mantid.
  - Code under `autoreduce` is the top-level code used by the post-processing.
  - Code under `livereduce` is the top-level code for live reduction.
 
+# Configuration
+The configuration file under `autoreduce/livereduce.conf` needs to be place under `/etc` on
+the live reduction node.
+
 # TODO:
 - Update polarizer/analyzer PV names.
 - Use polarizer/analyzer labels to make sure Off is always +.
+
+# TODO - Live Reduction
+- Allow a workspace as the input to mr_reduction rather than a file.
 
 # TODO - Mantid:
 - Automate the selection of const-Q binning.

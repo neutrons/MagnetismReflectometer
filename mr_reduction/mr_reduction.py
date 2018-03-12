@@ -31,7 +31,7 @@ class ReductionProcess(object):
     ana_state = ANA_STATE
     ana_veto = ANA_VETO
 
-    def __init__(self, data_run, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
+    def __init__(self, data_run, data_ws=None, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
                  huber_x_cut=4.95, use_sangle=True, use_roi=True,
                  force_peak_roi=False, peak_roi=[0,0],
@@ -50,6 +50,7 @@ class ReductionProcess(object):
         except:
             self.run_number = None
             self.file_path = data_run
+        self.data_ws = data_ws
         self.ipts = None
         self.output_dir = output_dir
         self.const_q_binning = const_q_binning
@@ -112,7 +113,8 @@ class ReductionProcess(object):
         report_list = []
 
         # Load cross-sections
-        xs_list = MRFilterCrossSections(Filename=self.file_path,
+        _filename = None if self.data_ws is not None else self.file_path
+        xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
                                         PolState=self.pol_state,
                                         AnaState=self.ana_state,
                                         PolVeto=self.pol_veto,
@@ -166,7 +168,7 @@ class ReductionProcess(object):
         """
             Reduce a given cross-section of a data run
             Returns a reflectivity workspace and an information value
-            
+
             Type info:
                 -1: too few counts
                  0: direct beam run
