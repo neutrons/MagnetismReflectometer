@@ -6,7 +6,7 @@ Automated reduction code based on Mantid.
  - Code under `livereduce` is the top-level code for live reduction.
 
 # Configuration
-The configuration file under `autoreduce/livereduce.conf` needs to be place under `/etc` on
+The configuration file under `livereduce/livereduce.conf` needs to be place under `/etc` on
 the live reduction node.
 
 # TODO:
@@ -14,7 +14,10 @@ the live reduction node.
 - Use polarizer/analyzer labels to make sure Off is always +.
 
 # TODO - Live Reduction
-- Allow a workspace as the input to mr_reduction rather than a file.
+- Use `MRFilterCrossSections` once the zero-length log issues are fixed (in mr_reduction.py).
+
+# TODO - QuickNXS translate
+- Use `MRFilterCrossSections` once the zero-length log issues are fixed (in mr_filter_events.py).
 
 # TODO - Mantid:
 - Automate the selection of const-Q binning.
@@ -24,3 +27,4 @@ the live reduction node.
 - Common peak ranges: pick the cross-section with the highest count and use its peak definition for the other ones.
 - Q resolution (currently done in reflectivity_output.py).
 - Refactor MRInspectData, add a property for the event number cut-off.
+- Allow a workspace as the input to mr_reduction rather than a file.

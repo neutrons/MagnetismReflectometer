@@ -59,6 +59,11 @@ def save_nxs(ws, pol_state, ana_state, events=True, histo=False):
         SaveNexus(InputWorkspace=ws_binned, Filename=output_histo_name, Title='entry_%s_%s' % (pol_state, ana_state))
     return output_events_name, output_histo_name
 
+##########################################################################
+# The following is currently used while FilterEvents is being fixed,     #
+# after which we will use MRFilterCrossSections with the function above. #
+##########################################################################
+
 def filter_analyzer(ws, pol_state='Off', events=True, histo=False):
     """
         Filter events according to the analyzer.

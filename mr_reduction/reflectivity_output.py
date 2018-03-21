@@ -94,7 +94,11 @@ def write_reflectivity(ws_list, output_path, cross_section):
         low_res_min = run_object.getProperty("scatt_low_res_min").value
         low_res_max = run_object.getProperty("scatt_low_res_max").value
         dpix = run_object.getProperty("DIRPIX").getStatistics().mean
-        filename = run_object.getProperty("Filename").value
+        # For live data, we might not have a file name
+        if 'Filename' in run_object:
+            filename = run_object.getProperty("Filename").value
+        else:
+            filename = "live data"
         constant_q_binning = run_object.getProperty("constant_q_binning").value
         scatt_pos = run_object.getProperty("specular_pixel").value
         norm_x_min = run_object.getProperty("norm_peak_min").value
@@ -141,19 +145,16 @@ def write_reflectivity(ws_list, output_path, cross_section):
         x = ws.readX(0)
         y = ws.readY(0)
         dy = ws.readE(0)
-        #dx = ws.readDx(0)
+        dx = ws.readDx(0)
         tth = ws.getRun().getProperty("SANGLE").getStatistics().mean * math.pi / 180.0
         quicknxs_scale = (float(norm_x_max)-float(norm_x_min)) * (float(norm_y_max)-float(norm_y_min))
         quicknxs_scale /= (float(peak_max)-float(peak_min)) * (float(low_res_max)-float(low_res_min))
         quicknxs_scale *= 0.005 / math.sin(tth)
-        dq_over_q = compute_resolution(ws)
         for i in range(len(x)):
-            dq = x[i] * dq_over_q # Should eventually be dx[i]
-
             data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i],
                                                                         y[i]*quicknxs_scale,
                                                                         dy[i]*quicknxs_scale,
-                                                                        dq,
+                                                                        dx[i],
                                                                         tth)
 
     fd.write("#\n") 

@@ -17,6 +17,7 @@ from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
 from .mr_direct_beam_finder import DirectBeamFinder
+from .dummy_mr_filter_cross_sections import dummy_filter_cross_sections
 
 
 class ReductionProcess(object):
@@ -114,11 +115,18 @@ class ReductionProcess(object):
 
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
-        xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
-                                        PolState=self.pol_state,
-                                        AnaState=self.ana_state,
-                                        PolVeto=self.pol_veto,
-                                        AnaVeto=self.ana_veto)
+        # For live data, we use a workspace directly. Filtered out logs are
+        # currently saved as zero-length time series but the filtering, which
+        # creates problems when applying several filters in a row.
+        # Use a temporary version until FilterEvents is fixed.
+        if self.data_ws is None:
+            xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
+                                            PolState=self.pol_state,
+                                            AnaState=self.ana_state,
+                                            PolVeto=self.pol_veto,
+                                            AnaVeto=self.ana_veto)
+        else:
+            xs_list = dummy_filter_cross_sections(self.data_ws)
 
         # Extract data info (find peaks, etc...)
         # Set data_info to None for re-extraction with each cross-section
@@ -136,7 +144,7 @@ class ReductionProcess(object):
                 report_list.append(report)
             except:
                 # No data for this cross-section, skip to the next
-                logging.info("Cross section: %s", str(sys.exc_value))
+                logging.warning("Cross section: %s", str(sys.exc_value))
 
         # Generate stitched plot
         ref_plot = None
@@ -147,6 +155,7 @@ class ReductionProcess(object):
             matched_runs, scaling_factors = combined_curves(run=int(self.run_number), ipts=ipts_number)
             ref_plot = plot_combined(matched_runs, scaling_factors, ipts_number, publish=False)
         except:
+            logging.error("Could not generate combined curve")
             logging.error(str(sys.exc_value))
 
         # Generate report and script
