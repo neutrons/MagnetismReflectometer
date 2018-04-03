@@ -1,4 +1,4 @@
-prefix := /SNS/REF_M/shared/
+prefix := /SNS/REF_M/shared
 
 all:
 	@echo "Run 'make install' to install the automated reduction code for MR"
@@ -11,6 +11,7 @@ base:
 
 autoreduce: base
 	cp -R autoreduce/*.template $(prefix)/autoreduce
+	cp -R livereduce/*.py $(prefix)/livereduce
 
 .PHONY: install
 .PHONY: base

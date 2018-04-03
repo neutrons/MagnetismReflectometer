@@ -83,10 +83,6 @@ def translate_entry(raw_event_file, filtered_file, entry_name, histo=True):
     # Instrument
     nx_quick.instrument.SNSgeometry_file_name = NXfield(name='SNSgeometry_file_name', value='')
 
-    nx_quick.instrument.aperture1.distance = -2.599
-    nx_quick.instrument.aperture2.distance = -2.019
-    nx_quick.instrument.aperture3.distance = -0.714
-
     # Bank1 data
     nx_quick.instrument.bank1.origin = NXgroup(name='origin', nxclass='NXGroup')
     nx_quick.instrument.bank1.origin.shape = NXgroup(name='shape', nxclass='NXGroup')
@@ -207,6 +203,15 @@ def create_links(nx_quick):
     nx_quick.instrument.aperture1.S1HWidth = nx_quick.DASlogs.S1HWidth
     nx_quick.instrument.aperture2.S2HWidth = nx_quick.DASlogs.S2HWidth
     nx_quick.instrument.aperture3.S3HWidth = nx_quick.DASlogs.S3HWidth
+    
+    if hasattr(nx_quick.DASlogs, "S1Distance"):
+        nx_quick.instrument.aperture1.distance = nx_quick.DASlogs.S1Distance.value
+        nx_quick.instrument.aperture2.distance = nx_quick.DASlogs.S2Distance.value
+        nx_quick.instrument.aperture3.distance = nx_quick.DASlogs.S3Distance.value
+    else:
+        nx_quick.instrument.aperture1.distance = -2.599
+        nx_quick.instrument.aperture2.distance = -2.019
+        nx_quick.instrument.aperture3.distance = -0.714
 
     nx_quick.instrument.bank1.total_counts = nx_quick.total_counts
     nx_quick.instrument.bank1.DANGLE = nx_quick.DASlogs.DANGLE
@@ -214,17 +219,14 @@ def create_links(nx_quick):
     nx_quick.instrument.bank1.DIRPIX = nx_quick.DASlogs.DIRPIX
     nx_quick.instrument.bank1.SampleDetDis = nx_quick.DASlogs.SampleDetDis
 
-    #nx_quick.bank1.x_pixel_offset = nx_quick.instrument.bank1.x_pixel_offset
-    #nx_quick.bank1.y_pixel_offset = nx_quick.instrument.bank1.y_pixel_offset
     nx_quick.bank1.data_x_y = nx_quick.instrument.bank1.data_x_y
 
     return nx_quick
 
-def translate(raw_event_file, identifier='quick', events=True, histo=True, sub_dir=None):
+def translate(raw_event_file, events=True, histo=True, sub_dir=None):
     """
         Translate an event nexus file
         :param str raw_event_file: name of the event data file to process
-        :param str identifier: suffix for the output data file
     """
     # Create a filtered file
     xs_event_files, xs_histo_files = mr_filter_events.filter_cross_sections(raw_event_file, events=events, histo=histo)
@@ -236,6 +238,9 @@ def translate(raw_event_file, identifier='quick', events=True, histo=True, sub_d
         process(raw_event_file, xs_histo_files, histo=True, sub_dir=sub_dir)
 
 def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifier='quicknxs'):
+    """
+        Process a Nexus file
+    """
     # Assemble the entries
     tree = nxs.NXroot()
     for entry_name, filtered_file in filtered_files.items():
@@ -267,23 +272,3 @@ def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifie
         os.remove(output_file)
 
     tree.save(output_file)
-
-
-if __name__ == '__main__':
-    import time
-    # Test directory: /SNS/REF_M/shared/ADARA.Test.Data.2018
-
-    #translate('/SNS/REF_M/shared/ADARA.Test.Data.2018/REF_M_25631.nxs.h5', histo=False, sub_dir='translation_output')
-    #translate('/SNS/REF_M/shared/ADARA.Test.Data.2018/REF_M_28722.nxs.h5', histo=False, sub_dir='translation_output')
-    #translate('/SNS/REF_M/shared/ADARA.Test.Data.2018/REF_M_28144.nxs.h5', histo=False, sub_dir='translation_output')
-    #translate('/SNS/REF_M/shared/ADARA.Test.Data.2018/REF_M_27800.nxs.h5', histo=False, sub_dir='translation_output')
-    translate('/SNS/REF_M/shared/ADARA.Test.Data.2018/REF_M_25636.nxs.h5', histo=False, sub_dir='translation_output2')
-    
-    if False:
-        data_dir = '/SNS/REF_M/shared/ADARA.Test.Data.2018'
-        for item in os.listdir(data_dir):
-            if os.path.isfile(os.path.join(data_dir, item)) and item.endswith('nxs.h5'):
-                print("\n%s\n" % item)
-                t_0 = time.time()
-                translate(os.path.join(data_dir, item), histo=False, sub_dir='translation_output')
-                print("%s: %s sec" % (item, time.time()-t_0))

@@ -12,10 +12,6 @@ for k in keys_live:
         print k
         run_obj[k] = 0.0
 
-# The IPTS is currently not read by the live listener
-if 'experiment_identifier' not in run_obj:
-    run_obj['experiment_identifier']='IPTS-0000'
-
 try:
     red = refm.ReductionProcess(data_run=input.getRunNumber(), data_ws = input)
     red.reduce()
