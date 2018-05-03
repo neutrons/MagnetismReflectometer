@@ -168,29 +168,3 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write(u"# %s\n" % data_block)
 
     fd.close()
-
-def compute_resolution(ws, sample_length=10):
-    """
-        Calculate dQ/Q using the slit information.
-        :param workspace ws: reflectivity workspace
-        :param float sample_length: sample length in mm
-    """
-    #TODO: Read the slit distances relative to the sample from the logs once
-    # they are available with the new DAS.
-    slits =[[ws.getRun().getProperty("S1HWidth").getStatistics().mean, 2600.],
-            [ws.getRun().getProperty("S2HWidth").getStatistics().mean, 2019.],
-            [ws.getRun().getProperty("S3HWidth").getStatistics().mean, 714.]]
-    theta = ws.getRun().getProperty("two_theta").value/2.0
-    res=[]
-    s_width=sample_length*math.sin(theta)
-    for width, dist in slits:
-        # Calculate the maximum opening angle dTheta
-        if s_width > 0.:
-            d_theta = math.atan((s_width/2.*(1.+width/s_width))/dist)*2.
-        else:
-            d_theta = math.atan(width/2./dist)*2.
-        # The standard deviation for a uniform angle distribution is delta/sqrt(12)
-        res.append(d_theta*0.28867513)
-
-    dq_over_q = min(res) / math.tan(theta)
-    return dq_over_q
