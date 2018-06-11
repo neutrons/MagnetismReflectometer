@@ -25,7 +25,7 @@ class DirectBeamFinder(object):
             Extract information from the given workspace
             :param workspace scatt_ws: workspace to find a direct beam for
         """
-        self.data_dir = "/SNS/REF_M/%s/data" % experiment
+        self.data_dir = "/SNS/REF_M/%s/nexus" % experiment
         self.ar_dir = "/SNS/REF_M/%s/shared/autoreduce" % experiment
         self.db_dir = "/SNS/REF_M/shared/autoreduce/direct_beams/"
 
@@ -93,37 +93,40 @@ class DirectBeamFinder(object):
                         fd.close()
                         continue
 
-                    run_number = int(ws.getRunNumber())
-                    sangle = ws.getRun().getProperty("SANGLE").getStatistics().mean
-                    dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
-                    dangle0 = ws.getRun().getProperty("DANGLE0").getStatistics().mean
-                    direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
-                    det_distance = ws.getRun().getProperty("SampleDetDis").getStatistics().mean / 1000.0
-                    pixel_width = 0.0007
-
-                    huber_x = ws.getRun().getProperty("HuberX").getStatistics().mean
-                    wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-                    s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
-                    s2 = ws.getRun().getProperty("S2HWidth").getStatistics().mean
-                    s3 = ws.getRun().getProperty("S3HWidth").getStatistics().mean
                     try:
-                        data_info = DataInfo(ws, entry, huber_x_cut=self.huber_x_cut)
-                        peak_pos = data_info.peak_position if data_info.peak_position is not None else direct_beam_pix
-                    except:
-                        data_info = None
-                        peak_pos = direct_beam_pix
-                    theta_d = (dangle - dangle0) / 2.0
-                    theta_d += ((direct_beam_pix - peak_pos) * pixel_width) * 180.0 / math.pi / (2.0 * det_distance)
-
-                    meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle, huber_x=huber_x)
-                    fd = open(summary_path, 'w')
-                    fd.write(json.dumps(meta_data))
-                    fd.close()
-                    if data_info is not None and data_info.data_type == 0:
-                        standard_path = os.path.join(self.db_dir, item+'.json')
-                        fd = open(standard_path, 'w')
+                        run_number = int(ws.getRunNumber())
+                        sangle = ws.getRun().getProperty("SANGLE").getStatistics().mean
+                        dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
+                        dangle0 = ws.getRun().getProperty("DANGLE0").getStatistics().mean
+                        direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
+                        det_distance = ws.getRun().getProperty("SampleDetDis").getStatistics().mean / 1000.0
+                        pixel_width = 0.0007
+    
+                        huber_x = ws.getRun().getProperty("HuberX").getStatistics().mean
+                        wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
+                        s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
+                        s2 = ws.getRun().getProperty("S2HWidth").getStatistics().mean
+                        s3 = ws.getRun().getProperty("S3HWidth").getStatistics().mean
+                        try:
+                            data_info = DataInfo(ws, entry, huber_x_cut=self.huber_x_cut)
+                            peak_pos = data_info.peak_position if data_info.peak_position is not None else direct_beam_pix
+                        except:
+                            data_info = None
+                            peak_pos = direct_beam_pix
+                        theta_d = (dangle - dangle0) / 2.0
+                        theta_d += ((direct_beam_pix - peak_pos) * pixel_width) * 180.0 / math.pi / (2.0 * det_distance)
+    
+                        meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle, huber_x=huber_x)
+                        fd = open(summary_path, 'w')
                         fd.write(json.dumps(meta_data))
                         fd.close()
+                        if data_info is not None and data_info.data_type == 0:
+                            standard_path = os.path.join(self.db_dir, item+'.json')
+                            fd = open(standard_path, 'w')
+                            fd.write(json.dumps(meta_data))
+                            fd.close()
+                    except:
+                        logging.info("Could not process run %s\n %s", run_number, sys.exc_info()[1])
 
     def search_dir(self, db_dir):
         """

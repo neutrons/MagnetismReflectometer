@@ -61,14 +61,17 @@ class Report(object):
         Take the output of the reduction and generate 
         diagnostics plots, and a block of meta data.
     """
-    def __init__(self, ws, data_info, direct_info, reflectivity_ws):
+    def __init__(self, ws, data_info, direct_info, reflectivity_ws, force_plot=True):
+        """
+            :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
+        """
         self.data_info = data_info
         self.direct_info = direct_info
         self.has_reflectivity = reflectivity_ws is not None
         self.plots = []
         self.script = ''
         self.report = ''
-        if self.data_info.data_type >= 0:
+        if force_plot or self.data_info.data_type >= 0:
             self.plots = self.generate_plots(ws)
             self.script = self.generate_script(reflectivity_ws)
             self.report = self.generate_web_report(reflectivity_ws)

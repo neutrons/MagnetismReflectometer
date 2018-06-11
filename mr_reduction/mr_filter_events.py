@@ -39,6 +39,11 @@ def _filter_cross_sections(file_path, events=True, histo=False):
 
     return cross_sections, cross_sections_histo
 
+##########################################################################
+# The following is currently used while FilterEvents is being fixed,     #
+# after which we will use MRFilterCrossSections with the function above. #
+##########################################################################
+
 def save_nxs(ws, pol_state, ana_state, events=True, histo=False):
     """
         Save a polarization state in a nexus file.
@@ -58,11 +63,6 @@ def save_nxs(ws, pol_state, ana_state, events=True, histo=False):
         output_histo_name = "/tmp/filtered_%s_%s_%s.nxs" % (pol_state, ana_state, "histo")
         SaveNexus(InputWorkspace=ws_binned, Filename=output_histo_name, Title='entry_%s_%s' % (pol_state, ana_state))
     return output_events_name, output_histo_name
-
-##########################################################################
-# The following is currently used while FilterEvents is being fixed,     #
-# after which we will use MRFilterCrossSections with the function above. #
-##########################################################################
 
 def filter_analyzer(ws, pol_state='Off', events=True, histo=False):
     """
@@ -104,7 +104,7 @@ def filter_analyzer(ws, pol_state='Off', events=True, histo=False):
         cross_sections_histo['entry-%s_Off' % pol_state] = histo_file
     return cross_sections, cross_sections_histo
 
-def filter_cross_sections(file_path, events=True, histo=False):
+def _filter_cross_sections_old(file_path, events=True, histo=False):
     """
         Filter events according to polarization state.
         :param str file_path: file to read
@@ -143,3 +143,42 @@ def filter_cross_sections(file_path, events=True, histo=False):
         cross_sections_histo.update(xs_histo)
 
     return cross_sections, cross_sections_histo
+
+##########################################################################
+# Filter 'slow log' while commissioning.                                 #
+##########################################################################
+
+def filter_cross_sections(file_path, events=True, histo=False):
+    """
+        Filter events according to an aggregated state log.
+        :param str file_path: file to read
+
+        BL4A:SF:ICP:getDI
+
+        015 (0000 1111): SF1=OFF, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
+        047 (0010 1111): SF1=ON, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
+        031 (0001 1111): SF1=OFF, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
+        063 (0011 1111): SF1=ON, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
+    """
+    state_log = "BL4A:SF:ICP:getDI"
+    states = {'Off_Off': 15,
+              'On_Off': 47,
+              'Off_On': 31,
+              'On_On': 63}
+    cross_sections = {}
+    ws = LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
+
+    for pol_state in states:
+        try:
+            _ws = FilterByLogValue(InputWorkspace=ws, LogName=state_log, TimeTolerance=0.1,
+                                  MinimumValue=states[pol_state],
+                                  MaximumValue=states[pol_state], LogBoundary='Left')
+
+            events_file = "/tmp/filtered_%s_%s.nxs" % (pol_state, "events")
+            SaveNexus(InputWorkspace=_ws, Filename=events_file, Title='entry_%s' % pol_state)
+            cross_sections['entry-%s' % pol_state] = events_file
+        except:
+            logging.error("Could not filter %s: %s", pol_state, sys.exc_info()[1])
+
+    return cross_sections, None
+

@@ -23,7 +23,9 @@ MAPPING_UNPOL=(
     TODO: Use PolarizerLabel and AnalyzerLabel PVs to make sure Off is +
 """
 from __future__ import (absolute_import, division, print_function)
+import sys
 import os
+import logging
 import nxs
 from nxs import NXfield, NXgroup
 import numpy as np
@@ -61,18 +63,27 @@ def translate_entry(raw_event_file, filtered_file, entry_name, histo=True):
         toks = key.split(':')
         if len(toks)>1:
             item_out = "%s_%s" % (toks[-2], toks[-1])
+        # The nxs package doesn't like names with '.' because it treats the tree as an object.
+        item_out = item_out.replace('.', '_')
 
         if not hasattr(nx_object, 'value'):
             continue
         if isinstance(nx_object.value.dtype, str):
             continue
 
-        exec("nx_quick.DASlogs.%s = NXgroup(name='%s', nxclass='NXlog')" % (item_out, item_out))
-        log_value = nx_object.value.nxdata
-        exec("nx_quick.DASlogs.%s.value = NXfield(name='value', dtype='float64', value=log_value)" % item_out)
-        if hasattr(nx_object, 'time'):
-            log_time = nx_object.time.nxdata
-            exec("nx_quick.DASlogs.%s.time = NXfield(name='time', dtype='float64', value=log_time)" % item_out)
+        try:
+            exec("nx_quick.DASlogs.%s = NXgroup(name='%s', nxclass='NXlog')" % (item_out, item_out))
+        except:
+            logging.info("Failed to create entry for %s: %s", key, sys.exc_info()[1])
+            continue
+        try:
+            log_value = nx_object.value.nxdata
+            exec("nx_quick.DASlogs.%s.value = NXfield(name='value', dtype='float64', value=log_value)" % item_out)
+            if hasattr(nx_object, 'time'):
+                log_time = nx_object.time.nxdata
+                exec("nx_quick.DASlogs.%s.time = NXfield(name='time', dtype='float64', value=log_time)" % item_out)
+        except:
+            logging.info("Failed to set value for %s: %s", key, sys.exc_info()[1])
 
     # Proton charge from Mantid is in uAh. In the raw file it's pC.
     nx_quick.proton_charge = NXfield(name='proton_charge', dtype='float64',
@@ -223,34 +234,26 @@ def create_links(nx_quick):
 
     return nx_quick
 
-def translate(raw_event_file, events=True, histo=True, sub_dir=None):
+def translate(raw_event_file, events=True, histo=True, sub_dir=None, force=False):
     """
         Translate an event nexus file
         :param str raw_event_file: name of the event data file to process
+        :param bool force: if True, the file will be processed even if it already exists.
     """
     # Create a filtered file
     xs_event_files, xs_histo_files = mr_filter_events.filter_cross_sections(raw_event_file, events=events, histo=histo)
     print(xs_event_files)
     print(xs_histo_files)
     if events:
-        process(raw_event_file, xs_event_files, histo=False, sub_dir=sub_dir)
+        process(raw_event_file, xs_event_files, histo=False, sub_dir=sub_dir, force=force)
     if histo:
-        process(raw_event_file, xs_histo_files, histo=True, sub_dir=sub_dir)
+        process(raw_event_file, xs_histo_files, histo=True, sub_dir=sub_dir, force=force)
 
-def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifier='quicknxs'):
+def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifier='quicknxs', force=False):
     """
         Process a Nexus file
+        :param bool force: if True, the file will be processed even if it already exists.
     """
-    # Assemble the entries
-    tree = nxs.NXroot()
-    for entry_name, filtered_file in filtered_files.items():
-        if filtered_file is None:
-            continue
-        entry = translate_entry(raw_event_file, filtered_file , entry_name=entry_name, histo=histo)
-        tree.insert(entry)
-
-        if os.path.isfile(filtered_file):
-            os.remove(filtered_file)
 
     # Create a name that QuickNXS will recognize
     if raw_event_file.endswith('_event.nxs'):
@@ -267,8 +270,25 @@ def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifie
     if sub_dir is not None:
         dir_, file_ = os.path.split(output_file)
         output_file = os.path.join(dir_, sub_dir, file_)
+        output_path = os.path.join(dir_, sub_dir)
+        if not os.path.isdir(output_path):
+            os.mkdir(output_path)
 
     if os.path.isfile(output_file):
-        os.remove(output_file)
+        if force:
+            os.remove(output_file)
+        else:
+            return
+
+    # Assemble the entries
+    tree = nxs.NXroot()
+    for entry_name, filtered_file in filtered_files.items():
+        if filtered_file is None:
+            continue
+        entry = translate_entry(raw_event_file, filtered_file , entry_name=entry_name, histo=histo)
+        tree.insert(entry)
+
+        if os.path.isfile(filtered_file):
+            os.remove(filtered_file)
 
     tree.save(output_file)
