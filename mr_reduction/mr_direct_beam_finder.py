@@ -9,7 +9,6 @@ import json
 import math
 import logging
 
-sys.path.insert(0,'/opt/mantidnightly/bin')
 import mantid
 from mantid.simpleapi import *
 
@@ -97,11 +96,8 @@ class DirectBeamFinder(object):
                         run_number = int(ws.getRunNumber())
                         sangle = ws.getRun().getProperty("SANGLE").getStatistics().mean
                         dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
-                        dangle0 = ws.getRun().getProperty("DANGLE0").getStatistics().mean
                         direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
-                        det_distance = ws.getRun().getProperty("SampleDetDis").getStatistics().mean / 1000.0
-                        pixel_width = 0.0007
-    
+
                         huber_x = ws.getRun().getProperty("HuberX").getStatistics().mean
                         wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
                         s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
@@ -113,9 +109,9 @@ class DirectBeamFinder(object):
                         except:
                             data_info = None
                             peak_pos = direct_beam_pix
-                        theta_d = (dangle - dangle0) / 2.0
-                        theta_d += ((direct_beam_pix - peak_pos) * pixel_width) * 180.0 / math.pi / (2.0 * det_distance)
-    
+
+                        theta_d = MRGetTheta(ws, SpecularPixel=peak_pos) * 180.0 / math.pi
+
                         meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle, huber_x=huber_x)
                         fd = open(summary_path, 'w')
                         fd.write(json.dumps(meta_data))
@@ -144,7 +140,6 @@ class DirectBeamFinder(object):
                 if 'invalid' in meta_data.keys():
                     continue
                 run_number = meta_data['run']
-                dangle = meta_data['dangle']
                 theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
                 sangle = meta_data['sangle'] if 'sangle' in meta_data else 0
 
@@ -156,7 +151,6 @@ class DirectBeamFinder(object):
                     huber_x = meta_data['huber_x']
                 else:
                     huber_x = 0
-                #if run_number == run_ or (dangle > self.tolerance and huber_x < 9) :
                 if run_number == self.run or ((theta_d > self.tolerance or sangle > self.tolerance) and huber_x < self.huber_x_cut):
                     continue
                 # If we don't allow runs taken later than the run we are processing...

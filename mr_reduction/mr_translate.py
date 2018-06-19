@@ -1,4 +1,4 @@
-#pylint: disable=line-too-long,unused-variable, exec-used
+#pylint: disable=line-too-long,unused-variable, exec-used, bare-except
 """
     Translator to be used to process filtered event data and produce
     nexus files readable by QuickNXS.
@@ -98,10 +98,10 @@ def translate_entry(raw_event_file, filtered_file, entry_name, histo=True):
     nx_quick.instrument.bank1.origin = NXgroup(name='origin', nxclass='NXGroup')
     nx_quick.instrument.bank1.origin.shape = NXgroup(name='shape', nxclass='NXGroup')
     nx_quick.instrument.bank1.origin.shape.size = NXfield(name='size', value=[0.212800, 0.179200])
-    
+
     nx_quick.experiment_identifier = tree_raw[entry_].experiment_identifier
     nx_quick.run_number = tree_raw[entry_].run_number
-    
+
     nx_quick.SNSproblem_log_geom = NXgroup(name='SNSproblem_log_geom', nxclass='NXGroup')
     nx_quick.SNSproblem_log_geom.data = NXfield(name='data', value='')
 
@@ -136,8 +136,8 @@ def create_histo(tree_processed, nx_quick):
 
     # Data integrated over TOF
     nx_quick.instrument.bank1.data_x_y = NXfield(name='data_x_y', dtype='uint32',
-                                                              attrs=dict(axes='x_pixel_offset,y_pixel_offset', signal=2),
-                                                              value=np.sum(data, axis=2))
+                                                 attrs=dict(axes='x_pixel_offset,y_pixel_offset', signal=2),
+                                                 value=np.sum(data, axis=2))
     # X pixel data (304 x TOF bins)
     nx_quick.instrument.bank1.data_x_time_of_flight = NXfield(name='data_x_time_of_flight', dtype='uint32',
                                                               attrs=dict(axes='x_pixel_offset,time_of_flight', signal=3),
@@ -170,7 +170,7 @@ def create_events(tree_processed, nx_quick):
         event_ids.extend(n_events*[i])
 
     # In the raw SNS nexus file, event_id is a pixel ID
-    if len(event_ids) == 0:
+    if not event_ids:
         nx_quick.bank1_events.event_id =  NXfield(name='event_id', dtype='uint32', value=0)
     else:
         nx_quick.bank1_events.event_id =  NXfield(name='event_id', dtype='uint32', value=event_ids)
@@ -214,7 +214,7 @@ def create_links(nx_quick):
     nx_quick.instrument.aperture1.S1HWidth = nx_quick.DASlogs.S1HWidth
     nx_quick.instrument.aperture2.S2HWidth = nx_quick.DASlogs.S2HWidth
     nx_quick.instrument.aperture3.S3HWidth = nx_quick.DASlogs.S3HWidth
-    
+
     if hasattr(nx_quick.DASlogs, "S1Distance"):
         nx_quick.instrument.aperture1.distance = nx_quick.DASlogs.S1Distance.value
         nx_quick.instrument.aperture2.distance = nx_quick.DASlogs.S2Distance.value

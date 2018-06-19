@@ -35,6 +35,7 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             plot_html += "<td>%s</td>\n" % p
         plot_html += "</tr>\n"
         plot_html += "</table>\n"
+        plot_html += "<hr>\n"
 
     # Send to the web monitor as needed
     if run_number is None and len(report_list)>0:
@@ -67,6 +68,11 @@ class Report(object):
         """
         self.data_info = data_info
         self.direct_info = direct_info
+        self.number_events = 0
+        try:
+            self.cross_section = ws.getRun().getProperty("cross_section_id").value
+        except:
+            self.cross_section = ''
         self.has_reflectivity = reflectivity_ws is not None
         self.plots = []
         self.script = ''
@@ -84,7 +90,8 @@ class Report(object):
         """
         if ws is None:
             meta = "<p>\n<table style='width:80%'>"
-            meta += "<tr><td>Run:</td><td><b>%s</b> (direct beam: %s)</td></td></tr>" % (self.data_info.run_number, self.data_info.is_direct_beam)
+            meta += "<tr><td>Run:</td><td><b>%s</b> [%s] (direct beam: %s)</td></td></tr>" % (self.data_info.run_number, self.cross_section, self.data_info.is_direct_beam)
+            meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
             meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual)
             meta += "<tr><td>Peak range:</td><td>%s - %s</td></td></tr>" % (self.data_info.peak_range[0], self.data_info.peak_range[1])
             meta += "<tr><td>Background:</td><td>%s - %s</td></tr>" % (self.data_info.background[0], self.data_info.background[1])
@@ -109,7 +116,8 @@ class Report(object):
         p_charge = run_object['gd_prtn_chrg'].value
 
         meta = "<p>\n<table style='width:80%'>"
-        meta += "<tr><td>Run:</td><td><b>%s</b></td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value, direct_beam)
+        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value, self.cross_section, direct_beam)
+        meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
         meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual,
                                                                                                       self.direct_info.use_roi, self.direct_info.use_roi_actual)
@@ -136,7 +144,10 @@ class Report(object):
         """
             Generate a Mantid script for the reflectivity reduction
         """
-        script = '# Run:%s    Cross-section: %s\n' % (self.data_info.run_number, self.data_info.cross_section)
+        if ws is None:
+            return ''
+        cross_section = ws.getRun().getProperty("cross_section_id").value
+        script = '# Run:%s    Cross-section: %s\n' % (self.data_info.run_number, cross_section)
         if ws is not None:
             script_text = GeneratePythonScript(ws)
             script += script_text.replace(', ',',\n                                ')
@@ -149,6 +160,12 @@ class Report(object):
         """
             Generate diagnostics plots
         """
+        cross_section = ws.getRun().getProperty("cross_section_id").value
+        self.number_events = ws.getNumberEvents()
+        if self.number_events == 0:
+            logging.warn("No events for workspace %s", str(ws))
+            return []
+
         n_x = int(ws.getInstrument().getNumberParameter("number-of-x-pixels")[0])
         n_y = int(ws.getInstrument().getNumberParameter("number-of-y-pixels")[0])
 
@@ -160,7 +177,7 @@ class Report(object):
         z=np.reshape(signal, (n_x, n_y))
         xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
                           x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
-                          title="r%s [%s]" % (self.data_info.run_number, self.data_info.cross_section))
+                          title="r%s [%s]" % (self.data_info.run_number, cross_section))
 
         # X-TOF plot
         tof_min = ws.getTofMin()
@@ -177,7 +194,7 @@ class Report(object):
         x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
                              x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
                              x_label="TOF (ms)", y_label="X pixel",
-                             title="r%s [%s]" % (self.data_info.run_number, self.data_info.cross_section))
+                             title="r%s [%s]" % (self.data_info.run_number, cross_section))
                              
         # Count per X pixel
         integrated = Integration(direct_summed)
@@ -186,7 +203,7 @@ class Report(object):
         signal_x = range(len(signal_y))
         peak_pixels = _plot1d(signal_x,signal_y, x_range=scatt_peak, bck_range=self.data_info.background,
                               x_label="X pixel", y_label="Counts",
-                              title="r%s [%s]" % (self.data_info.run_number, self.data_info.cross_section))
+                              title="r%s [%s]" % (self.data_info.run_number, cross_section))
 
         # TOF distribution
         ws = SumSpectra(ws)
@@ -194,7 +211,7 @@ class Report(object):
         signal_y = ws.readY(0)
         tof_dist = _plot1d(signal_x,signal_y, x_range=None,
                            x_label="TOF (ms)", y_label="Counts",
-                           title="r%s [%s]" % (self.data_info.run_number, self.data_info.cross_section))
+                           title="r%s [%s]" % (self.data_info.run_number, cross_section))
 
         return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
 

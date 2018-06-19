@@ -19,6 +19,7 @@ from .web_report import Report, process_collection
 from .mr_direct_beam_finder import DirectBeamFinder
 from .dummy_mr_filter_cross_sections import dummy_filter_cross_sections
 
+DIRECT_BEAM_EVTS_MIN = 1000
 
 class ReductionProcess(object):
     """
@@ -105,6 +106,8 @@ class ReductionProcess(object):
         apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
         if direct_info is None:
             direct_info = data_info
+        # Important note: data_info is created from the cross-section with the most
+        # data, so data_info.cross_section indicates which one that was.
         return data_info, direct_info, apply_norm, norm_run
 
     def reduce(self):
@@ -149,6 +152,7 @@ class ReductionProcess(object):
             except:
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_value))
+                raise
 
         # Generate stitched plot
         ref_plot = None
@@ -163,7 +167,7 @@ class ReductionProcess(object):
             logger.error(str(sys.exc_value))
 
         # Generate report and script
-        logging.info("Processing collection of %s reports", len(report_list))
+        logger.notice("Processing collection of %s reports" % len(report_list))
         html_report, script = process_collection(summary_content=ref_plot, report_list=report_list, publish=True, run_number=self.run_number)
 
         try:
@@ -204,7 +208,7 @@ class ReductionProcess(object):
                                  force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
                                  force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
 
-        logger.error("R%s DATA TYPE: %s" % (run_number, data_info.data_type))
+        logger.notice("R%s [%s] DATA TYPE: %s [ref=%s] [%s events]" % (run_number, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents()))
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
             return Report(ws, data_info, data_info, None)
 
@@ -277,7 +281,7 @@ class ReductionProcess(object):
                     ws_direct = LoadEventNexus(Filename="REF_M_%s" % norm_run,
                                                NXentryName=norm_entry,
                                                OutputWorkspace="MR_%s" % norm_run)
-                    if ws_direct.getNumberEvents() > 10000:
+                    if ws_direct.getNumberEvents() > DIRECT_BEAM_EVTS_MIN:
                         logging.info("Found direct beam entry: %s [%s]", norm_run, norm_entry)
                         direct_info = DataInfo(ws_direct, norm_entry,
                                                use_roi=self.use_roi,

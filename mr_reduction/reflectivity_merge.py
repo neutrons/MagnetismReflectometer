@@ -23,6 +23,7 @@ def match_run_for_cross_section(run, ipts, cross_section):
     _previous_q_min = 0
     _previous_q_max = 0
 
+    logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
     matched_runs = []
     for i in range(10):
         i_run = run - i
@@ -32,7 +33,7 @@ def match_run_for_cross_section(run, ipts, cross_section):
                                        comment='#', names=['q','r','dr','dq', 'a'])
             q_min = min(ref_data['q'])
             q_max = max(ref_data['q'])
-            print("%s: [%s %s]" % (i_run, q_min, q_max))
+            logger.notice("%s: [%s %s]" % (i_run, q_min, q_max))
 
             if (q_max < _previous_q_max and q_max > _previous_q_min ) or _previous_q_max == 0:
                 _previous_q_max = q_max
@@ -221,10 +222,10 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
                           x_title=u"Q (1/\u212b)", x_log=True,
                           y_title="Reflectivity", y_log=True, show_dx=False, publish=publish)
         else:
-            print("Nothing to plot")
+            logger.notice("Nothing to plot")
     except:
-        logging.error(str(sys.exc_value))
-        logging.error("No publisher module found")
+        logger.error(str(sys.exc_value))
+        logger.error("No publisher module found")
 
 def combined_curves(run, ipts):
     """

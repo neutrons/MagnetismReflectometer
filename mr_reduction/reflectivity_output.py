@@ -110,12 +110,15 @@ def write_reflectivity(ws_list, output_path, cross_section):
         # It seems to be because that same offset is applied later in the QuickNXS calculation.
         # Correct tth here so that it can load properly in QuickNXS and produce the same result.
         tth = run_object.getProperty("two_theta").value
-        det_distance = run_object['SampleDetDis'].getStatistics().mean / 1000.0
+        det_distance = run_object['SampleDetDis'].getStatistics().mean
+        # Check units
+        if not run_object['SampleDetDis'].units in ['m', 'meter']:
+            det_distance /= 1000.0
         direct_beam_pix = run_object['DIRPIX'].getStatistics().mean
 
         # Get pixel size from instrument properties
-        if ws.getInstrument().hasParameter("pixel_width"):
-            pixel_width = float(ws.getInstrument().getNumberParameter("pixel_width")[0]) / 1000.0
+        if ws.getInstrument().hasParameter("pixel-width"):
+            pixel_width = float(ws.getInstrument().getNumberParameter("pixel-width")[0]) / 1000.0
         else:
             pixel_width = 0.0007
         tth -= ((direct_beam_pix - scatt_pos) * pixel_width) / det_distance * 180.0 / math.pi
