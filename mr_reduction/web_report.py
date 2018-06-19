@@ -1,15 +1,16 @@
-#pylint: disable=bare-except,dangerous-default-value
+#pylint: disable=bare-except,dangerous-default-value, too-many-instance-attributes, too-many-arguments
 """
     Report class sed to populate the web monitor
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-import mantid
-from mantid.simpleapi import *
-import numpy as np
 import logging
+import numpy as np
+
 import plotly.offline as py
 import plotly.graph_objs as go
+
+from mantid.simpleapi import *
 
 
 def process_collection(summary_content=None, report_list=[], publish=True, run_number=None):
@@ -26,19 +27,19 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
     if summary_content is not None:
         plot_html += "<div>%s</div>\n" % summary_content
 
-    for r in report_list:
-        script += r.script
-        plot_html += "<div>%s</div>\n" % r.report
+    for report in report_list:
+        script += report.script
+        plot_html += "<div>%s</div>\n" % report.report
         plot_html += "<table style='width:100%'>\n"
         plot_html += "<tr>\n"
-        for p in r.plots:
-            plot_html += "<td>%s</td>\n" % p
+        for plot in report.plots:
+            plot_html += "<td>%s</td>\n" % plot
         plot_html += "</tr>\n"
         plot_html += "</table>\n"
         plot_html += "<hr>\n"
 
     # Send to the web monitor as needed
-    if run_number is None and len(report_list)>0:
+    if run_number is None and report_list:
         run_number = report_list[0].data_info.run_number
     if publish:
         # Depending on where we run, we might get our publisher from
@@ -59,10 +60,10 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
 
 class Report(object):
     """
-        Take the output of the reduction and generate 
+        Take the output of the reduction and generate
         diagnostics plots, and a block of meta data.
     """
-    def __init__(self, ws, data_info, direct_info, reflectivity_ws, force_plot=True):
+    def __init__(self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True):
         """
             :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
         """
@@ -70,7 +71,7 @@ class Report(object):
         self.direct_info = direct_info
         self.number_events = 0
         try:
-            self.cross_section = ws.getRun().getProperty("cross_section_id").value
+            self.cross_section = workspace.getRun().getProperty("cross_section_id").value
         except:
             self.cross_section = ''
         self.has_reflectivity = reflectivity_ws is not None
@@ -78,19 +79,21 @@ class Report(object):
         self.script = ''
         self.report = ''
         if force_plot or self.data_info.data_type >= 0:
-            self.plots = self.generate_plots(ws)
+            self.plots = self.generate_plots(workspace)
             self.script = self.generate_script(reflectivity_ws)
             self.report = self.generate_web_report(reflectivity_ws)
         else:
             logging.error("Invalid data type for report: %s", self.data_info.data_type)
 
-    def generate_web_report(self, ws):
+    def generate_web_report(self, workspace):
         """
             Generate HTML report
         """
-        if ws is None:
+        if workspace is None:
             meta = "<p>\n<table style='width:80%'>"
-            meta += "<tr><td>Run:</td><td><b>%s</b> [%s] (direct beam: %s)</td></td></tr>" % (self.data_info.run_number, self.cross_section, self.data_info.is_direct_beam)
+            meta += "<tr><td>Run:</td><td><b>%s</b> [%s] (direct beam: %s)</td></td></tr>" % (self.data_info.run_number,
+                                                                                              self.cross_section,
+                                                                                              self.data_info.is_direct_beam)
             meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
             meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual)
             meta += "<tr><td>Peak range:</td><td>%s - %s</td></td></tr>" % (self.data_info.peak_range[0], self.data_info.peak_range[1])
@@ -101,7 +104,7 @@ class Report(object):
             meta += "</table>\n<p>\n"
             return meta
 
-        run_object = ws.getRun()
+        run_object = workspace.getRun()
         constant_q_binning = run_object['constant_q_binning'].value
         sangle = run_object['SANGLE'].getStatistics().mean
         dangle = run_object['DANGLE'].getStatistics().mean
@@ -116,7 +119,8 @@ class Report(object):
         p_charge = run_object['gd_prtn_chrg'].value
 
         meta = "<p>\n<table style='width:80%'>"
-        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value, self.cross_section, direct_beam)
+        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value,
+                                                                                                       self.cross_section, direct_beam)
         meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
         meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual,
@@ -127,64 +131,66 @@ class Report(object):
         meta += "<tr><td>Background:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.background[0], self.data_info.background[1],
                                                                                    self.direct_info.background[0], self.direct_info.background[1])
         meta += "<tr><td>Low-res range:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.low_res_range[0], self.data_info.low_res_range[1],
-                                                                                     self.direct_info.low_res_range[0], self.direct_info.low_res_range[1])
+                                                                                      self.direct_info.low_res_range[0], self.direct_info.low_res_range[1])
         meta += "<tr><td>ROI peak:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.roi_peak[0], self.data_info.roi_peak[1],
                                                                                  self.direct_info.roi_peak[0], self.direct_info.roi_peak[1])
         meta += "<tr><td>ROI bck:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.roi_background[0], self.data_info.roi_background[1],
                                                                                 self.direct_info.roi_background[0], self.direct_info.roi_background[1])
         meta += "</table>\n"
-        
+
         meta += "<p><table style='width:100%'>"
         meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>Huber X</th><th>p-charge [uAh]</th></tr>"
-        meta += "<tr><td>%s</td><td>%s [%s]</td><td>%s</td><td>%s</td><td>%s - %s</td><td>%s</td><td>%s</td></tr>\n" % (theta, dangle, dangle0, sangle, dirpix, lambda_min, lambda_max, huber_x, p_charge)
+        meta += "<tr><td>%s</td><td>%s [%s]</td><td>%s</td><td>%s</td><td>%s - %s</td><td>%s</td><td>%s</td></tr>\n" % (theta, dangle, dangle0,
+                                                                                                                        sangle, dirpix, lambda_min,
+                                                                                                                        lambda_max, huber_x, p_charge)
         meta += "</table>\n<p>\n"
         return meta
 
-    def generate_script(self, ws):
+    def generate_script(self, workspace):
         """
             Generate a Mantid script for the reflectivity reduction
         """
-        if ws is None:
+        if workspace is None:
             return ''
-        cross_section = ws.getRun().getProperty("cross_section_id").value
+        cross_section = workspace.getRun().getProperty("cross_section_id").value
         script = '# Run:%s    Cross-section: %s\n' % (self.data_info.run_number, cross_section)
-        if ws is not None:
-            script_text = GeneratePythonScript(ws)
+        if workspace is not None:
+            script_text = GeneratePythonScript(workspace)
             script += script_text.replace(', ',',\n                                ')
         else:
             script += "#   No data in this cross-section"
         script += '\n'
         return script
 
-    def generate_plots(self, ws):
+    def generate_plots(self, workspace):
         """
             Generate diagnostics plots
         """
-        cross_section = ws.getRun().getProperty("cross_section_id").value
-        self.number_events = ws.getNumberEvents()
+        cross_section = workspace.getRun().getProperty("cross_section_id").value
+        self.number_events = workspace.getNumberEvents()
         if self.number_events == 0:
-            logging.warn("No events for workspace %s", str(ws))
+            logging.warn("No events for workspace %s", str(workspace))
             return []
 
-        n_x = int(ws.getInstrument().getNumberParameter("number-of-x-pixels")[0])
-        n_y = int(ws.getInstrument().getNumberParameter("number-of-y-pixels")[0])
+        n_x = int(workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
+        n_y = int(workspace.getInstrument().getNumberParameter("number-of-y-pixels")[0])
 
         scatt_peak = self.data_info.peak_range
         scatt_low_res = self.data_info.low_res_range
-          
+
         # X-Y plot
-        signal = np.log10(ws.extractY())
+        signal = np.log10(workspace.extractY())
         z=np.reshape(signal, (n_x, n_y))
         xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
                           x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
                           title="r%s [%s]" % (self.data_info.run_number, cross_section))
 
         # X-TOF plot
-        tof_min = ws.getTofMin()
-        tof_max = ws.getTofMax()
-        ws = Rebin(ws, params="%s, 50, %s" % (tof_min, tof_max))
+        tof_min = workspace.getTofMin()
+        tof_max = workspace.getTofMax()
+        workspace = Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
 
-        direct_summed = RefRoi(InputWorkspace=ws, IntegrateY=True,
+        direct_summed = RefRoi(InputWorkspace=workspace, IntegrateY=True,
                                NXPixel=n_x, NYPixel=n_y,
                                ConvertToQ=False, YPixelMin=0, YPixelMax=n_y,
                                OutputWorkspace="direct_summed")
@@ -195,7 +201,7 @@ class Report(object):
                              x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
                              x_label="TOF (ms)", y_label="X pixel",
                              title="r%s [%s]" % (self.data_info.run_number, cross_section))
-                             
+
         # Count per X pixel
         integrated = Integration(direct_summed)
         integrated = Transpose(integrated)
@@ -206,9 +212,9 @@ class Report(object):
                               title="r%s [%s]" % (self.data_info.run_number, cross_section))
 
         # TOF distribution
-        ws = SumSpectra(ws)
-        signal_x = ws.readX(0)/1000.0
-        signal_y = ws.readY(0)
+        workspace = SumSpectra(workspace)
+        signal_x = workspace.readX(0)/1000.0
+        signal_y = workspace.readY(0)
         tof_dist = _plot1d(signal_x,signal_y, x_range=None,
                            x_label="TOF (ms)", y_label="Counts",
                            title="r%s [%s]" % (self.data_info.run_number, cross_section))
@@ -230,10 +236,10 @@ def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", tit
     colorscale=[[0, "rgb(0,0,131)"], [0.125, "rgb(0,60,170)"], [0.375, "rgb(5,255,255)"],
                 [0.625, "rgb(255,255,0)"], [0.875, "rgb(250,0,0)"], [1, "rgb(128,0,0)"]]
 
-    hm = go.Heatmap(x=x, y=y, z=z, autocolorscale=False, type='heatmap', showscale=False,
-                     hoverinfo="none", colorscale=colorscale)
+    heatmap = go.Heatmap(x=x, y=y, z=z, autocolorscale=False, type='heatmap', showscale=False,
+                         hoverinfo="none", colorscale=colorscale)
 
-    data = [hm]
+    data = [heatmap]
     if x_range is not None:
         x_left=go.Scatter(name='', x=[x_range[0], x_range[0]], y=[min(y), max(y)],
                           marker = dict(color = 'rgba(152, 0, 0, .8)',))

@@ -1,15 +1,13 @@
-#pylint: disable=bare-except
+#pylint: disable=bare-except, invalid-name, too-many-nested-blocks, too-many-arguments, too-many-instance-attributes, too-many-locals, too-few-public-methods
 """
     Find a suitable direct beam file for a data set.
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-import os
 import json
 import math
 import logging
 
-import mantid
 from mantid.simpleapi import *
 
 from .data_info import DataInfo

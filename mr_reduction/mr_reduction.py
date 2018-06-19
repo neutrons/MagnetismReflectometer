@@ -1,4 +1,4 @@
-#pylint: disable=bare-except, dangerous-default-value
+#pylint: disable=bare-except, dangerous-default-value, wrong-import-position, wrong-import-order, too-many-arguments, too-many-instance-attributes
 """
     Reduction for MR
 """
@@ -17,7 +17,6 @@ from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
 from .mr_direct_beam_finder import DirectBeamFinder
-from .dummy_mr_filter_cross_sections import dummy_filter_cross_sections
 
 DIRECT_BEAM_EVTS_MIN = 1000
 
@@ -91,16 +90,17 @@ class ReductionProcess(object):
                 n_max_events = n_events
                 i_main = i
 
+        self.ipts = xs_list[i_main].getRun().getProperty("experiment_identifier").value
         entry = xs_list[i_main].getRun().getProperty("cross_section_id").value
         data_info = DataInfo(xs_list[i_main], entry,
-                     use_roi=self.use_roi,
-                     update_peak_range=self.update_peak_range,
-                     use_roi_bck=self.use_roi_bck,
-                     use_tight_bck=self.use_tight_bck,
-                     huber_x_cut=self.huber_x_cut,
-                     bck_offset=self.bck_offset,
-                     force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
-                     force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
+                             use_roi=self.use_roi,
+                             update_peak_range=self.update_peak_range,
+                             use_roi_bck=self.use_roi_bck,
+                             use_tight_bck=self.use_tight_bck,
+                             huber_x_cut=self.huber_x_cut,
+                             bck_offset=self.bck_offset,
+                             force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
+                             force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
 
         # Find direct beam information
         apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
@@ -118,25 +118,15 @@ class ReductionProcess(object):
 
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
-        # For live data, we use a workspace directly. Filtered out logs are
-        # currently saved as zero-length time series but the filtering, which
-        # creates problems when applying several filters in a row.
-        # Use a temporary version until FilterEvents is fixed.
-        if self.data_ws is None:
-            ws = LoadEventNexus(Filename=_filename, OutputWorkspace="raw_events")
-            xs_list = dummy_filter_cross_sections(ws)
-            #xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
-            #                                PolState=self.pol_state,
-            #                                AnaState=self.ana_state,
-            #                                PolVeto=self.pol_veto,
-            #                                AnaVeto=self.ana_veto)
-        else:
-            xs_list = dummy_filter_cross_sections(self.data_ws)
+        _xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
+                                         PolState=self.pol_state,
+                                         AnaState=self.ana_state,
+                                         PolVeto=self.pol_veto,
+                                         AnaVeto=self.ana_veto)
+        xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered']
 
         # Extract data info (find peaks, etc...)
         # Set data_info to None for re-extraction with each cross-section
-
-        self.ipts = ws.getRun().getProperty("experiment_identifier").value
         data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
 
         # Reduce each cross-section
@@ -215,7 +205,7 @@ class ReductionProcess(object):
         # Determine the name of the direct beam workspace as needed
         ws_norm = ''
         if apply_norm and norm_run is not None:
-            ws_norm = CloneWorkspace(InputWorkspace=direct_info.workspace_name)
+            ws_norm = direct_info.workspace_name
 
         MagnetismReflectometryReduction(InputWorkspace=ws,
                                         NormalizationWorkspace=ws_norm,
@@ -247,10 +237,10 @@ class ReductionProcess(object):
         reflectivity = mtd["r_%s_%s" % (run_number, entry)]
         if self.output_dir is None:
             self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
-        write_reflectivity([mtd["r_%s_%s" % (run_number, entry)]],
+        write_reflectivity([reflectivity],
                            os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), entry)
 
-        return Report(ws, data_info, direct_info, mtd["r_%s_%s" % (run_number, entry)])
+        return Report(ws, data_info, direct_info, reflectivity)
 
     def find_direct_beam(self, scatt_ws):
         """

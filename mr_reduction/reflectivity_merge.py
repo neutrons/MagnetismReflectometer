@@ -1,13 +1,12 @@
+#pylint: disable=bare-except, invalid-name, too-many-arguments
 """
     Merging tools for REF_M
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-import os
-import pandas
 import time
+import pandas
 import numpy as np
-import logging
 import mantid
 from mantid.simpleapi import *
 
@@ -54,7 +53,6 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
     direct_beam_count = 0
     run_count = 0
     scaling_factors = [1.0]
-    
 
     for i_run in matched_runs:
         file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, i_run, cross_section)
@@ -66,7 +64,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
             ws = CreateWorkspace(DataX=ref_data['q'], DataY=ref_data['r'], DataE=ref_data['dr'])
             ws = ConvertToHistogram(ws)
             if _previous_ws is not None:
-                ws_, scale = Stitch1D(_previous_ws, ws)
+                _, scale = Stitch1D(_previous_ws, ws)
                 running_scale *= scale
                 scaling_factors.append(running_scale)
             _previous_ws = CloneWorkspace(ws)
@@ -115,7 +113,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
                                                                              running_scale*ref_data['dr'][i],
                                                                              ref_data['dq'][i],
                                                                              ref_data['a'][i],
-                                                                             )
+                                                                            )
 
     return scaling_factors, direct_beam_info, data_info, data_buffer
 
@@ -128,8 +126,7 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
             continue
         data_buffer = ""
 
-        for j in range(len(matched_runs)):
-            i_run = matched_runs[j]
+        for j, i_run in enumerate(matched_runs):
             file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, i_run, xs)
             if os.path.isfile(file_path):
                 _run_info = open(file_path, 'r')
@@ -142,7 +139,7 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
                                                                                  scaling_factors[j]*ref_data['dr'][i],
                                                                                  ref_data['dq'][i],
                                                                                  ref_data['a'][i],
-                                                                                 )
+                                                                                )
 
         data_buffers.append((xs, data_buffer))
     return data_buffers
@@ -187,15 +184,15 @@ def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, dir
     fd.write("# %s\n" % '  '.join(toks))
     fd.write(direct_beam_info)
     fd.write("#\n")
-    fd.write("# [Data Runs]\n") 
+    fd.write("# [Data Runs]\n")
     toks = ['%8s' % item for item in dataset_options]
     fd.write("# %s\n" % '  '.join(toks))
     fd.write(data_info)
-    fd.write("#\n") 
-    fd.write("# [Global Options]\n") 
+    fd.write("#\n")
+    fd.write("# [Global Options]\n")
     fd.write("# name           value\n")
     fd.write("# sample_length  10\n")
-    fd.write("#\n") 
+    fd.write("#\n")
     fd.write("# [Data]\n")
     toks = [u'%12s' % item for item in [u'Qz [1/A]', u'R [a.u.]', u'dR [a.u.]', u'dQz [1/A]', u'theta [rad]']]
     fd.write(u"# %s\n" % '  '.join(toks))
@@ -205,8 +202,7 @@ def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, dir
 def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     data_names = []
     data_list = []
-    for i in range(len(matched_runs)):
-        run = matched_runs[i]
+    for i, run in enumerate(matched_runs):
         for xs in ['Off_Off', 'On_Off', 'Off_On', 'On_On']:
             file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, run, xs)
             if os.path.isfile(file_path):
@@ -217,7 +213,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
 
     try:
         from postprocessing.publish_plot import plot1d
-        if len(data_names) > 0:
+        if data_names:
             return plot1d(matched_runs[-1], data_list, data_names=data_names, instrument='REF_M',
                           x_title=u"Q (1/\u212b)", x_log=True,
                           y_title="Reflectivity", y_log=True, show_dx=False, publish=publish)
@@ -226,13 +222,14 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     except:
         logger.error(str(sys.exc_value))
         logger.error("No publisher module found")
+    return None
 
 def combined_curves(run, ipts):
     """
     """
     # Select the cross section with the best statistics
     high_stat_xs = select_cross_section(run, ipts)
-    
+
     # Match the given run with previous runs if they are overlapping in Q
     matched_runs = match_run_for_cross_section(run, ipts, high_stat_xs)
 
@@ -243,7 +240,7 @@ def combined_curves(run, ipts):
     xs_buffers.append((high_stat_xs, data_buffer))
 
     for item in xs_buffers:
-        if len(item[1]) > 0:
+        if item[1]:
             write_reflectivity_cross_section(matched_runs[0], ipts, item[0], matched_runs,
                                              direct_beam_info, data_info, item[1])
 

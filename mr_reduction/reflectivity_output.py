@@ -1,10 +1,11 @@
+#pylint: disable=too-many-locals, too-many-branches, invalid-name
 """
     Write reflectivity output file
 """
 from __future__ import (absolute_import, division, print_function)
-import mantid
 import math
 import time
+import mantid
 
 
 def write_reflectivity(ws_list, output_path, cross_section):
@@ -12,7 +13,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
         Write out reflectivity output
     """
     # Sanity check
-    if len(ws_list) == 0:
+    if not ws_list:
         return
 
     direct_beam_options=['DB_ID', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
@@ -76,8 +77,8 @@ def write_reflectivity(ws_list, output_path, cross_section):
         fd.write(template.format(**_clean_dict))
 
     # Scattering data
-    fd.write("#\n") 
-    fd.write("# [Data Runs]\n") 
+    fd.write("#\n")
+    fd.write("# [Data Runs]\n")
     toks = ['%8s' % item for item in dataset_options]
     fd.write("# %s\n" % '  '.join(toks))
     i_direct_beam = 0
@@ -160,12 +161,12 @@ def write_reflectivity(ws_list, output_path, cross_section):
                                                                         dx[i],
                                                                         tth)
 
-    fd.write("#\n") 
-    fd.write("# [Global Options]\n") 
+    fd.write("#\n")
+    fd.write("# [Global Options]\n")
     fd.write("# name           value\n")
     fd.write("# sample_length  10\n")
-    fd.write("#\n") 
-    fd.write("# [Data]\n") 
+    fd.write("#\n")
+    fd.write("# [Data]\n")
     toks = [u'%12s' % item for item in [u'Qz [1/A]', u'R [a.u.]', u'dR [a.u.]', u'dQz [1/A]', u'theta [rad]']]
     fd.write(u"# %s\n" % '  '.join(toks))
     fd.write(u"# %s\n" % data_block)

@@ -1,10 +1,9 @@
-#pylint: disable=dangerous-default-value
+#pylint: disable=dangerous-default-value, too-many-instance-attributes, too-many-arguments, too-many-locals, too-few-public-methods
 """
     Meta-data information for MR reduction
 """
 from __future__ import (absolute_import, division, print_function)
-import mantid
-from mantid.simpleapi import *
+import mantid.simpleapi as api
 
 
 class DataInfo(object):
@@ -19,12 +18,12 @@ class DataInfo(object):
                  use_tight_bck=False, bck_offset=3, huber_x_cut=4.95,
                  force_peak_roi=False, peak_roi=[0,0], force_bck_roi=False, bck_roi=[0,0]):
 
-        MRInspectData(Workspace=ws, UseROI=use_roi, UpdatePeakRange=update_peak_range,
-                      UseROIBck=use_roi_bck, UseTightBck=use_tight_bck,
-                      BckWidth=bck_offset, HuberXCut=huber_x_cut,
-                      ForcePeakROI=force_peak_roi, PeakROI=peak_roi,
-                      #ForceLowResPeakROI=False, LowResPeakROI=[0, 0],
-                      ForceBckROI=force_bck_roi, BckROI=bck_roi)
+        api.MRInspectData(Workspace=ws, UseROI=use_roi, UpdatePeakRange=update_peak_range,
+                          UseROIBck=use_roi_bck, UseTightBck=use_tight_bck,
+                          BckWidth=bck_offset, HuberXCut=huber_x_cut,
+                          ForcePeakROI=force_peak_roi, PeakROI=peak_roi,
+                          #ForceLowResPeakROI=False, LowResPeakROI=[0, 0],
+                          ForceBckROI=force_bck_roi, BckROI=bck_roi)
 
         self.cross_section = cross_section
         self.run_number = ws.getRunNumber()
@@ -46,7 +45,7 @@ class DataInfo(object):
         tof_min = run_object.getProperty("tof_range_min").value
         tof_max = run_object.getProperty("tof_range_max").value
         self.tof_range = [tof_min, tof_max]
-        
+
         peak_min = run_object.getProperty("peak_min").value
         peak_max = run_object.getProperty("peak_max").value
         self.peak_range = [peak_min, peak_max]
@@ -55,7 +54,7 @@ class DataInfo(object):
         background_min = run_object.getProperty("background_min").value
         background_max = run_object.getProperty("background_max").value
         self.background = [background_min, background_max]
-        
+
         low_res_min = run_object.getProperty("low_res_min").value
         low_res_max = run_object.getProperty("low_res_max").value
         self.low_res_range = [low_res_min, low_res_max]
