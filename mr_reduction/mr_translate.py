@@ -240,21 +240,21 @@ def translate(raw_event_file, events=True, histo=True, sub_dir=None, force=False
         :param str raw_event_file: name of the event data file to process
         :param bool force: if True, the file will be processed even if it already exists.
     """
-    # Create a filtered file
-    xs_event_files, xs_histo_files = mr_filter_events.filter_cross_sections(raw_event_file, events=events, histo=histo)
-    print(xs_event_files)
-    print(xs_histo_files)
-    if events:
-        process(raw_event_file, xs_event_files, histo=False, sub_dir=sub_dir, force=force)
-    if histo:
-        process(raw_event_file, xs_histo_files, histo=True, sub_dir=sub_dir, force=force)
+    # Determine output file path and whether we need to proceed
+    event_file = check_file(raw_event_file, histo=False, sub_dir=sub_dir, force=force)
+    histo_file = check_file(raw_event_file, histo=True, sub_dir=sub_dir, force=force)
 
-def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifier='quicknxs', force=False):
-    """
-        Process a Nexus file
-        :param bool force: if True, the file will be processed even if it already exists.
-    """
+    # If we need to translate a file, filter out the cross sections first
+    if (events and event_file) or (histo and histo_file):
+        xs_event_files, xs_histo_files = mr_filter_events.filter_cross_sections(raw_event_file, events=events, histo=histo)
 
+    # Write processed files
+    if events and event_file:
+        process(raw_event_file, xs_event_files, histo=False, output_file=event_file)
+    if histo and histo_file:
+        process(raw_event_file, xs_histo_files, histo=True, output_file=histo_file)
+
+def check_file(raw_event_file, histo=True, sub_dir=None, identifier='quicknxs', force=False):
     # Create a name that QuickNXS will recognize
     if raw_event_file.endswith('_event.nxs'):
         if histo:
@@ -278,8 +278,14 @@ def process(raw_event_file, filtered_files, histo=False, sub_dir=None, identifie
         if force:
             os.remove(output_file)
         else:
-            return
+            return None
+    return output_file
 
+def process(raw_event_file, filtered_files, output_file, histo=False):
+    """
+        Process a Nexus file
+        :param bool force: if True, the file will be processed even if it already exists.
+    """
     # Assemble the entries
     tree = nxs.NXroot()
     for entry_name, filtered_file in filtered_files.items():
