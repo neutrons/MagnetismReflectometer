@@ -104,9 +104,13 @@ class ReductionProcess(object):
                              force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
 
         # Find direct beam information
-        apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
-        if direct_info is None:
-            direct_info = data_info
+        norm_run = None
+        direct_info = data_info
+        apply_norm = False
+        if not data_info.is_direct_beam:
+            apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
+            if direct_info is None:
+                direct_info = data_info
         # Important note: data_info is created from the cross-section with the most
         # data, so data_info.cross_section indicates which one that was.
         return data_info, direct_info, apply_norm, norm_run
