@@ -5,8 +5,6 @@ import sys
 import mantid
 import mantid.simpleapi as api
 
-from mr_reduction import settings
-
 
 def filter_GetDI(ws):
     """
@@ -37,12 +35,14 @@ def filter_GetDI(ws):
     return ws_list
 
 def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=False):
-    '''  CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
+    """
+        CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
         run number, or workspace.
-    '''
+    """
     if slow_filter:
         wsg = filter_GetDI(workspace)
     else:
+        from mr_reduction import settings
         wsg = api.MRFilterCrossSections(InputWorkspace=workspace,
                                         PolState=settings.POL_STATE,
                                         AnaState=settings.ANA_STATE,
