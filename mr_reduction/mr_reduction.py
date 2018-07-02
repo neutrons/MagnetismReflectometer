@@ -5,7 +5,6 @@
 from __future__ import (absolute_import, division, print_function)
 import sys
 import os
-import logging
 
 from .settings import MANTID_PATH
 sys.path.insert(0, MANTID_PATH)

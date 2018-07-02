@@ -221,7 +221,7 @@ class Report(object):
 
         return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
 
-def _plot2d(x, y, z, x_range, y_range, x_label="X pixel", y_label="Y pixel", title='', x_bck_range=None, y_bck_range=None):
+def _plot2d(x, y, z, x_range=None, y_range=None, x_label="X pixel", y_label="Y pixel", title='', x_bck_range=None, y_bck_range=None):
     """
         Generate a 2D plot
         :param array x: x-axis values

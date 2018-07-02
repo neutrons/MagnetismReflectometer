@@ -13,7 +13,11 @@ autoreduce: base
 	cp -R autoreduce/*.template $(prefix)/autoreduce
 	cp -R livereduce/*.py $(prefix)/livereduce
 
+test:
+	python test/unit_tests.py
+
 .PHONY: install
 .PHONY: base
 .PHONY: autoreduce
+.PHONY: test
 
