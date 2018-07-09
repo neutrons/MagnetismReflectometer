@@ -7,9 +7,14 @@ from mantid import simpleapi as api
 AR_DIR = "/SNS/REF_M/shared/autoreduce"
 if AR_DIR not in sys.path:
     sys.path.append(AR_DIR)
+LIVE_DIR = "/SNS/REF_M/shared/livereduce"
+if LIVE_DIR not in sys.path:
+    sys.path.append(LIVE_DIR)
 from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d
 from mr_reduction.web_report import _plot2d
+
+import polarization_analysis
 
 def generate_plots(run_number, workspace):
     """
@@ -66,7 +71,62 @@ except:
     run_number = 0
     
 plots = generate_plots(run_number, input)
+info = ''
+try:
+    n_evts = input.getNumberEvents()
+    seq_number = input.getRun()['sequence_number'].value[0]
+    seq_total = input.getRun()['sequence_total'].value[0]
+    info = "<div>Events: %s</div>\n" % n_evts
+    info += "<div>Sequence: %s of %s</div>\n" % (seq_number, seq_total) 
+except:
+    info = "<div>Error: %s</div>\n" % sys.exc_value
+
+pol_info = "<table style='width:100%'>\n"
+try:
+    tof_min = input.getTofMin()
+    tof_max = input.getTofMax()
+    ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max))
+    ws_list, ratio1, ratio2, asym1, labels = polarization_analysis.calculate_ratios(ws, delta_wl=0.05, slow_filter=True)#, roi=[60,110,80,140])
+    pol_info += "<tr><td>Number of polarization states: %s</td></tr>\n" % len(ws_list)
+    if True:
+        if ratio1 is not None:
+            signal_x = ratio1.readX(0)
+            signal_y = ratio1.readY(0)
+            div_r1 = _plot1d(signal_x,signal_y, x_range=None,
+                               x_label="Wavelength", y_label=labels[0],
+                               title="")
+            pol_info += "<td>%s</td>\n" % div_r1
+            pol_info += "</tr>\n"
+        if ratio2 is not None:
+            signal_x = ratio2.readX(0)
+            signal_y = ratio2.readY(0)
+            div_r1 = _plot1d(signal_x,signal_y, x_range=None,
+                               x_label="Wavelength", y_label=labels[1],
+                               title="")
+            pol_info += "<td>%s</td>\n" % div_r1
+            pol_info += "</tr>\n"
+        if asym1 is not None:
+            signal_x = asym1.readX(0)
+            signal_y = asym1.readY(0)
+            div_r1 = _plot1d(signal_x,signal_y, x_range=None,
+                               x_label="Wavelength", y_label=labels[2],
+                               title="")
+            pol_info += "<td>%s</td>\n" % div_r1
+            pol_info += "</tr>\n"
+ 
+    else:
+        pol_info += "<tr>\n"
+        div_r1 = api.SavePlot1D(InputWorkspace=ratio1, OutputType='plotly')
+        pol_info += "<td>%s</td>\n" % div_r1
+        pol_info += "</tr>\n"
+except:
+    pol_info += "<div>Error: %s</div>\n" % sys.exc_value
+pol_info += "</table>\n"
+
+output = input
+
 plot_html = "<div>Live data</div>\n"
+plot_html += info
 plot_html += "<table style='width:100%'>\n"
 plot_html += "<tr>\n"
 for plot in plots:
@@ -74,6 +134,9 @@ for plot in plots:
 plot_html += "</tr>\n"
 plot_html += "</table>\n"
 plot_html += "<hr>\n"
+plot_html += pol_info
+
+
 
 mantid.logger.information('Posting plot of run %s' % run_number)
 try: # version on autoreduce
@@ -82,4 +145,4 @@ except ImportError: # version on instrument computers
     from finddata import publish_plot
 request = publish_plot('REF_M', run_number, files={'file':plot_html})
 mantid.logger.information("post returned %d" % request.status_code)
-return 0
+

@@ -29,12 +29,12 @@ def filter_GetDI(ws):
                                  MinimumValue=states[s], MaximumValue=states[s], LogBoundary='Left')
             ws_list.append('%s%s' % (str(ws), s))
         except:
-            print("Failed for %s %s" % (s, states[s]))
-            print(sys.exc_value)
+            mantid.logger.error("Failed for %s %s" % (s, states[s]))
+            mantid.logger.error(str(sys.exc_value))
 
     return ws_list
 
-def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=False):
+def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=False, normalize=True):
     """
         CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
         run number, or workspace.
@@ -50,19 +50,38 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
                                         AnaVeto=settings.ANA_VETO)
 
     ws_list = []
+    ws_non_zero = []
+    labels = []
     for item in wsg:
-        s = extract_roi(workspace=item, step = delta_wl , roi = roi)
+        if mantid.mtd[item].getNumberEvents() > 0:
+            mantid.logger.notice("Cross-section %s: %s events" % (item, mantid.mtd[item].getNumberEvents()))
+            ws_non_zero.append(item) 
+        s = extract_roi(workspace=item, step=delta_wl , roi=roi, normalize=normalize)
         ws_list.append(s)
+    try:
+        if len(ws_non_zero) == 4:
+            ratio1 = api.Divide(LHSWorkspace=ws_list[1], RHSWorkspace=ws_list[3], OutputWorkspace='r1_'+str(workspace))
+            ratio2 = api.Divide(LHSWorkspace=ws_list[2], RHSWorkspace=ws_list[0], OutputWorkspace='r2_'+str(workspace))
+            sum1 = mantid.mtd[ws_list[2]] - mantid.mtd[ws_list[0]]
+            sum2 = mantid.mtd[ws_list[2]] + mantid.mtd[ws_list[0]]
+            asym1 = api.Divide(LHSWorkspace=sum1, RHSWorkspace=sum2, OutputWorkspace='a2_'+str(workspace))
+            labels = ["On_Off / On_On", "Off_On / Off_Off", "(Off_On - Off_Off) / (Off_On + Off_Off)"]
+        elif len(ws_non_zero) == 2:
+            ratio1 = api.Divide(LHSWorkspace=ws_non_zero[0], RHSWorkspace=ws_non_zero[1], OutputWorkspace='r1_'+str(workspace))
+            ratio2 = None
+            asym1 = None
+            labels = ["Off_Off / On_Off", None, None]
+        else:
+            asym1 = None
+            ratio1 = None
+            ratio2 = None
+            labels = None
+    except:
+        mantid.logger.notice(str(sys.exc_value))
 
-    ratio1 = api.Divide(LHSWorkspace=ws_list[1], RHSWorkspace=ws_list[3], OutputWorkspace='r1_'+str(workspace))
-    ratio2 = api.Divide(LHSWorkspace=ws_list[2], RHSWorkspace=ws_list[0], OutputWorkspace='r2_'+str(workspace))
-    sum1 = mantid.mtd[ws_list[2]] - mantid.mtd[ws_list[0]]
-    sum2 = mantid.mtd[ws_list[2]] + mantid.mtd[ws_list[0]]
-    asym1 = api.Divide(LHSWorkspace=sum1, RHSWorkspace=sum2, OutputWorkspace='a2_'+str(workspace))
+    return ws_non_zero, ratio1, ratio2, asym1, labels
 
-    return ws_list, ratio1, ratio2, asym1
-
-def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
+def extract_roi(workspace, step='0.01', roi=[162,175,112,145], normalize=True):
     """
         Returns a spectrum (Counts/proton charge vs lambda) given a filename
         or run number and the lambda step size and the corner of the ROI.
@@ -72,6 +91,8 @@ def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
         :param list roi: [x_min, x_max, y_min, y_max] pixels
     """
     _workspace = str(workspace)
+    if normalize and mantid.mtd[_workspace].getRun()['gd_prtn_chrg'].value > 0:
+        api.NormaliseByCurrent(InputWorkspace=_workspace, OutputWorkspace=_workspace)
     api.ConvertUnits(InputWorkspace=_workspace, Target='Wavelength', OutputWorkspace=_workspace)
     api.Rebin(InputWorkspace=_workspace, Params=step, OutputWorkspace=_workspace)
     api.RefRoi(InputWorkspace=_workspace, NXPixel=304, NYPixel=256, SumPixels=True,
