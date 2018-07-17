@@ -147,6 +147,8 @@ class ReductionProcess(object):
             except:
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_value))
+                report = Report(ws, data_info, direct_info, None)
+                report_list.append(report)
 
         # Generate stitched plot
         ref_plot = None

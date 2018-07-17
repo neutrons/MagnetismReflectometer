@@ -51,8 +51,9 @@ class DataInfo(object):
         self.peak_range = [peak_min, peak_max]
         self.peak_position = (peak_min+peak_max)/2.0
 
-        background_min = run_object.getProperty("background_min").value
-        background_max = run_object.getProperty("background_max").value
+        background_min = max(1, run_object.getProperty("background_min").value)
+        background_max = max(background_min,
+                             run_object.getProperty("background_max").value)
         self.background = [background_min, background_max]
 
         low_res_min = run_object.getProperty("low_res_min").value
@@ -71,3 +72,13 @@ class DataInfo(object):
         roi_background_min = run_object.getProperty("roi_background_min").value
         roi_background_max = run_object.getProperty("roi_background_max").value
         self.roi_background = [roi_background_min, roi_background_max]
+
+        # Get sequence info if available
+        try:
+            self.sequence_id = run_object.getProperty("sequence_id").value[0]
+            self.sequence_number = run_object.getProperty("sequence_number").value[0]
+            self.sequence_total = run_object.getProperty("sequence_total").value[0]
+        except:
+            self.sequence_id = 'N/A'
+            self.sequence_number = 'N/A'
+            self.sequence_total = 'N/A'

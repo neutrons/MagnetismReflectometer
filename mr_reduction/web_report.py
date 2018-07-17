@@ -94,6 +94,8 @@ class Report(object):
             meta += "<tr><td>Run:</td><td><b>%s</b> [%s] (direct beam: %s)</td></td></tr>" % (self.data_info.run_number,
                                                                                               self.cross_section,
                                                                                               self.data_info.is_direct_beam)
+            if not self.data_info.run_number == self.direct_info.run_number:
+                meta += "<tr><td>Assigned direct beam:</td><td>%s</td></tr>" % self.direct_info.run_number
             meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
             meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual)
             meta += "<tr><td>Peak range:</td><td>%s - %s</td></td></tr>" % (self.data_info.peak_range[0], self.data_info.peak_range[1])
@@ -101,6 +103,9 @@ class Report(object):
             meta += "<tr><td>Low-res range:</td><td>%s - %s</td></tr>" % (self.data_info.low_res_range[0], self.data_info.low_res_range[1])
             meta += "<tr><td>ROI peak:</td><td>%s - %s</td></tr>" % (self.data_info.roi_peak[0], self.data_info.roi_peak[1])
             meta += "<tr><td>ROI bck:</td><td>%s - %s</td></tr>" % (self.data_info.roi_background[0], self.data_info.roi_background[1])
+            meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (self.data_info.sequence_id,
+                                                                        self.data_info.sequence_number,
+                                                                        self.data_info.sequence_total)
             meta += "</table>\n<p>\n"
             return meta
 
@@ -136,6 +141,9 @@ class Report(object):
                                                                                  self.direct_info.roi_peak[0], self.direct_info.roi_peak[1])
         meta += "<tr><td>ROI bck:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.roi_background[0], self.data_info.roi_background[1],
                                                                                 self.direct_info.roi_background[0], self.direct_info.roi_background[1])
+        meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (self.data_info.sequence_id,
+                                                                    self.data_info.sequence_number,
+                                                                    self.data_info.sequence_total)
         meta += "</table>\n"
 
         meta += "<p><table style='width:100%'>"

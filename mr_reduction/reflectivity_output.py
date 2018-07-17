@@ -98,6 +98,12 @@ def write_reflectivity(ws_list, output_path, cross_section):
         # For live data, we might not have a file name
         if 'Filename' in run_object:
             filename = run_object.getProperty("Filename").value
+            # In order to make the file loadable by QuickNXS, we have to change the
+            # file name to the re-processed and legacy-compatible files.
+            # The new QuickNXS can load both.
+            if filename.endswith('nxs.h5'):
+                filename = filename.replace('nexus', 'data')
+                filename = filename.replace('.nxs.h5', '_histo.nxs')
         else:
             filename = "live data"
         constant_q_binning = run_object.getProperty("constant_q_binning").value
