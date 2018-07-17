@@ -16,11 +16,9 @@ from polarization_analysis import calculate_ratios
 class PolarizationAnalysisTest(unittest.TestCase):
     def test_simple_load(self):
         ws=api.LoadEventNexus(Filename="REF_M_29160")
-        _, ratio1, ratio2, asym1, _ = calculate_ratios(ws,
-                                                    delta_wl = 0.05,
-                                                    roi=[156,210,49,170],
-                                                    slow_filter=True,
-                                                    normalize=False)
+        _, ratio1, ratio2, asym1, _ = calculate_ratios(ws, delta_wl = 0.05,
+                                                       roi=[156,210,49,170],
+                                                       slow_filter=True)
 
         y1 = ratio1.readY(0)
         ref = np.loadtxt("test/r1_29160.txt").T

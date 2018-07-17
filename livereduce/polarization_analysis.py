@@ -2,7 +2,6 @@
     Polarization testing code, originally from Tim C.
 """
 import sys
-import numpy as np
 import mantid
 import mantid.simpleapi as api
 import LeftHandSide
@@ -42,7 +41,7 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         run number, or workspace.
     """
     
-    NumberOfOutputs, NamesOfOutputs = LeftHandSide.lhs('both')
+    _, NamesOfOutputs = LeftHandSide.lhs('both')
     
     if slow_filter:
         wsg = filter_GetDI(workspace)
@@ -83,15 +82,11 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
             labels = None
     except:
         mantid.logger.notice(str(sys.exc_value))
-        
-    #api.CloneWorkspace(InputWorkspace="ws_non_zero", OutputWorkspace=NamesOfOutputs[0])
-    api.CloneWorkspace(InputWorkspace=ratio1,      OutputWorkspace=NamesOfOutputs[1])
-    api.CloneWorkspace(InputWorkspace=ratio2,      OutputWorkspace=NamesOfOutputs[2])
-    api.CloneWorkspace(InputWorkspace=asym1,       OutputWorkspace=NamesOfOutputs[3])
-    #api.CloneWorkspace(InputWorkspace="labels",      OutputWorkspace=NamesOfOutputs[4])
 
-    # return ws_non_zero, ratio1, ratio2, asym1, labels
-    #return mantid.mtd[NamesOfOutputs[0]], mantid.mtd[NamesOfOutputs[1]], mantid.mtd[NamesOfOutputs[2]], mantid.mtd[NamesOfOutputs[3]], mantid.mtd[NamesOfOutputs[4]]
+    api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace=NamesOfOutputs[1])
+    api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
+    api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
+
     return ws_non_zero, mantid.mtd[NamesOfOutputs[1]], mantid.mtd[NamesOfOutputs[2]], mantid.mtd[NamesOfOutputs[3]], labels
 
 def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
