@@ -1,5 +1,6 @@
 #pylint: disable=bare-except
 import sys
+import time
 import numpy as np
 import mantid
 from mantid import simpleapi as api
@@ -14,7 +15,11 @@ from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d
 from mr_reduction.web_report import _plot2d
 
-import polarization_analysis
+pol_info = ''
+try:
+    import polarization_analysis
+except:
+    pol_info = "<div>Error: %s</div>\n" % sys.exc_value
 
 def generate_plots(run_number, workspace):
     """
@@ -69,8 +74,14 @@ try:
     run_number = input.getRunNumber()
 except:
     run_number = 0
-    
-plots = generate_plots(run_number, input)
+
+try:
+    plots = generate_plots(run_number, input)
+except:
+    plots = []
+    pol_info += "<div>Error generating plots</div>\n"
+    mantid.logger.error(str(sys.exc_value))
+
 info = ''
 try:
     n_evts = input.getNumberEvents()
@@ -78,10 +89,11 @@ try:
     seq_total = input.getRun()['sequence_total'].value[0]
     info = "<div>Events: %s</div>\n" % n_evts
     info += "<div>Sequence: %s of %s</div>\n" % (seq_number, seq_total) 
+    info += "<div>Report time: %s</div>\n" % time.ctime()
 except:
     info = "<div>Error: %s</div>\n" % sys.exc_value
 
-pol_info = "<table style='width:100%'>\n"
+pol_info += "<table style='width:100%'>\n"
 try:
     tof_min = input.getTofMin()
     tof_max = input.getTofMax()

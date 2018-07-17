@@ -2,8 +2,10 @@
     Polarization testing code, originally from Tim C.
 """
 import sys
+import numpy as np
 import mantid
 import mantid.simpleapi as api
+import LeftHandSide
 
 
 def filter_GetDI(ws):
@@ -29,16 +31,19 @@ def filter_GetDI(ws):
                                  MinimumValue=states[s], MaximumValue=states[s], LogBoundary='Left')
             ws_list.append('%s%s' % (str(ws), s))
         except:
-            mantid.logger.error("Failed for %s %s" % (s, states[s]))
-            mantid.logger.error(str(sys.exc_value))
+            print("Failed for %s %s" % (s, states[s]))
+            print(sys.exc_value)
 
     return ws_list
 
-def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=False, normalize=True):
+def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=False):
     """
         CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
         run number, or workspace.
     """
+    
+    NumberOfOutputs, NamesOfOutputs = LeftHandSide.lhs('both')
+    
     if slow_filter:
         wsg = filter_GetDI(workspace)
     else:
@@ -56,12 +61,12 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         if mantid.mtd[item].getNumberEvents() > 0:
             mantid.logger.notice("Cross-section %s: %s events" % (item, mantid.mtd[item].getNumberEvents()))
             ws_non_zero.append(item) 
-        s = extract_roi(workspace=item, step=delta_wl , roi=roi, normalize=normalize)
+        s = extract_roi(workspace=item, step = delta_wl , roi = roi)
         ws_list.append(s)
     try:
         if len(ws_non_zero) == 4:
-            ratio1 = api.Divide(LHSWorkspace=ws_list[1], RHSWorkspace=ws_list[3], OutputWorkspace='r1_'+str(workspace))
-            ratio2 = api.Divide(LHSWorkspace=ws_list[2], RHSWorkspace=ws_list[0], OutputWorkspace='r2_'+str(workspace))
+            ratio1 = api.Divide(LHSWorkspace=ws_list[0], RHSWorkspace=ws_list[1], OutputWorkspace='r1_'+str(workspace))
+            ratio2 = api.Divide(LHSWorkspace=ws_list[0], RHSWorkspace=ws_list[2], OutputWorkspace='r2_'+str(workspace))
             sum1 = mantid.mtd[ws_list[2]] - mantid.mtd[ws_list[0]]
             sum2 = mantid.mtd[ws_list[2]] + mantid.mtd[ws_list[0]]
             asym1 = api.Divide(LHSWorkspace=sum1, RHSWorkspace=sum2, OutputWorkspace='a2_'+str(workspace))
@@ -78,10 +83,18 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
             labels = None
     except:
         mantid.logger.notice(str(sys.exc_value))
+        
+    #api.CloneWorkspace(InputWorkspace="ws_non_zero", OutputWorkspace=NamesOfOutputs[0])
+    api.CloneWorkspace(InputWorkspace=ratio1,      OutputWorkspace=NamesOfOutputs[1])
+    api.CloneWorkspace(InputWorkspace=ratio2,      OutputWorkspace=NamesOfOutputs[2])
+    api.CloneWorkspace(InputWorkspace=asym1,       OutputWorkspace=NamesOfOutputs[3])
+    #api.CloneWorkspace(InputWorkspace="labels",      OutputWorkspace=NamesOfOutputs[4])
 
-    return ws_non_zero, ratio1, ratio2, asym1, labels
+    # return ws_non_zero, ratio1, ratio2, asym1, labels
+    #return mantid.mtd[NamesOfOutputs[0]], mantid.mtd[NamesOfOutputs[1]], mantid.mtd[NamesOfOutputs[2]], mantid.mtd[NamesOfOutputs[3]], mantid.mtd[NamesOfOutputs[4]]
+    return ws_non_zero, mantid.mtd[NamesOfOutputs[1]], mantid.mtd[NamesOfOutputs[2]], mantid.mtd[NamesOfOutputs[3]], labels
 
-def extract_roi(workspace, step='0.01', roi=[162,175,112,145], normalize=True):
+def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
     """
         Returns a spectrum (Counts/proton charge vs lambda) given a filename
         or run number and the lambda step size and the corner of the ROI.
@@ -91,7 +104,7 @@ def extract_roi(workspace, step='0.01', roi=[162,175,112,145], normalize=True):
         :param list roi: [x_min, x_max, y_min, y_max] pixels
     """
     _workspace = str(workspace)
-    if normalize and mantid.mtd[_workspace].getRun()['gd_prtn_chrg'].value > 0:
+    if mantid.mtd[_workspace].getRun()['gd_prtn_chrg'].value > 0:
         api.NormaliseByCurrent(InputWorkspace=_workspace, OutputWorkspace=_workspace)
     api.ConvertUnits(InputWorkspace=_workspace, Target='Wavelength', OutputWorkspace=_workspace)
     api.Rebin(InputWorkspace=_workspace, Params=step, OutputWorkspace=_workspace)
