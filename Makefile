@@ -6,7 +6,7 @@ all:
 
 install: autoreduce
 
-base: check
+base:
 	cp -R mr_reduction/*.py $(prefix)/autoreduce/mr_reduction
 
 autoreduce: base

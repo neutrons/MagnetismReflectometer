@@ -26,8 +26,9 @@ def write_reflectivity(ws_list, output_path, cross_section):
         pol_state = cross_sections[cross_section]
 
     fd = open(output_path, 'w')
-    fd.write("# Datafile created by QuickNXS 1.0.32\n")
+    fd.write("# Datafile created by QuickNXS 2.0.0\n")
     fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
+    fd.write("# Autoreduced\n")
     fd.write("# Date: %s\n" % time.strftime(u"%Y-%m-%d %H:%M:%S"))
     fd.write("# Type: Specular\n")
     run_list = [str(ws.getRunNumber()) for ws in ws_list]
@@ -54,6 +55,12 @@ def write_reflectivity(ws_list, output_path, cross_section):
         low_res_max = run_object.getProperty("norm_low_res_max").value
         dpix = run_object.getProperty("normalization_dirpix").value
         filename = run_object.getProperty("normalization_file_path").value
+        # In order to make the file loadable by QuickNXS, we have to change the
+        # file name to the re-processed and legacy-compatible files.
+        # The new QuickNXS can load both.
+        if filename.endswith('nxs.h5'):
+            filename = filename.replace('nexus', 'data')
+            filename = filename.replace('.nxs.h5', '_histo.nxs')
 
         item = dict(DB_ID=i_direct_beam, tth=0, P0=0, PN=0,
                     x_pos=(peak_min+peak_max)/2.0,

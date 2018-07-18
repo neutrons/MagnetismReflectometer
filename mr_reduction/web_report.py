@@ -124,7 +124,7 @@ class Report(object):
         p_charge = run_object['gd_prtn_chrg'].value
 
         meta = "<p>\n<table style='width:80%'>"
-        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (run_object['run_number'].value,
+        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (int(run_object['run_number'].value),
                                                                                                        self.cross_section, direct_beam)
         meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
