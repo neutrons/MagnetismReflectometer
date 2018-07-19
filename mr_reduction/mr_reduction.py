@@ -35,7 +35,7 @@ class ReductionProcess(object):
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
                  huber_x_cut=4.95, use_sangle=True, use_roi=True,
                  force_peak_roi=False, peak_roi=[0,0],
-                 force_bck_roi=False, bck_roi=[0,0]):
+                 force_bck_roi=False, bck_roi=[0,0], publish=True):
         """
             The automated reduction is initializable such that most of what we need can be
             changed at initialization time. That way the post-processing framework only
@@ -72,6 +72,9 @@ class ReductionProcess(object):
         self.forced_bck_roi = bck_roi
 
         self.huber_x_cut = huber_x_cut
+
+        self.use_slow_flipper_log = False
+        self.publish = publish
 
         # Script for re-running the reduction
         self.script = ''
@@ -114,6 +117,39 @@ class ReductionProcess(object):
         # data, so data_info.cross_section indicates which one that was.
         return data_info, direct_info, apply_norm, norm_run
 
+    def slow_filter_cross_sections(self, ws):
+        """
+            Filter events according to an aggregated state log.
+            :param str file_path: file to read
+
+            BL4A:SF:ICP:getDI
+
+            015 (0000 1111): SF1=OFF, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
+            047 (0010 1111): SF1=ON, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
+            031 (0001 1111): SF1=OFF, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
+            063 (0011 1111): SF1=ON, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
+        """
+        state_log = "BL4A:SF:ICP:getDI"
+        states = {'Off_Off': 15,
+                  'On_Off': 47,
+                  'Off_On': 31,
+                  'On_On': 63}
+        cross_sections = []
+
+        for pol_state in states:
+            try:
+                _ws = FilterByLogValue(InputWorkspace=ws, LogName=state_log, TimeTolerance=0.1,
+                                       MinimumValue=states[pol_state],
+                                       MaximumValue=states[pol_state], LogBoundary='Left',
+                                       OutputWorkspace='%s_entry-%s' % (ws.getRunNumber(), pol_state))
+                _ws.getRun()['cross_section_id'] = pol_state
+                if _ws.getNumberEvents() > 0:
+                    cross_sections.append(_ws)
+            except:
+                mantid.logger.error("Could not filter %s: %s" % (pol_state, sys.exc_info()[1]))
+
+        return cross_sections
+
     def reduce(self):
         """
             Perform the reduction
@@ -122,11 +158,15 @@ class ReductionProcess(object):
 
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
-        _xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
-                                         PolState=self.pol_state,
-                                         AnaState=self.ana_state,
-                                         PolVeto=self.pol_veto,
-                                         AnaVeto=self.ana_veto)
+        if self.data_ws is not None and self.use_slow_flipper_log:
+            _xs_list = self.slow_filter_cross_sections(self.data_ws)
+        else:
+            _xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
+                                             PolState=self.pol_state,
+                                             AnaState=self.ana_state,
+                                             PolVeto=self.pol_veto,
+                                             AnaVeto=self.ana_veto)
+
         xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered']
 
         # Extract data info (find peaks, etc...)
@@ -164,7 +204,7 @@ class ReductionProcess(object):
 
         # Generate report and script
         logger.notice("Processing collection of %s reports" % len(report_list))
-        html_report, script = process_collection(summary_content=ref_plot, report_list=report_list, publish=True, run_number=self.run_number)
+        html_report, script = process_collection(summary_content=ref_plot, report_list=report_list, publish=self.publish, run_number=self.run_number)
 
         try:
             if self.output_dir is None:

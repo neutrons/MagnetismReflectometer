@@ -96,7 +96,7 @@ class DirectBeamFinder(object):
                         dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
                         direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
 
-                        huber_x = ws.getRun().getProperty("HuberX").getStatistics().mean
+                        huber_x = ws.getRun().getProperty("SampleX").getStatistics().mean
                         wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
                         s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
                         s2 = ws.getRun().getProperty("S2HWidth").getStatistics().mean

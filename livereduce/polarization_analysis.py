@@ -41,7 +41,10 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         run number, or workspace.
     """
     
-    _, NamesOfOutputs = LeftHandSide.lhs('both')
+    try:
+        _, NamesOfOutputs = LeftHandSide.lhs('both')
+    except:
+        NamesOfOutputs = ["ratio1", "ratio2", "asym1"]
     
     if slow_filter:
         wsg = filter_GetDI(workspace)
@@ -84,10 +87,14 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         mantid.logger.notice(str(sys.exc_value))
 
     api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace=NamesOfOutputs[1])
-    api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
-    api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
+    if ratio2 is not None:
+        api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
+        ratio2 = mantid.mtd[NamesOfOutputs[2]]
+    if asym1 is not None:
+        api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
+        asym1 = mantid.mtd[NamesOfOutputs[3]]
 
-    return ws_non_zero, mantid.mtd[NamesOfOutputs[1]], mantid.mtd[NamesOfOutputs[2]], mantid.mtd[NamesOfOutputs[3]], labels
+    return ws_non_zero, mantid.mtd[NamesOfOutputs[1]], ratio2, asym1, labels
 
 def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
     """

@@ -3,6 +3,9 @@
     Meta-data information for MR reduction
 """
 from __future__ import (absolute_import, division, print_function)
+import numpy as np
+import scipy.optimize as opt
+
 import mantid.simpleapi as api
 
 
@@ -20,7 +23,7 @@ class DataInfo(object):
 
         api.MRInspectData(Workspace=ws, UseROI=use_roi, UpdatePeakRange=update_peak_range,
                           UseROIBck=use_roi_bck, UseTightBck=use_tight_bck,
-                          BckWidth=bck_offset, HuberXCut=huber_x_cut,
+                          BckWidth=bck_offset, HuberXCut=100,
                           ForcePeakROI=force_peak_roi, PeakROI=peak_roi,
                           #ForceLowResPeakROI=False, LowResPeakROI=[0, 0],
                           ForceBckROI=force_bck_roi, BckROI=bck_roi)
@@ -31,6 +34,10 @@ class DataInfo(object):
 
         run_object = ws.getRun()
         self.is_direct_beam = run_object.getProperty("is_direct_beam").value.lower()=='true'
+        # We now use SampleX instead of HuberX
+        sample_x = run_object.getProperty("SampleX").value[0]
+        self.is_direct_beam = self.is_direct_beam or sample_x > huber_x_cut
+
         self.data_type = 0 if self.is_direct_beam else 1
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = -1
@@ -82,3 +89,68 @@ class DataInfo(object):
             self.sequence_id = 'N/A'
             self.sequence_number = 'N/A'
             self.sequence_total = 'N/A'
+
+        if np.fabs(peak_max-peak_min)>100:
+            self.peak_range, self.low_res_range, self.background = self.fit_2d_peak(ws, self.roi_peak, self.roi_low_res)
+            self.peak_position = (self.peak_range[0]+self.peak_range[1])/2.0
+
+    def fit_2d_peak(self, workspace, peak=[150, 150], low_res=[100, 250]):
+        n_x = int(workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
+        n_y = int(workspace.getInstrument().getNumberParameter("number-of-y-pixels")[0])
+
+        signal = workspace.extractY()
+        z=np.reshape(signal, (n_x, n_y))
+        x = np.arange(0, n_x)
+        y = np.arange(0, n_y)
+        _x, _y = np.meshgrid(x, y)
+        _x = _x.T
+        _y = _y.T
+
+        code = coord_to_code(_x, _y).ravel()
+        data_to_fit = z.ravel()
+        # Find a rough estimate for the background first
+        step_coef, _ = opt.curve_fit(step, code, data_to_fit, p0=[10,140,0])
+
+        x_center = np.fabs(peak[1]+peak[0])/2.0
+        x_sigma = 10 #np.fabs(peak[1]-peak[0])
+        y_center = np.fabs(low_res[1]+low_res[0])/2.0
+        y_sigma = np.fabs(low_res[1]-low_res[0])
+        #p0 = [np.max(z), step_coef[1], 10, step_coef[1], 50, step_coef[0], step_coef[1], step_coef[2]]
+        p0 = [np.max(z), x_center, x_sigma, y_center, y_sigma, step_coef[0], step_coef[1], step_coef[2]]
+        coef, _ = opt.curve_fit(gauss, code, data_to_fit, p0=p0)
+
+        x_min = int(coef[1]-np.fabs(coef[2]))
+        x_max = int(coef[1]+np.fabs(coef[2]))
+        y_min = int(coef[3]-np.fabs(coef[4]))
+        y_max = int(coef[3]+np.fabs(coef[4]))
+        bck_min = int(max(0.0, x_min-10.0))
+        bck_max = int(min(n_x, x_max+10.0))
+        #bck_min = int(min(n_x, x_max+2.0))
+        #bck_max = int(min(n_x, x_max+10.0))
+        return [x_min, x_max], [y_min, y_max], [bck_min, bck_max]
+
+def coord_to_code(x, y):
+    return 1000*x + y
+def code_to_coord(c):
+    i_x = c/1000
+    i_y = c%1000
+    return i_x, i_y
+
+def step(value, *p):
+    coord = code_to_coord(value)
+    low_bck, cutoff, high_bck = p
+    
+    values = np.zeros(len(value))
+    values[coord[0]<cutoff] = low_bck
+    values[coord[0]>=cutoff] = high_bck
+    return values
+
+def gauss(value, *p):
+    coord = code_to_coord(value)
+    A, mu_x, sigma_x, mu_y, sigma_y, low_bck, cutoff, high_bck = p
+    
+    values = np.zeros(len(value))
+    values[coord[0]<cutoff] = low_bck
+    values[coord[0]>=cutoff] = high_bck
+    values_g = A*np.exp(-(coord[0]-mu_x)**2/(2.*sigma_x**2)-(coord[1]-mu_y)**2/(2.*sigma_y**2))
+    return values+values_g

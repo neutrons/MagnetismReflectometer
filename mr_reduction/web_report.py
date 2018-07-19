@@ -116,7 +116,7 @@ class Report(object):
         lambda_min = run_object['lambda_min'].value
         lambda_max = run_object['lambda_max'].value
         theta = run_object['two_theta'].value / 2
-        huber_x = run_object["HuberX"].getStatistics().mean
+        huber_x = run_object["SampleX"].getStatistics().mean
         direct_beam = run_object["normalization_run"].value
 
         dangle0 = run_object['DANGLE0'].getStatistics().mean
@@ -147,7 +147,7 @@ class Report(object):
         meta += "</table>\n"
 
         meta += "<p><table style='width:100%'>"
-        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>Huber X</th><th>p-charge [uAh]</th></tr>"
+        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>SampleX</th><th>p-charge [uAh]</th></tr>"
         meta += "<tr><td>%s</td><td>%s [%s]</td><td>%s</td><td>%s</td><td>%s - %s</td><td>%s</td><td>%s</td></tr>\n" % (theta, dangle, dangle0,
                                                                                                                         sangle, dirpix, lambda_min,
                                                                                                                         lambda_max, huber_x, p_charge)
@@ -245,7 +245,7 @@ def _plot2d(x, y, z, x_range=None, y_range=None, x_label="X pixel", y_label="Y p
                 [0.625, "rgb(255,255,0)"], [0.875, "rgb(250,0,0)"], [1, "rgb(128,0,0)"]]
 
     heatmap = go.Heatmap(x=x, y=y, z=z, autocolorscale=False, type='heatmap', showscale=False,
-                         hoverinfo="none", colorscale=colorscale)
+                         hoverinfo="x+y+z", colorscale=colorscale)
 
     data = [heatmap]
     if x_range is not None:

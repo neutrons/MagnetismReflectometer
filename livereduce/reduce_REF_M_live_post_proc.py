@@ -135,10 +135,33 @@ except:
     pol_info += "<div>Error: %s</div>\n" % sys.exc_value
 pol_info += "</table>\n"
 
+# Try to reduce the data
+reduction_info = ''
+if False:
+    try:
+        red = refm.ReductionProcess(data_run=None, data_ws=input,
+                                    output_dir=None, use_roi=True,
+                                    huber_x_cut=100.0, publish=False)
+        red.pol_state = "SF1"
+        red.pol_veto = "SF1_Veto"
+        red.ana_state = "SF2"
+        red.ana_veto = "SF2_Veto"
+        red.use_slow_flipper_log = True
+        reduction_info=red.reduce()
+
+        #file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_combined.dat" % (ipts, run, cross_section)
+        #ref_data = pandas.read_csv(file_path,
+        #                           delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
+
+    except:
+        reduction_info += "<div>Could not reduce the data</div>\n"
+        api.logger.error(str(sys.exc_value))
+
 output = input
 
 plot_html = "<div>Live data</div>\n"
 plot_html += info
+plot_html += reduction_info
 plot_html += "<table style='width:100%'>\n"
 plot_html += "<tr>\n"
 for plot in plots:
