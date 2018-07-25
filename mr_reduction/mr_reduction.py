@@ -5,6 +5,7 @@
 from __future__ import (absolute_import, division, print_function)
 import sys
 import os
+import time
 
 from .settings import MANTID_PATH
 sys.path.insert(0, MANTID_PATH)
@@ -33,9 +34,9 @@ class ReductionProcess(object):
 
     def __init__(self, data_run, data_ws=None, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
-                 huber_x_cut=4.95, use_sangle=True, use_roi=True,
+                 use_sangle=True, use_roi=True,
                  force_peak_roi=False, peak_roi=[0,0],
-                 force_bck_roi=False, bck_roi=[0,0], publish=True):
+                 force_bck_roi=False, bck_roi=[0,0], publish=True, debug=False):
         """
             The automated reduction is initializable such that most of what we need can be
             changed at initialization time. That way the post-processing framework only
@@ -71,13 +72,19 @@ class ReductionProcess(object):
         self.force_bck_roi = force_bck_roi
         self.forced_bck_roi = bck_roi
 
-        self.huber_x_cut = huber_x_cut
-
         self.use_slow_flipper_log = False
         self.publish = publish
 
         # Script for re-running the reduction
         self.script = ''
+        self.logfile = None
+        if debug:
+            self.logfile = open("/SNS/REF_M/shared/autoreduce/MR_live.log", 'a')
+
+    def log(self, msg):
+        """ Debug logging """
+        if self.logfile:
+            self.logfile.write(msg+'\n')
 
     def _extract_data_info(self, xs_list):
         """
@@ -100,7 +107,6 @@ class ReductionProcess(object):
                              update_peak_range=self.update_peak_range,
                              use_roi_bck=self.use_roi_bck,
                              use_tight_bck=self.use_tight_bck,
-                             huber_x_cut=self.huber_x_cut,
                              bck_offset=self.bck_offset,
                              force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
                              force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
@@ -154,6 +160,7 @@ class ReductionProcess(object):
         """
             Perform the reduction
         """
+        self.log("\n\n---------- %s" % time.ctime())
         report_list = []
 
         # Load cross-sections
@@ -178,6 +185,7 @@ class ReductionProcess(object):
         for ws in xs_list:
             try:
                 self.run_number = ws.getRunNumber()
+                self.log("\n--- Run %s %s ---\n" % (self.run_number, str(ws)))
                 report = self.reduce_cross_section(self.run_number, ws=ws,
                                                    data_info=data_info,
                                                    apply_norm=apply_norm,
@@ -185,6 +193,7 @@ class ReductionProcess(object):
                                                    direct_info=direct_info)
                 report_list.append(report)
             except:
+                self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_value))
                 report = Report(ws, data_info, direct_info, None)
@@ -197,15 +206,20 @@ class ReductionProcess(object):
 
             ipts_number = self.ipts.split('-')[1]
             matched_runs, scaling_factors = combined_curves(run=int(self.run_number), ipts=ipts_number)
+            self.log("Matched runs: %s" % str(matched_runs))
             ref_plot = plot_combined(matched_runs, scaling_factors, ipts_number, publish=False)
+            self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:
-            logger.error("Could not generate combined curve")
+            self.log("Could not generate combined curve")
             logger.error(str(sys.exc_value))
 
         # Generate report and script
         logger.notice("Processing collection of %s reports" % len(report_list))
-        html_report, script = process_collection(summary_content=ref_plot, report_list=report_list, publish=self.publish, run_number=self.run_number)
-
+        try:
+            html_report, script = process_collection(summary_content=ref_plot, report_list=report_list,
+                                                     publish=self.publish, run_number=self.run_number)
+        except:
+            self.log("Could not process reports %s" % sys.exc_value)
         try:
             if self.output_dir is None:
                 self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
@@ -214,6 +228,8 @@ class ReductionProcess(object):
             fd.close()
         except:
             logger.error("Could not write reduction script: %s" % sys.exc_value)
+
+        self.logfile.close()
         return html_report
 
     def reduce_cross_section(self, run_number, ws, data_info,
@@ -231,9 +247,15 @@ class ReductionProcess(object):
         entry = ws.getRun().getProperty("cross_section_id").value
         self.ipts = ws.getRun().getProperty("experiment_identifier").value
         logger.notice("R%s [%s] DATA TYPE: %s [ref=%s] [%s events]" % (run_number, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents()))
+        self.log("R%s [%s] DATA TYPE: %s [ref=%s] [%s events]" % (run_number,
+                                                                  entry,
+                                                                  data_info.data_type,
+                                                                  data_info.cross_section,
+                                                                  ws.getNumberEvents()))
 
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
-            return Report(ws, data_info, data_info, None)
+            self.log("  - number of events too small: %s < %s" % (ws.getNumberEvents(), self.min_number_events))
+            return Report(ws, data_info, data_info, None, logfile=self.logfile)
 
         # Determine the name of the direct beam workspace as needed
         ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ''
@@ -266,11 +288,13 @@ class ReductionProcess(object):
         reflectivity = mtd["r_%s_%s" % (run_number, entry)]
         if self.output_dir is None:
             self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
+        self.log("  - ready to write: %s" % self.output_dir)
         write_reflectivity([reflectivity],
                            os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), entry)
         SaveNexus(InputWorkspace=reflectivity,
                   Filename=os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.nxs.h5' % (run_number, entry)))
-        return Report(ws, data_info, direct_info, reflectivity)
+        self.log("  - done writing")
+        return Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile)
 
     def find_direct_beam(self, scatt_ws):
         """
@@ -281,7 +305,6 @@ class ReductionProcess(object):
         entry = scatt_ws.getRun().getProperty("cross_section_id").value
         db_finder = DirectBeamFinder(scatt_ws, skip_slits=False,
                                      tolerance=self.tolerance,
-                                     huber_x_cut=self.huber_x_cut,
                                      experiment=self.ipts)
         norm_run = db_finder.search()
         if norm_run is None:
@@ -307,7 +330,6 @@ class ReductionProcess(object):
                                                update_peak_range=self.update_peak_range,
                                                use_roi_bck=self.use_roi_bck,
                                                use_tight_bck=self.use_tight_bck,
-                                               huber_x_cut=self.huber_x_cut,
                                                bck_offset=self.bck_offset)
                         apply_norm = True
                         break

@@ -76,7 +76,8 @@ except:
     run_number = 0
 
 try:
-    plots = generate_plots(run_number, input)
+    plots = []
+    #plots = generate_plots(run_number, input)
 except:
     plots = []
     pol_info += "<div>Error generating plots</div>\n"
@@ -94,10 +95,11 @@ except:
     info = "<div>Error: %s</div>\n" % sys.exc_value
 
 pol_info += "<table style='width:100%'>\n"
+ws = None
 try:
     tof_min = input.getTofMin()
     tof_max = input.getTofMax()
-    ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max))
+    ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
     ws_list, ratio1, ratio2, asym1, labels = polarization_analysis.calculate_ratios(ws, delta_wl=0.05, slow_filter=True)#, roi=[60,110,80,140])
     pol_info += "<tr><td>Number of polarization states: %s</td></tr>\n" % len(ws_list)
     if True:
@@ -137,24 +139,19 @@ pol_info += "</table>\n"
 
 # Try to reduce the data
 reduction_info = ''
-if False:
+if run_number>0 and ws is not None:
     try:
-        red = refm.ReductionProcess(data_run=None, data_ws=input,
-                                    output_dir=None, use_roi=True,
-                                    huber_x_cut=100.0, publish=False)
+        ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
+        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=False, publish=False)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
         red.ana_state = "SF2"
         red.ana_veto = "SF2_Veto"
         red.use_slow_flipper_log = True
         reduction_info=red.reduce()
-
-        #file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_combined.dat" % (ipts, run, cross_section)
-        #ref_data = pandas.read_csv(file_path,
-        #                           delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
-
     except:
         reduction_info += "<div>Could not reduce the data</div>\n"
+        reduction_info += "<div>%s</div>\n" % sys.exc_info()[0]
         api.logger.error(str(sys.exc_value))
 
 output = input

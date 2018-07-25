@@ -17,7 +17,7 @@ class DirectBeamFinder(object):
     """
     """
     def __init__(self, scatt_ws, skip_slits=False, allow_later_runs=False,
-                 tolerance=0.2, huber_x_cut=0, experiment=''):
+                 tolerance=0.2, experiment=''):
         """
             Extract information from the given workspace
             :param workspace scatt_ws: workspace to find a direct beam for
@@ -27,7 +27,6 @@ class DirectBeamFinder(object):
         self.db_dir = "/SNS/REF_M/shared/autoreduce/direct_beams/"
 
         self.tolerance = tolerance
-        self.huber_x_cut = huber_x_cut
         self.skip_slits = skip_slits
         self.allow_later_runs = allow_later_runs
 
@@ -96,21 +95,20 @@ class DirectBeamFinder(object):
                         dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
                         direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
 
-                        huber_x = ws.getRun().getProperty("SampleX").getStatistics().mean
                         wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
                         s1 = ws.getRun().getProperty("S1HWidth").getStatistics().mean
                         s2 = ws.getRun().getProperty("S2HWidth").getStatistics().mean
                         s3 = ws.getRun().getProperty("S3HWidth").getStatistics().mean
                         try:
-                            data_info = DataInfo(ws, entry, huber_x_cut=self.huber_x_cut)
+                            data_info = DataInfo(ws, entry)
                             peak_pos = data_info.peak_position if data_info.peak_position is not None else direct_beam_pix
                         except:
                             data_info = None
                             peak_pos = direct_beam_pix
 
-                        theta_d = MRGetTheta(ws, SpecularPixel=peak_pos) * 180.0 / math.pi
+                        theta_d = MRGetTheta(ws, SpecularPixel=peak_pos, UseSANGLE=False) * 180.0 / math.pi
 
-                        meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle, huber_x=huber_x)
+                        meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle)
                         fd = open(summary_path, 'w')
                         fd.write(json.dumps(meta_data))
                         fd.close()
@@ -139,17 +137,12 @@ class DirectBeamFinder(object):
                     continue
                 run_number = meta_data['run']
                 theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
-                sangle = meta_data['sangle'] if 'sangle' in meta_data else 0
 
                 wl = meta_data['wl']
                 s1 = meta_data['s1']
                 s2 = meta_data['s2']
                 s3 = meta_data['s3']
-                if 'huber_x' in meta_data:
-                    huber_x = meta_data['huber_x']
-                else:
-                    huber_x = 0
-                if run_number == self.run or ((theta_d > self.tolerance or sangle > self.tolerance) and huber_x < self.huber_x_cut):
+                if run_number == self.run or theta_d > self.tolerance:
                     continue
                 # If we don't allow runs taken later than the run we are processing...
                 if not self.allow_later_runs and run_number > self.run:

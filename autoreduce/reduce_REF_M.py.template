@@ -28,7 +28,6 @@ if __name__=="__main__":
         Use SANGLE:       ${use_sangle}
         Use Const-Q:      ${use_const_q}
         Fit peak in roi:  ${fit_peak_in_roi}
-        Huber X cut:      ${direct_huber_cut}
         Use bck ROI:      ${use_roi_bck}
         Force peak:       ${force_peak} [${peak_min}, ${peak_max}]
         Force background: ${force_background} [${bck_min}, ${bck_max}]
@@ -55,7 +54,6 @@ if __name__=="__main__":
                                 output_dir=outdir,
                                 use_sangle=${use_sangle},
                                 const_q_binning=${use_const_q},
-                                huber_x_cut=${direct_huber_cut},
                                 const_q_cutoff=${const_q_cutoff},
                                 update_peak_range=${fit_peak_in_roi},
                                 use_roi=${fit_peak_in_roi},

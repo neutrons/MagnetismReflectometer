@@ -4,7 +4,7 @@
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
-import logging
+import time
 import numpy as np
 
 import plotly.offline as py
@@ -33,7 +33,8 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
         plot_html += "<table style='width:100%'>\n"
         plot_html += "<tr>\n"
         for plot in report.plots:
-            plot_html += "<td>%s</td>\n" % plot
+            if plot is not None:
+                plot_html += "<td>%s</td>\n" % plot
         plot_html += "</tr>\n"
         plot_html += "</table>\n"
         plot_html += "<hr>\n"
@@ -50,10 +51,11 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             _publisher_found = True
         except ImportError: # version on instrument computers
             from finddata import publish_plot
+            _publisher_found = True
         if _publisher_found:
             publish_plot("REF_M", run_number, files={'file': plot_html})
         else:
-            logging.error("Could not publish web report: %s", sys.exc_value)
+            logger.error("Could not publish web report: %s" % sys.exc_value)
 
     return plot_html, script
 
@@ -63,27 +65,43 @@ class Report(object):
         Take the output of the reduction and generate
         diagnostics plots, and a block of meta data.
     """
-    def __init__(self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True):
+    def __init__(self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True, logfile=None):
         """
             :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
         """
         self.data_info = data_info
         self.direct_info = direct_info
-        self.number_events = 0
+        self.logfile = logfile
         try:
             self.cross_section = workspace.getRun().getProperty("cross_section_id").value
+            self.number_events = workspace.getNumberEvents()
         except:
+            self.number_events = 0
             self.cross_section = ''
         self.has_reflectivity = reflectivity_ws is not None
         self.plots = []
         self.script = ''
         self.report = ''
         if force_plot or self.data_info.data_type >= 0:
-            self.plots = self.generate_plots(workspace)
+            self.log("  - writing script [%s %s %s]" % (self.cross_section,
+                                                        self.number_events,
+                                                        self.has_reflectivity))
             self.script = self.generate_script(reflectivity_ws)
             self.report = self.generate_web_report(reflectivity_ws)
+            try:
+                self.plots = self.generate_plots(workspace)
+            except:
+                self.log("Could not generate plots: %s" % sys.exc_info()[0])
+                logger.error("Could not generate plots: %s" % sys.exc_info()[0])
         else:
-            logging.error("Invalid data type for report: %s", self.data_info.data_type)
+            logger.error("Invalid data type for report: %s" % self.data_info.data_type)
+
+        self.log("  - report: %s %s" % (len(self.report), len(self.plots)))
+
+    def log(self, msg):
+        """ Log a message """
+        if self.logfile is not None:
+            self.logfile.write(msg+'\n')
 
     def generate_web_report(self, workspace):
         """
@@ -104,8 +122,8 @@ class Report(object):
             meta += "<tr><td>ROI peak:</td><td>%s - %s</td></tr>" % (self.data_info.roi_peak[0], self.data_info.roi_peak[1])
             meta += "<tr><td>ROI bck:</td><td>%s - %s</td></tr>" % (self.data_info.roi_background[0], self.data_info.roi_background[1])
             meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (self.data_info.sequence_id,
-                                                                        self.data_info.sequence_number,
-                                                                        self.data_info.sequence_total)
+                                                                       self.data_info.sequence_number,
+                                                                       self.data_info.sequence_total)
             meta += "</table>\n<p>\n"
             return meta
 
@@ -116,7 +134,6 @@ class Report(object):
         lambda_min = run_object['lambda_min'].value
         lambda_max = run_object['lambda_max'].value
         theta = run_object['two_theta'].value / 2
-        huber_x = run_object["SampleX"].getStatistics().mean
         direct_beam = run_object["normalization_run"].value
 
         dangle0 = run_object['DANGLE0'].getStatistics().mean
@@ -142,15 +159,16 @@ class Report(object):
         meta += "<tr><td>ROI bck:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (self.data_info.roi_background[0], self.data_info.roi_background[1],
                                                                                 self.direct_info.roi_background[0], self.direct_info.roi_background[1])
         meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (self.data_info.sequence_id,
-                                                                    self.data_info.sequence_number,
-                                                                    self.data_info.sequence_total)
+                                                                   self.data_info.sequence_number,
+                                                                   self.data_info.sequence_total)
+        meta += "<tr><td>Report time:</td><td>%s</td></tr>" % time.ctime()
         meta += "</table>\n"
 
         meta += "<p><table style='width:100%'>"
-        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>SampleX</th><th>p-charge [uAh]</th></tr>"
-        meta += "<tr><td>%s</td><td>%s [%s]</td><td>%s</td><td>%s</td><td>%s - %s</td><td>%s</td><td>%s</td></tr>\n" % (theta, dangle, dangle0,
-                                                                                                                        sangle, dirpix, lambda_min,
-                                                                                                                        lambda_max, huber_x, p_charge)
+        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>p-charge [uAh]</th></tr>"
+        meta += "<tr><td>%6.4g</td><td>%6.4g [%6.4g]</td><td>%6.4g</td><td>%6.4g</td><td>%6.4g - %6.4g</td><td>%6.4g</td></tr>\n" % (theta, dangle, dangle0,
+                                                                                                                                     sangle, dirpix, lambda_min,
+                                                                                                                                     lambda_max, p_charge)
         meta += "</table>\n<p>\n"
         return meta
 
@@ -174,10 +192,10 @@ class Report(object):
         """
             Generate diagnostics plots
         """
+        self.log("  - generating plots [%s]" % self.number_events)
         cross_section = workspace.getRun().getProperty("cross_section_id").value
-        self.number_events = workspace.getNumberEvents()
-        if self.number_events == 0:
-            logging.warn("No events for workspace %s", str(workspace))
+        if self.number_events < 10:
+            logger.notice("No events for workspace %s" % str(workspace))
             return []
 
         n_x = int(workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
@@ -187,45 +205,64 @@ class Report(object):
         scatt_low_res = self.data_info.low_res_range
 
         # X-Y plot
-        signal = np.log10(workspace.extractY())
-        z=np.reshape(signal, (n_x, n_y))
-        xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
-                          x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
-                          title="r%s [%s]" % (self.data_info.run_number, cross_section))
-
-        # X-TOF plot
-        tof_min = workspace.getTofMin()
-        tof_max = workspace.getTofMax()
-        workspace = Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
-
-        direct_summed = RefRoi(InputWorkspace=workspace, IntegrateY=True,
-                               NXPixel=n_x, NYPixel=n_y,
-                               ConvertToQ=False, YPixelMin=0, YPixelMax=n_y,
-                               OutputWorkspace="direct_summed")
-        signal = np.log10(direct_summed.extractY())
-        tof_axis = direct_summed.extractX()[0]/1000.0
-
-        x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
-                             x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
-                             x_label="TOF (ms)", y_label="X pixel",
-                             title="r%s [%s]" % (self.data_info.run_number, cross_section))
-
-        # Count per X pixel
-        integrated = Integration(direct_summed)
-        integrated = Transpose(integrated)
-        signal_y = integrated.readY(0)
-        signal_x = range(len(signal_y))
-        peak_pixels = _plot1d(signal_x,signal_y, x_range=scatt_peak, bck_range=self.data_info.background,
-                              x_label="X pixel", y_label="Counts",
+        xy_plot = None
+        try:
+            #integrated = Integration(workspace)
+            signal = np.log10(workspace.extractY())
+            z=np.reshape(signal, (n_x, n_y))
+            xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
+                              x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
                               title="r%s [%s]" % (self.data_info.run_number, cross_section))
+        except:
+            self.log("  - Could not generate XY plot")
+
+        self.log("  - generating X-TOF plot")
+        # X-TOF plot
+        x_tof_plot = None
+        try:
+            tof_min = workspace.getTofMin()
+            tof_max = workspace.getTofMax()
+            workspace = Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
+    
+            direct_summed = RefRoi(InputWorkspace=workspace, IntegrateY=True,
+                                   NXPixel=n_x, NYPixel=n_y,
+                                   ConvertToQ=False, YPixelMin=0, YPixelMax=n_y,
+                                   OutputWorkspace="direct_summed")
+            signal = np.log10(direct_summed.extractY())
+            tof_axis = direct_summed.extractX()[0]/1000.0
+    
+            x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
+                                 x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
+                                 x_label="TOF (ms)", y_label="X pixel",
+                                 title="r%s [%s]" % (self.data_info.run_number, cross_section))
+        except:
+            self.log("  - Could not generate X-TOF plot")
+
+        self.log("  - generating X count distribution")
+        # Count per X pixel
+        peak_pixels = None
+        try:
+            integrated = Integration(direct_summed)
+            integrated = Transpose(integrated)
+            signal_y = integrated.readY(0)
+            signal_x = range(len(signal_y))
+            peak_pixels = _plot1d(signal_x,signal_y, x_range=scatt_peak, bck_range=self.data_info.background,
+                                  x_label="X pixel", y_label="Counts",
+                                  title="r%s [%s]" % (self.data_info.run_number, cross_section))
+        except:
+            self.log("  - Could not generate X count distribution")
 
         # TOF distribution
-        workspace = SumSpectra(workspace)
-        signal_x = workspace.readX(0)/1000.0
-        signal_y = workspace.readY(0)
-        tof_dist = _plot1d(signal_x,signal_y, x_range=None,
-                           x_label="TOF (ms)", y_label="Counts",
-                           title="r%s [%s]" % (self.data_info.run_number, cross_section))
+        tof_dist = None
+        try:
+            workspace = SumSpectra(workspace)
+            signal_x = workspace.readX(0)/1000.0
+            signal_y = workspace.readY(0)
+            tof_dist = _plot1d(signal_x,signal_y, x_range=None,
+                               x_label="TOF (ms)", y_label="Counts",
+                               title="r%s [%s]" % (self.data_info.run_number, cross_section))
+        except:
+            self.log("  - Could not generate TOF distribution")
 
         return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
 
@@ -354,3 +391,69 @@ def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_rang
 
     fig = go.Figure(data=data, layout=layout)
     return py.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
+
+def plot1d(run_number, data_list, data_names=None, x_title='', y_title='',
+           x_log=False, y_log=False, instrument='', show_dx=True, title = '', publish=True):
+    """
+        Produce a 1D plot in the style of the autoreduction output.
+        The function signature is meant to match the autoreduction publisher.
+        @param data_list: list of traces [ [x1, y1], [x2, y2], ...]
+        @param data_names: name for each trace, for the legend
+    """
+    # Create traces
+    if not isinstance(data_list, list):
+        raise RuntimeError("plot1d: data_list parameter is expected to be a list")
+
+    # Catch the case where the list is in the format [x y]
+    data = []
+    show_legend = False
+    if len(data_list) == 2 and not isinstance(data_list[0], list):
+        label = ''
+        if isinstance(data_names, list) and len(data_names) == 1:
+            label = data_names[0]
+            show_legend = True
+        data = [go.Scatter(name=label, x=data_list[0], y=data_list[1])]
+    else:
+        for i in range(len(data_list)):
+            label = ''
+            if isinstance(data_names, list) and len(data_names) == len(data_list):
+                label = data_names[i]
+                show_legend = True
+            err_x = {}
+            err_y = {}
+            if len(data_list[i]) >= 3:
+                err_y = dict(type='data', array=data_list[i][2], visible=True)
+            if len(data_list[i]) >= 4:
+                err_x = dict(type='data', array=data_list[i][3], visible=True)
+                if show_dx is False:
+                    err_x['thickness'] = 0
+            data.append(go.Scatter(name=label, x=data_list[i][0], y=data_list[i][1],
+                                   error_x=err_x, error_y=err_y))
+
+    x_layout = dict(title=x_title, zeroline=False, exponentformat="power",
+                    showexponent="all", showgrid=True,
+                    showline=True, mirror="all", ticks="inside")
+    if x_log:
+        x_layout['type'] = 'log'
+    y_layout = dict(title=y_title, zeroline=False, exponentformat="power",
+                    showexponent="all", showgrid=True,
+                    showline=True, mirror="all", ticks="inside")
+    if y_log:
+        y_layout['type'] = 'log'
+
+    layout = go.Layout(
+        showlegend=show_legend,
+        autosize=True,
+        width=600,
+        height=400,
+        margin=dict(t=40, b=40, l=80, r=40),
+        hovermode='closest',
+        bargap=0,
+        xaxis=x_layout,
+        yaxis=y_layout,
+        title=title
+    )
+
+    fig = go.Figure(data=data, layout=layout)
+    plot_div = py.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
+    return plot_div

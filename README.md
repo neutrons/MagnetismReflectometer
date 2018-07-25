@@ -15,3 +15,4 @@ the live reduction node.
 # TODO - Mantid:
 - Automate the selection of const-Q binning.
 - Write output algorithm that takes in a group workspace.
+- Use group workspaces as input to the reduction algorithm.

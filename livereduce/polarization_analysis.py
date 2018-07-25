@@ -66,7 +66,7 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         s = extract_roi(workspace=item, step = delta_wl , roi = roi)
         ws_list.append(s)
     try:
-        if len(ws_non_zero) == 4:
+        if len(ws_non_zero) >= 3:
             ratio1 = api.Divide(LHSWorkspace=ws_list[0], RHSWorkspace=ws_list[1], OutputWorkspace='r1_'+str(workspace))
             ratio2 = api.Divide(LHSWorkspace=ws_list[0], RHSWorkspace=ws_list[2], OutputWorkspace='r2_'+str(workspace))
             sum1 = mantid.mtd[ws_list[2]] - mantid.mtd[ws_list[0]]

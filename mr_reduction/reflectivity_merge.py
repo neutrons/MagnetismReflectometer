@@ -212,7 +212,12 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
                 data_names.append("r%s [%s]" % (run, xs))
 
     try:
-        from postprocessing.publish_plot import plot1d
+        # Depending on where we run, we might get our publisher from
+        # different places, or not at all.
+        try: # version on autoreduce
+            from postprocessing.publish_plot import plot1d
+        except ImportError: # version on instrument computers
+            from .web_report import plot1d
         if data_names:
             return plot1d(matched_runs[-1], data_list, data_names=data_names, instrument='REF_M',
                           x_title=u"Q (1/\u212b)", x_log=True,
