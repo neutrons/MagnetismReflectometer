@@ -229,7 +229,8 @@ class ReductionProcess(object):
         except:
             logger.error("Could not write reduction script: %s" % sys.exc_value)
 
-        self.logfile.close()
+        if self.logfile:
+            self.logfile.close()
         return html_report
 
     def reduce_cross_section(self, run_number, ws, data_info,

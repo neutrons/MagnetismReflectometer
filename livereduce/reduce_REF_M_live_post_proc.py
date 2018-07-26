@@ -76,8 +76,8 @@ except:
     run_number = 0
 
 try:
-    plots = []
-    #plots = generate_plots(run_number, input)
+    if run_number == 0:
+        plots = generate_plots(run_number, input)
 except:
     plots = []
     pol_info += "<div>Error generating plots</div>\n"
