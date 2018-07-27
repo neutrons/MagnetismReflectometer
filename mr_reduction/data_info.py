@@ -52,24 +52,29 @@ class DataInfo(object):
         tof_max = run_object.getProperty("tof_range_max").value
         self.tof_range = [tof_min, tof_max]
 
-        peak_min = run_object.getProperty("peak_min").value
-        peak_max = run_object.getProperty("peak_max").value
-        self.peak_range = [peak_min, peak_max]
-        self.peak_position = (peak_min+peak_max)/2.0
-
-        background_min = max(1, run_object.getProperty("background_min").value)
-        background_max = max(background_min,
-                             run_object.getProperty("background_max").value)
-        self.background = [background_min, background_max]
-
-        low_res_min = run_object.getProperty("low_res_min").value
-        low_res_max = run_object.getProperty("low_res_max").value
-        self.low_res_range = [low_res_min, low_res_max]
-
         # Region of interest information
         roi_peak_min = run_object.getProperty("roi_peak_min").value
         roi_peak_max = run_object.getProperty("roi_peak_max").value
         self.roi_peak = [roi_peak_min, roi_peak_max]
+
+        peak_min = run_object.getProperty("peak_min").value
+        peak_max = run_object.getProperty("peak_max").value
+        if self.use_roi and not update_peak_range:
+            peak_min = roi_peak_min
+            peak_max = roi_peak_max
+        self.peak_range = [peak_min, peak_max]
+        self.peak_position = (peak_min+peak_max)/2.0
+
+        #background_min = max(1, run_object.getProperty("background_min").value)
+        #background_max = max(background_min,
+        #                     run_object.getProperty("background_max").value)
+        #self.background = [background_min, background_max]
+        bck_max = min(20, self.peak_position)
+        self.background = [max(0, bck_max-10), bck_max]
+
+        low_res_min = run_object.getProperty("low_res_min").value
+        low_res_max = run_object.getProperty("low_res_max").value
+        self.low_res_range = [low_res_min, low_res_max]
 
         roi_low_res_min = run_object.getProperty("roi_low_res_min").value
         roi_low_res_max = run_object.getProperty("roi_low_res_max").value
@@ -89,7 +94,7 @@ class DataInfo(object):
             self.sequence_number = 'N/A'
             self.sequence_total = 'N/A'
 
-        if not self.use_roi_actual:
+        if False and not self.use_roi_actual:
             try:
                 self.peak_range, self.low_res_range, self.background = fit_2d_peak(ws)
                 self.peak_position = (self.peak_range[0]+self.peak_range[1])/2.0

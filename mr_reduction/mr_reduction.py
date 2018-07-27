@@ -85,6 +85,7 @@ class ReductionProcess(object):
         """ Debug logging """
         if self.logfile:
             self.logfile.write(msg+'\n')
+        logger.notice(msg)
 
     def _extract_data_info(self, xs_list):
         """
@@ -219,6 +220,8 @@ class ReductionProcess(object):
             html_report, script = process_collection(summary_content=ref_plot, report_list=report_list,
                                                      publish=self.publish, run_number=self.run_number)
         except:
+            html_report = ''
+            script = ''
             self.log("Could not process reports %s" % sys.exc_value)
         try:
             if self.output_dir is None:
@@ -255,7 +258,7 @@ class ReductionProcess(object):
                                                                   ws.getNumberEvents()))
 
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
-            self.log("  - number of events too small: %s < %s" % (ws.getNumberEvents(), self.min_number_events))
+            self.log("  - skipping: data type=%s; events: %s [cutoff: %s]" % (data_info.data_type, ws.getNumberEvents(), self.min_number_events))
             return Report(ws, data_info, data_info, None, logfile=self.logfile)
 
         # Determine the name of the direct beam workspace as needed

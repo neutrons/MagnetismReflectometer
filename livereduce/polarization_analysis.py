@@ -60,11 +60,12 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
     ws_non_zero = []
     labels = []
     for item in wsg:
-        if mantid.mtd[item].getNumberEvents() > 0:
+        if mantid.mtd[item].getNumberEvents() > 100:
             mantid.logger.notice("Cross-section %s: %s events" % (item, mantid.mtd[item].getNumberEvents()))
             ws_non_zero.append(item) 
         s = extract_roi(workspace=item, step = delta_wl , roi = roi)
         ws_list.append(s)
+    mantid.logger.notice("Cross-sections found: %s" % len(wsg))
     try:
         if len(ws_non_zero) >= 3:
             ratio1 = api.Divide(LHSWorkspace=ws_list[0], RHSWorkspace=ws_list[1], OutputWorkspace='r1_'+str(workspace))
@@ -86,15 +87,19 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
     except:
         mantid.logger.notice(str(sys.exc_value))
 
-    api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace=NamesOfOutputs[1])
-    if ratio2 is not None:
-        api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
-        ratio2 = mantid.mtd[NamesOfOutputs[2]]
-    if asym1 is not None:
-        api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
-        asym1 = mantid.mtd[NamesOfOutputs[3]]
 
-    return ws_non_zero, mantid.mtd[NamesOfOutputs[1]], ratio2, asym1, labels
+    if NamesOfOutputs:
+        if ratio1 is not None:
+            api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace=NamesOfOutputs[1])
+            ratio1 = mantid.mtd[NamesOfOutputs[1]]
+        if ratio2 is not None:
+            api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
+            ratio2 = mantid.mtd[NamesOfOutputs[2]]
+        if asym1 is not None:
+            api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
+            asym1 = mantid.mtd[NamesOfOutputs[3]]
+
+    return ws_non_zero, ratio1, ratio2, asym1, labels
 
 def extract_roi(workspace, step='0.01', roi=[162,175,112,145]):
     """

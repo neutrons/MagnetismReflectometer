@@ -21,15 +21,18 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
         :param bool publish: if True, the report will be sent to the live data server
         :param int run_number: run number to associate this report with
     """
-    plot_html = ''
+    logger.notice("Processing... %s" % len(report_list))
+    plot_html = '<div></div>'
     script = ''
 
     if summary_content is not None:
         plot_html += "<div>%s</div>\n" % summary_content
 
+    if report_list:
+        plot_html += report_list[0].report
     for report in report_list:
         script += report.script
-        plot_html += "<div>%s</div>\n" % report.report
+        plot_html += "<div>%s</div>\n" % report.cross_section_info
         plot_html += "<table style='width:100%'>\n"
         plot_html += "<tr>\n"
         for plot in report.plots:
@@ -53,7 +56,7 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             from finddata import publish_plot
             _publisher_found = True
         if _publisher_found:
-            publish_plot("REF_M", run_number, files={'file': plot_html})
+            publish_plot("REF_M", run_number, files={'file': str(plot_html)})
         else:
             logger.error("Could not publish web report: %s" % sys.exc_value)
 
@@ -69,6 +72,7 @@ class Report(object):
         """
             :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
         """
+        logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type, str(reflectivity_ws)))
         self.data_info = data_info
         self.direct_info = direct_info
         self.logfile = logfile
@@ -82,12 +86,14 @@ class Report(object):
         self.plots = []
         self.script = ''
         self.report = ''
+        self.cross_section_info = ''
         if force_plot or self.data_info.data_type >= 0:
             self.log("  - writing script [%s %s %s]" % (self.cross_section,
                                                         self.number_events,
                                                         self.has_reflectivity))
             self.script = self.generate_script(reflectivity_ws)
             self.report = self.generate_web_report(reflectivity_ws)
+            self.cross_section_info = self.generate_cross_section_info(reflectivity_ws)
             try:
                 self.plots = self.generate_plots(workspace)
             except:
@@ -102,19 +108,33 @@ class Report(object):
         """ Log a message """
         if self.logfile is not None:
             self.logfile.write(msg+'\n')
+        logger.notice(msg)
+
+    def generate_cross_section_info(self, workspace):
+        self.log("  - generating cross-section report")
+        meta = "<p>\n<table style='width:80%'>"
+        meta += "<tr><td>Cross-section:</td><td><b>%s</b></tr>" % self.cross_section
+        meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
+
+        if workspace:
+            run_object = workspace.getRun()
+            p_charge = run_object['gd_prtn_chrg'].value
+            meta += "<tr><td>p-charge [uAh]:</td><td>%6.4g</td></tr>" % p_charge
+        meta += "</table>\n<p>\n"
+        return meta
 
     def generate_web_report(self, workspace):
         """
             Generate HTML report
         """
+        self.log("  - generating report")
         if workspace is None:
-            meta = "<p>\n<table style='width:80%'>"
-            meta += "<tr><td>Run:</td><td><b>%s</b> [%s] (direct beam: %s)</td></td></tr>" % (self.data_info.run_number,
-                                                                                              self.cross_section,
-                                                                                              self.data_info.is_direct_beam)
+            self.log("  - simple report")
+            meta = "<table style='width:80%'>"
+            meta += "<tr><td>Run:</td><td><b>%s</b> (direct beam: %s)</td></td></tr>" % (self.data_info.run_number,
+                                                                                         self.data_info.is_direct_beam)
             if not self.data_info.run_number == self.direct_info.run_number:
                 meta += "<tr><td>Assigned direct beam:</td><td>%s</td></tr>" % self.direct_info.run_number
-            meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
             meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual)
             meta += "<tr><td>Peak range:</td><td>%s - %s</td></td></tr>" % (self.data_info.peak_range[0], self.data_info.peak_range[1])
             meta += "<tr><td>Background:</td><td>%s - %s</td></tr>" % (self.data_info.background[0], self.data_info.background[1])
@@ -138,12 +158,10 @@ class Report(object):
 
         dangle0 = run_object['DANGLE0'].getStatistics().mean
         dirpix = run_object['DIRPIX'].getStatistics().mean
-        p_charge = run_object['gd_prtn_chrg'].value
 
-        meta = "<p>\n<table style='width:80%'>"
-        meta += "<tr><td>Run:</td><td><b>%s</b> [%s]</td></td><td><b>Direct beam: %s</b></td></tr>" % (int(run_object['run_number'].value),
-                                                                                                       self.cross_section, direct_beam)
-        meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
+        meta = "<table style='width:80%'>"
+        meta += "<tr><td>Run:</td><td><b>%s</b> </td></td><td><b>Direct beam: %s</b></td></tr>" % (int(run_object['run_number'].value),
+                                                                                                   direct_beam)
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
         meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td><td>req=%s, actual=%s</td></tr>" % (self.data_info.use_roi, self.data_info.use_roi_actual,
                                                                                                       self.direct_info.use_roi, self.direct_info.use_roi_actual)
@@ -165,10 +183,10 @@ class Report(object):
         meta += "</table>\n"
 
         meta += "<p><table style='width:100%'>"
-        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th><th>p-charge [uAh]</th></tr>"
-        meta += "<tr><td>%6.4g</td><td>%6.4g [%6.4g]</td><td>%6.4g</td><td>%6.4g</td><td>%6.4g - %6.4g</td><td>%6.4g</td></tr>\n" % (theta, dangle, dangle0,
-                                                                                                                                     sangle, dirpix, lambda_min,
-                                                                                                                                     lambda_max, p_charge)
+        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th></tr>"
+        meta += "<tr><td>%6.4g</td><td>%6.4g [%6.4g]</td><td>%6.4g</td><td>%6.4g</td><td>%6.4g - %6.4g</td></tr>\n" % (theta, dangle, dangle0,
+                                                                                                                       sangle, dirpix, lambda_min,
+                                                                                                                       lambda_max)
         meta += "</table>\n<p>\n"
         return meta
 
@@ -188,9 +206,10 @@ class Report(object):
         script += '\n'
         return script
 
-    def generate_plots(self, workspace):
+    def generate_plots(self, workspace, plot_2d=False):
         """
             Generate diagnostics plots
+            :param bool plot_2d: produce 2D plots
         """
         self.log("  - generating plots [%s]" % self.number_events)
         cross_section = workspace.getRun().getProperty("cross_section_id").value
@@ -206,15 +225,16 @@ class Report(object):
 
         # X-Y plot
         xy_plot = None
-        try:
-            #integrated = Integration(workspace)
-            signal = np.log10(workspace.extractY())
-            z=np.reshape(signal, (n_x, n_y))
-            xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
-                              x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
-                              title="r%s [%s]" % (self.data_info.run_number, cross_section))
-        except:
-            self.log("  - Could not generate XY plot")
+        if plot_2d:
+            try:
+                #integrated = Integration(workspace)
+                signal = np.log10(workspace.extractY())
+                z=np.reshape(signal, (n_x, n_y))
+                xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
+                                  x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
+                                  title="r%s [%s]" % (self.data_info.run_number, cross_section))
+            except:
+                self.log("  - Could not generate XY plot")
 
         self.log("  - generating X-TOF plot")
         # X-TOF plot
@@ -230,11 +250,12 @@ class Report(object):
                                    OutputWorkspace="direct_summed")
             signal = np.log10(direct_summed.extractY())
             tof_axis = direct_summed.extractX()[0]/1000.0
-    
-            x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
-                                 x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
-                                 x_label="TOF (ms)", y_label="X pixel",
-                                 title="r%s [%s]" % (self.data_info.run_number, cross_section))
+
+            if plot_2d:
+                x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
+                                     x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
+                                     x_label="TOF (ms)", y_label="X pixel",
+                                     title="r%s [%s]" % (self.data_info.run_number, cross_section))
         except:
             self.log("  - Could not generate X-TOF plot")
 

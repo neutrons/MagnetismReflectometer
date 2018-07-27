@@ -76,8 +76,7 @@ except:
     run_number = 0
 
 try:
-    if run_number == 0:
-        plots = generate_plots(run_number, input)
+    plots = generate_plots(run_number, input)
 except:
     plots = []
     pol_info += "<div>Error generating plots</div>\n"
@@ -142,7 +141,8 @@ reduction_info = ''
 if run_number>0 and ws is not None:
     try:
         ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
-        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=False, publish=False)
+        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=True,
+                                    update_peak_range=True, publish=False, debug=True)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
         red.ana_state = "SF2"
