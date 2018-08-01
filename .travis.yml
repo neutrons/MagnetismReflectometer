@@ -10,8 +10,10 @@ before_install:
   - hash -r
   - conda update --yes conda
   - conda info -a
-  - conda install --yes python=2.7 $NUMPYSPEC scipy pylint mantid
+  - conda install --yes python=2.7 numpy scipy pylint mantid
+  - conda install -c mantid mantid-framework
   - pip install --upgrade codecov
+
 script:
   - make test
   - cd /tmp/app; coverage run  manage.py test
