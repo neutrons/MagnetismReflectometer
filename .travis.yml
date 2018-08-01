@@ -17,7 +17,6 @@ before_install:
   - pip install --upgrade codecov
 
 script:
-  - make test
-  - cd /tmp/app; coverage run  manage.py test
+  - coverage run make test
 after_success:
   - codecov
