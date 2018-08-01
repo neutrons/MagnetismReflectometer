@@ -31,6 +31,7 @@ from nxs import NXfield, NXgroup
 import numpy as np
 from . import mr_filter_events
 
+nxs.setmemory(1000)
 
 def translate_entry(raw_event_file, filtered_file, entry_name, histo=True):
     """

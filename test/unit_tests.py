@@ -11,6 +11,7 @@ import numpy as np
 
 import polarization_analysis
 from polarization_analysis import calculate_ratios
+from mr_reduction.data_info import Fitter
 
 
 class PolarizationAnalysisTest(unittest.TestCase):
@@ -34,6 +35,22 @@ class PolarizationAnalysisTest(unittest.TestCase):
         ref = np.loadtxt("test/a2_29160.txt").T
         diff = (y1-ref[1])**2/ref[2]**2
         self.assertTrue(np.sum(diff)/(len(y1)+1.0) < 0.5)
+
+class FindPeaks(unittest.TestCase):
+    def test_peaks(self):
+        """
+            REF_M_24949_event.nxs.md5: 214df921d4fa70ff5a33c4eb6f8284ad
+            http://198.74.56.37/ftp/external-data/md5/%(hash)
+        """
+        ws=api.LoadEventNexus(Filename='REF_M_24949', OutputWorkspace='REF_M_24949')
+        fitter = Fitter(ws, prepare_plot_data=True)
+        x, y = fitter.fit_2d_peak()
+        print(x)
+        print(y)
+        self.assertTrue(x[0]==116)
+        self.assertTrue(x[1]==136)
+        self.assertTrue(y[0]==23)
+        self.assertTrue(y[1]==223)
 
 if __name__ == '__main__':
     unittest.main()
