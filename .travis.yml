@@ -19,6 +19,6 @@ before_install:
   - ls -ltr
 script:
   - make test
-  #- coverage run make test
+  - coverage run test/unit_tests.py
 after_success:
   - codecov
