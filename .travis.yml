@@ -13,7 +13,7 @@ before_install:
   - conda install --yes python=2.7 numpy scipy pylint
   - conda config --add channels conda-forge
   - conda config --add channels mantid
-  - conda install -c mantid mantid-framework
+  - conda install --yes -c mantid mantid-framework
   - pip install --upgrade codecov
 
 script:
