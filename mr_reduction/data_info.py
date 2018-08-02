@@ -133,6 +133,7 @@ class Fitter(object):
         self.workspace = workspace
         self.prepare_plot_data = prepare_plot_data
         self._prepare_data()
+        api.logger.notice("Numpy version: %s" % np.__version__)
 
     def _prepare_data(self):
         """
