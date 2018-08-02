@@ -20,5 +20,4 @@ before_install:
   - ls -ltr
 script:
   - coverage run test/unit_tests.py || exit 0
-after_success:
   - codecov
