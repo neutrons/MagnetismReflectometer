@@ -412,6 +412,7 @@ class Fitter(object):
             api.logger.notice("Could not fit G+L")
             lorentz_coef = p0
 
+        api.logger.notice("G+L params: %s" % str(lorentz_coef))
         # Keep track of the result
         theory = self.gaussian_and_fixed_lorentzian(self.coded_pixels, *lorentz_coef)
         theory = np.reshape(theory, (self.n_x, self.n_y))

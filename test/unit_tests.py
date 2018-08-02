@@ -16,6 +16,9 @@ from mr_reduction.data_info import Fitter
 
 class PolarizationAnalysisTest(unittest.TestCase):
     def test_simple_load(self):
+        """
+        REF_M_29160.nxs.h5: 58d6698e1d6bf98e0315687cb980d333
+        """
         ws=api.LoadEventNexus(Filename="REF_M_29160")
         _, ratio1, ratio2, asym1, _ = calculate_ratios(ws, delta_wl = 0.05,
                                                        roi=[156,210,49,170],
@@ -45,8 +48,7 @@ class FindPeaks(unittest.TestCase):
         ws=api.LoadEventNexus(Filename='REF_M_24949', OutputWorkspace='REF_M_24949')
         fitter = Fitter(ws, prepare_plot_data=True)
         x, y = fitter.fit_2d_peak()
-        print(x)
-        print(y)
+        api.logger.notice("Found: %s %s" % (str(x), str(y)))
         self.assertTrue(x[0]==116)
         self.assertTrue(x[1]==136)
         self.assertTrue(y[0]==23)
