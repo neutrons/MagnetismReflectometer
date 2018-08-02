@@ -1,3 +1,6 @@
+[![TRAVISCI](https://travis-ci.org/mdoucet/MagnetismReflectometer.svg?branch=master)](https://travis-ci.org/mdoucet/MagnetismReflectometer)
+[![codecov](https://codecov.io/gh/mdoucet/MagnetismReflectometer/branch/master/graph/badge.svg)](https://codecov.io/gh/mdoucet/MagnetismReflectometer)
+
 # MR automated reduction
 Automated reduction code based on Mantid.
 
@@ -8,11 +11,3 @@ Automated reduction code based on Mantid.
 # Configuration
 The configuration file under `livereduce/livereduce.conf` needs to be place under `/etc` on
 the live reduction node.
-
-# TODO:
-- Use polarizer/analyzer labels to make sure Off is always +.
-
-# TODO - Mantid:
-- Automate the selection of const-Q binning.
-- Write output algorithm that takes in a group workspace.
-- Use group workspaces as input to the reduction algorithm.
