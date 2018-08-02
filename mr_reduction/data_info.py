@@ -185,7 +185,7 @@ class Fitter(object):
             Select are region of interest and prepare the data for fitting.
             :param region: Length 2 list of min/max pixels defining the ROI
         """
-        _roi = [x_i>region[0] and x_i<=region[1] for x_i in self.x]
+        _roi = np.asarray([x_i>region[0] and x_i<=region[1] for x_i in self.x])
         x_roi = self.x[_roi]
         z_roi = self.z[_roi]
 
