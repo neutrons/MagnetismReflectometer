@@ -12,6 +12,7 @@ import numpy as np
 import polarization_analysis
 from polarization_analysis import calculate_ratios
 from mr_reduction.data_info import Fitter
+import mr_reduction.mr_reduction as mr
 
 
 class PolarizationAnalysisTest(unittest.TestCase):
@@ -53,5 +54,13 @@ class FindPeaks(unittest.TestCase):
         self.assertGreater(center_x, 120)
         self.assertLess(center_x, 130)
 
+class TestReduction(unittest.TestCase):
+    def test_reduce(self):
+        processor = mr.ReductionProcess(data_run='REF_M_29160', output_dir='.')
+        processor.pol_state = 'SF1'
+        processor.ana_state = 'SF2'
+        processor.pol_veto = ''
+        processor.ana_veto = ''
+        processor.reduce()
 if __name__ == '__main__':
     unittest.main()

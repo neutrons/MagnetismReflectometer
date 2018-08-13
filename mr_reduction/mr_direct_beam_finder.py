@@ -107,6 +107,12 @@ class DirectBeamFinder(object):
                             peak_pos = direct_beam_pix
 
                         theta_d = MRGetTheta(ws, SpecularPixel=peak_pos, UseSANGLE=False) * 180.0 / math.pi
+                        try:
+                            data_type = ws.getRun().getProperty("data_type").value[0]
+                            if data_type == 1:
+                                theta_d = 0
+                        except:
+                            logging.info("Not data type information")
 
                         meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle)
                         fd = open(summary_path, 'w')

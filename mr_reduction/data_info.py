@@ -31,9 +31,13 @@ class DataInfo(object):
         self.workspace_name = str(ws)
 
         run_object = ws.getRun()
-        self.is_direct_beam = run_object.getProperty("is_direct_beam").value.lower()=='true'
+        try:
+            self.is_direct_beam = run_object.getProperty("data_type").value[0] == 1
+            self.data_type = 0 if self.is_direct_beam else 1
+        except:
+            self.is_direct_beam = False
+            self.data_type = 1
 
-        self.data_type = 0 if self.is_direct_beam else 1
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = -1
 
@@ -58,6 +62,12 @@ class DataInfo(object):
             fitter = Fitter(ws, True)
             [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak()
             api.logger.notice("New peak: %s %s" % (peak_min, peak_max))
+            if np.abs(peak_max-peak_min)<=1:
+                    peak_min = peak_min-2
+                    peak_max = peak_max+2
+            if np.abs(low_res_min-low_res_max)<=50:
+                low_res_min = run_object.getProperty("low_res_min").value
+                low_res_max = run_object.getProperty("low_res_max").value
         else:
             peak_min = run_object.getProperty("peak_min").value
             peak_max = run_object.getProperty("peak_max").value
@@ -367,7 +377,7 @@ class Fitter(object):
                                             self.data_to_fit, p0=p0,
                                             sigma=self.data_to_fit_err)
         except:
-            api.logger.notice("Could not fit simple Gaussian")
+            api.logger.notice("Could not fit Lorentzian")
             lorentz_coef = p0
 
         # Keep track of the result
@@ -425,13 +435,15 @@ class Fitter(object):
         if _chi2 > self.guess_chi2:
             api.logger.notice("Fitting with two peaks resulted in a larger chi^2: %g > %g" % (_chi2, self.guess_chi2))
 
-        # Fitting a Gaussian tends to give a narrower peak than we
-        # really need, so we're multiplying the width by two.
-        self.guess_x = lorentz_coef[1]
-        self.guess_wx = 2.0 * lorentz_coef[2]
-        self.guess_y = lorentz_coef[3]
-        self.guess_wy = 2.0 * lorentz_coef[4]
-        self.guess_chi2 = _chi2
+        # Unless we have a crazy peak
+        if lorentz_coef[1] > self.peaks[0]-10 and lorentz_coef[1] < self.peaks[0]+10:
+            # Fitting a Gaussian tends to give a narrower peak than we
+            # really need, so we're multiplying the width by two.
+            self.guess_x = lorentz_coef[1]
+            self.guess_wx = 2.0 * lorentz_coef[2]
+            self.guess_y = lorentz_coef[3]
+            self.guess_wy = 2.0 * lorentz_coef[4]
+            self.guess_chi2 = _chi2
 
         if self.prepare_plot_data:
             th_x = np.sum(theory, 1)
@@ -457,7 +469,7 @@ class Fitter(object):
 
         if len(self.peaks) > 1:
             if region is None:
-                region = [self.peaks[0]-30, self.peaks[0]+30]
+                region = [self.peaks[0]-20, self.peaks[0]+20]
             self._gaussian_and_lorentzian(region)
 
         # Package the best results
@@ -500,7 +512,9 @@ class Fitter(object):
         """
         coord = code_to_coord(value)
         A, mu_x, sigma_x, mu_y, sigma_y, background = p
-        values =  abs(A) * np.exp(-(coord[0] - mu_x)**2 / (2. * sigma_x**2) - (coord[1] - mu_y)**2 / (2. * sigma_y**2)) + background
+        if sigma_x > 30:
+            return np.ones(len(coord)) * np.inf
+        values =  abs(A) * np.exp(-(coord[0] - mu_x)**2 / (2. * sigma_x**2) - (coord[1] - mu_y)**2 / (2. * sigma_y**2)) + abs(background)
         return self._crop_detector_edges(coord, values)
 
     def gaussian_and_poly_bck(self, value, *p):
