@@ -68,9 +68,11 @@ class Report(object):
         Take the output of the reduction and generate
         diagnostics plots, and a block of meta data.
     """
-    def __init__(self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True, logfile=None):
+    def __init__(self, workspace, data_info, direct_info, reflectivity_ws,
+                 force_plot=True, logfile=None, plot_2d=False):
         """
             :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
+            :param bool plot_2d: if True, 2D plots will be part of the report
         """
         logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type, str(reflectivity_ws)))
         self.data_info = data_info
@@ -83,6 +85,7 @@ class Report(object):
             self.number_events = 0
             self.cross_section = ''
         self.has_reflectivity = reflectivity_ws is not None
+        self.plot_2d = plot_2d
         self.plots = []
         self.script = ''
         self.report = ''
@@ -206,10 +209,9 @@ class Report(object):
         script += '\n'
         return script
 
-    def generate_plots(self, workspace, plot_2d=False):
+    def generate_plots(self, workspace):
         """
             Generate diagnostics plots
-            :param bool plot_2d: produce 2D plots
         """
         self.log("  - generating plots [%s]" % self.number_events)
         cross_section = workspace.getRun().getProperty("cross_section_id").value
@@ -225,7 +227,7 @@ class Report(object):
 
         # X-Y plot
         xy_plot = None
-        if plot_2d:
+        if self.plot_2d:
             try:
                 #integrated = Integration(workspace)
                 signal = np.log10(workspace.extractY())
@@ -251,7 +253,7 @@ class Report(object):
             signal = np.log10(direct_summed.extractY())
             tof_axis = direct_summed.extractX()[0]/1000.0
 
-            if plot_2d:
+            if self.plot_2d:
                 x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
                                      x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
                                      x_label="TOF (ms)", y_label="X pixel",

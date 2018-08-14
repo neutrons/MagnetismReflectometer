@@ -80,6 +80,7 @@ class ReductionProcess(object):
         self.logfile = None
         if debug:
             self.logfile = open("/SNS/REF_M/shared/autoreduce/MR_live.log", 'a')
+        self.plot_2d = False
 
     def log(self, msg):
         """ Debug logging """
@@ -197,7 +198,7 @@ class ReductionProcess(object):
                 self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_value))
-                report = Report(ws, data_info, direct_info, None)
+                report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
                 report_list.append(report)
 
         # Generate stitched plot
@@ -259,7 +260,7 @@ class ReductionProcess(object):
 
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
             self.log("  - skipping: data type=%s; events: %s [cutoff: %s]" % (data_info.data_type, ws.getNumberEvents(), self.min_number_events))
-            return Report(ws, data_info, data_info, None, logfile=self.logfile)
+            return Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)
 
         # Determine the name of the direct beam workspace as needed
         ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ''
@@ -298,7 +299,7 @@ class ReductionProcess(object):
         SaveNexus(InputWorkspace=reflectivity,
                   Filename=os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.nxs.h5' % (run_number, entry)))
         self.log("  - done writing")
-        return Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile)
+        return Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
 
     def find_direct_beam(self, scatt_ws):
         """
