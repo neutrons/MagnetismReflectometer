@@ -71,9 +71,9 @@ class TestReduction(unittest.TestCase):
         """
         ws=api.LoadEventNexus(Filename="REF_M_29160")
         finder = DirectBeamFinder(ws)
-        finder.data_dir = "/tmp"
-        finder.ar_dir = "/tmp"
-        finder.db_dir = "/tmp"
+        finder.data_dir = os.getcwd()
+        finder.ar_dir = os.getcwd()
+        finder.db_dir = os.getcwd()
         finder.search()
 
 if __name__ == '__main__':
