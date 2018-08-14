@@ -1,5 +1,6 @@
 import unittest
 import sys
+import os
 sys.path.append("livereduce")
 sys.path.append(".")
 
@@ -62,5 +63,20 @@ class TestReduction(unittest.TestCase):
         processor.pol_veto = ''
         processor.ana_veto = ''
         processor.reduce()
+
+    def test_reduce_with_dirst(self):
+        """
+            Run the reduction, but after having created an experiment directory.
+            This will excercise a different path in looking for direct beams.
+        """
+        os.makedirs("/SNS/REF_M/IPTS-21391/nexus")
+        processor = mr.ReductionProcess(data_run='REF_M_29160', output_dir='.')
+        processor.pol_state = 'SF1'
+        processor.ana_state = 'SF2'
+        processor.pol_veto = ''
+        processor.ana_veto = ''
+        processor.reduce()
+        os.removedirs("/SNS/REF_M/IPTS-21391/nexus")
+
 if __name__ == '__main__':
     unittest.main()
