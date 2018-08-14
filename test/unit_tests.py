@@ -14,6 +14,7 @@ import polarization_analysis
 from polarization_analysis import calculate_ratios
 from mr_reduction.data_info import Fitter
 import mr_reduction.mr_reduction as mr
+from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 
 
 class PolarizationAnalysisTest(unittest.TestCase):
@@ -66,17 +67,14 @@ class TestReduction(unittest.TestCase):
 
     def test_reduce_with_dirst(self):
         """
-            Run the reduction, but after having created an experiment directory.
-            This will excercise a different path in looking for direct beams.
+             This will excercise a different path in looking for direct beams.
         """
-        os.makedirs("/SNS/REF_M/IPTS-21391/nexus")
-        processor = mr.ReductionProcess(data_run='REF_M_29160', output_dir='.')
-        processor.pol_state = 'SF1'
-        processor.ana_state = 'SF2'
-        processor.pol_veto = ''
-        processor.ana_veto = ''
-        processor.reduce()
-        os.removedirs("/SNS/REF_M/IPTS-21391/nexus")
+        ws=api.LoadEventNexus(Filename="REF_M_29160")
+        finder = DirectBeamFinder(ws)
+        finder.data_dir = "/tmp"
+        finder.ar_dir = "/tmp"
+        finder.db_dir = "/tmp"
+        finder.search()
 
 if __name__ == '__main__':
     unittest.main()
