@@ -33,6 +33,8 @@ if __name__=="__main__":
         Force background: ${force_background} [${bck_min}, ${bck_max}]
         Use side bck:     ${use_side_bck}
         Bck width:        ${bck_width}
+        Skip conversion   ${skip_quicknxs}
+        Produce 2D plots  ${plot_in_2D}
 
     Not used yet:
         Const-Q cutoff:   ${const_q_cutoff}
@@ -47,7 +49,7 @@ if __name__=="__main__":
     run_number = run_number.replace('.nxs.h5', '')
 
     # Translate event data to legacy QuickNXS-compatible files.
-    if event_file_path.endswith('.h5'):
+    if not ${skip_quicknxs} and event_file_path.endswith('.h5'):
         mr_translate.translate(event_file_path, histo=True, sub_dir='../data')
 
     red = refm.ReductionProcess(data_run=event_file_path,
@@ -61,5 +63,6 @@ if __name__=="__main__":
                                 force_peak_roi=${force_peak}, peak_roi=[${peak_min}, ${peak_max}],
                                 force_bck_roi=${force_background}, bck_roi=[${bck_min}, ${bck_max}],
                                 use_tight_bck=${use_side_bck}, bck_offset=${bck_width})
+    red.plot_2d = ${plot_in_2D}
     red.reduce()
 
