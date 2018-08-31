@@ -77,8 +77,10 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         elif len(ws_non_zero) == 2:
             ratio1 = api.Divide(LHSWorkspace=ws_non_zero[0], RHSWorkspace=ws_non_zero[1], OutputWorkspace='r1_'+str(workspace))
             ratio2 = None
-            asym1 = None
-            labels = ["Off_Off / On_Off", None, None]
+            sum1 = mantid.mtd[ws_list[1]] - mantid.mtd[ws_list[0]]
+            sum2 = mantid.mtd[ws_list[1]] + mantid.mtd[ws_list[0]]
+            asym1 = api.Divide(LHSWorkspace=sum1, RHSWorkspace=sum2, OutputWorkspace='a2_'+str(workspace))
+            labels = ["Off_Off / On_Off", None, "(On_Off - Off_Off) / (On_Off + Off_Off)"]
         else:
             asym1 = None
             ratio1 = None
