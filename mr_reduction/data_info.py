@@ -8,6 +8,38 @@ import scipy.optimize as opt
 import mantid.simpleapi as api
 
 
+def get_cross_section_label(ws, cross_section):
+    """
+        Return the proper cross-section label.
+    """
+    pol_is_on = cross_section.lower().startswith('on')
+    ana_is_on = cross_section.lower().endswith('on')
+
+    pol_label = ''
+    ana_label = ''
+
+    # Look for log that define whether OFF or ON is +
+    if 'PolarizerLabel' in ws.getRun():
+        pol_id = ws.getRun().getProperty("PolarizerLabel").value
+        if pol_id == 1:
+            pol_label = '+' if pol_is_on else '-'
+        elif pol_id == 0:
+            pol_label = '-' if pol_is_on else '+'
+
+    if 'AnalyzerLabel' in ws.getRun():
+        ana_id = ws.getRun().getProperty("AnalyzerLabel").value
+        if ana_id == 1:
+            ana_label = '+' if ana_is_on else '-'
+        elif ana_id == 0:
+            ana_label = '-' if ana_is_on else '-'
+
+    cross_section = cross_section.replace('_', '-')
+    if ana_label == '' and pol_label == '':
+        return cross_section
+    else:
+        return '%s: %s%s' % (cross_section, pol_label, ana_label)
+
+
 class DataInfo(object):
     """
         Class to provide a convenient interface to the meta-data extracted
@@ -40,6 +72,9 @@ class DataInfo(object):
 
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = -1
+
+        # Determine proper cross-section label
+        self.cross_section_label = get_cross_section_label(ws, cross_section)
 
         # Processing options
         # Use the ROI rather than finding the ranges

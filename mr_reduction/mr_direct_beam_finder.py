@@ -107,14 +107,17 @@ class DirectBeamFinder(object):
                             peak_pos = direct_beam_pix
 
                         theta_d = MRGetTheta(ws, SpecularPixel=peak_pos, UseSANGLE=False) * 180.0 / math.pi
+                        data_type = -1
                         try:
-                            data_type = ws.getRun().getProperty("data_type").value[0]
+                            data_type = int(ws.getRun().getProperty("data_type").value[0])
                             if data_type == 1:
                                 theta_d = 0
                         except:
                             logging.info("Not data type information")
 
-                        meta_data = dict(theta_d=theta_d, run=run_number, wl=wl, s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle)
+                        meta_data = dict(data_type=data_type, theta_d=theta_d, run=run_number, wl=wl,
+                                         s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle)
+                        logging.error(str(meta_data))
                         fd = open(summary_path, 'w')
                         fd.write(json.dumps(meta_data))
                         fd.close()
@@ -148,7 +151,8 @@ class DirectBeamFinder(object):
                 s1 = meta_data['s1']
                 s2 = meta_data['s2']
                 s3 = meta_data['s3']
-                if run_number == self.run or theta_d > self.tolerance:
+                data_type = meta_data['data_type'] if 'data_type' in meta_data else -1
+                if run_number == self.run or (data_type == -1 and theta_d > self.tolerance) or data_type == 0:
                     continue
                 # If we don't allow runs taken later than the run we are processing...
                 if not self.allow_later_runs and run_number > self.run:
