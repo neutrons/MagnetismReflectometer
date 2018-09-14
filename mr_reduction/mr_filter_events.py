@@ -23,7 +23,11 @@ def filter_cross_sections(file_path, events=True, histo=False):
 
     xs_list = api.MRFilterCrossSections(file_path, PolState=POL_STATE, AnaState=ANA_STATE, PolVeto=POL_VETO, AnaVeto=ANA_VETO)
     for workspace in xs_list:
-        entry = workspace.getRun().getProperty("cross_section_id").value
+        if "cross_section_id" in workspace.getRun():
+            entry = workspace.getRun().getProperty("cross_section_id").value
+        else:
+            entry = 'Off_Off'
+            api.AddSampleLog(Workspace=workspace, LogName='cross_section_id', LogText=entry)
 
         if events:
             events_file = "/tmp/filtered_%s_%s.nxs" % (entry, "events")

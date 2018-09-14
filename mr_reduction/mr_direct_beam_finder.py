@@ -117,7 +117,6 @@ class DirectBeamFinder(object):
 
                         meta_data = dict(data_type=data_type, theta_d=theta_d, run=run_number, wl=wl,
                                          s1=s1, s2=s2, s3=s3, dangle=dangle, sangle=sangle)
-                        logging.error(str(meta_data))
                         fd = open(summary_path, 'w')
                         fd.write(json.dumps(meta_data))
                         fd.close()

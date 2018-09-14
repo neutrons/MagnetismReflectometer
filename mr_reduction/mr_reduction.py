@@ -112,7 +112,6 @@ class ReductionProcess(object):
                              bck_offset=self.bck_offset,
                              force_peak_roi=self.force_peak_roi, peak_roi=self.forced_peak_roi,
                              force_bck_roi=self.force_bck_roi, bck_roi=self.forced_bck_roi)
-
         # Find direct beam information
         norm_run = None
         direct_info = data_info
@@ -175,7 +174,10 @@ class ReductionProcess(object):
                                              AnaState=self.ana_state,
                                              PolVeto=self.pol_veto,
                                              AnaVeto=self.ana_veto)
-
+            # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
+            for ws in _xs_list:
+                if 'cross_section_id' not in ws.getRun():
+                    ws.getRun()['cross_section_id'] = 'Off_Off'
         xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered']
 
         # Extract data info (find peaks, etc...)

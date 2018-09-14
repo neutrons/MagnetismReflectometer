@@ -12,6 +12,7 @@ def get_cross_section_label(ws, cross_section):
     """
         Return the proper cross-section label.
     """
+    cross_section = str(cross_section)
     pol_is_on = cross_section.lower().startswith('on')
     ana_is_on = cross_section.lower().endswith('on')
 
