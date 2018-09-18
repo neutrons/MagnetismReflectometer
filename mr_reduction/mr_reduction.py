@@ -297,7 +297,7 @@ class ReductionProcess(object):
             self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
         self.log("  - ready to write: %s" % self.output_dir)
         write_reflectivity([reflectivity],
-                           os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), entry)
+                           os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), data_info.cross_section_label)
         SaveNexus(InputWorkspace=reflectivity,
                   Filename=os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.nxs.h5' % (run_number, entry)))
         self.log("  - done writing")

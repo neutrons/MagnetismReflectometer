@@ -42,7 +42,7 @@ def get_cross_section_label(ws, cross_section):
     if ana_label == '' and pol_label == '':
         return cross_section
     else:
-        return '%s: %s%s' % (cross_section, pol_label, ana_label)
+        return '%s%s' % (pol_label, ana_label)
 
 
 class DataInfo(object):

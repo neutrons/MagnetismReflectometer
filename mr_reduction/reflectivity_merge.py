@@ -49,6 +49,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
     data_buffer = ""
     direct_beam_info = ""
     data_info = ""
+    _cross_section_label = cross_section
 
     direct_beam_count = 0
     run_count = 0
@@ -74,6 +75,11 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
             _direct_beams_started = 0
             _data_runs_started = 0
             for line in _run_info.readlines():
+                # Look for cross-section label
+                if line.find("Extracted states:") > 0:
+                    toks = line.split(':')
+                    if len(toks) > 1:
+                        _cross_section_label = toks[1].strip()
 
                 # If we are in the data run block, copy the data we need
                 if _data_runs_started == 1 and line.find(str(i_run)) > 0:
@@ -115,7 +121,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
                                                                              ref_data['a'][i],
                                                                             )
 
-    return scaling_factors, direct_beam_info, data_info, data_buffer
+    return scaling_factors, direct_beam_info, data_info, data_buffer, _cross_section_label
 
 def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
     data_buffers = []
@@ -159,16 +165,11 @@ def select_cross_section(run, ipts):
                 best_error = relative_error
     return best_xs
 
-def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer):
+def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label):
     direct_beam_options=['DB_ID', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
                          'bg_pos', 'bg_width', 'dpix', 'tth', 'number', 'File']
     dataset_options=['scale', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
                      'bg_pos', 'bg_width', 'fan', 'dpix', 'tth', 'number', 'DB_ID', 'File']
-    cross_sections={'Off_Off': '++', 'On_Off': '-+', 'Off_On': '+-', 'On_On': '--'}
-
-    pol_state = 'x'
-    if cross_section in cross_sections:
-        pol_state = cross_sections[cross_section]
 
     file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_combined.dat" % (ipts, run, cross_section)
     fd = open(file_path, 'w')
@@ -177,7 +178,7 @@ def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, dir
     fd.write("# Date: %s\n" % time.strftime(u"%Y-%m-%d %H:%M:%S"))
     fd.write("# Type: Specular\n")
     fd.write("# Input file indices: %s\n" % ','.join(matched_runs))
-    fd.write("# Extracted states: %s\n" % pol_state)
+    fd.write("# Extracted states: %s\n" % xs_label)
     fd.write("#\n")
     fd.write("# [Direct Beam Runs]\n")
     toks = ['%8s' % item for item in direct_beam_options]
@@ -239,7 +240,7 @@ def combined_curves(run, ipts):
     matched_runs = match_run_for_cross_section(run, ipts, high_stat_xs)
 
     # Compute scaling factors for this cross section
-    scaling_factors, direct_beam_info, data_info, data_buffer = compute_scaling_factors(matched_runs, ipts, high_stat_xs)
+    scaling_factors, direct_beam_info, data_info, data_buffer, xs_label = compute_scaling_factors(matched_runs, ipts, high_stat_xs)
 
     xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors)
     xs_buffers.append((high_stat_xs, data_buffer))
@@ -247,6 +248,6 @@ def combined_curves(run, ipts):
     for item in xs_buffers:
         if item[1]:
             write_reflectivity_cross_section(matched_runs[0], ipts, item[0], matched_runs,
-                                             direct_beam_info, data_info, item[1])
+                                             direct_beam_info, data_info, item[1], xs_label)
 
     return matched_runs, scaling_factors
