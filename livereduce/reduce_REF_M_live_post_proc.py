@@ -15,6 +15,7 @@ from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d
 from mr_reduction.web_report import _plot2d
 
+api.logger.notice("Starting post-proc")
 pol_info = ''
 try:
     import polarization_analysis
