@@ -34,7 +34,9 @@ def filter_cross_sections(file_path, events=True, histo=False):
             api.SaveNexus(InputWorkspace=workspace, Filename=events_file, Title='entry_%s' % entry)
             cross_sections['entry-%s' % entry] = events_file
         if histo:
-            ws_binned = api.Rebin(InputWorkspace=workspace, Params="%s, %s, %s" % (TOF_MIN, TOF_BIN, TOF_MAX), PreserveEvents=False)
+            tof_min = workspace.getTofMin()
+            tof_max = workspace.getTofMax()
+            ws_binned = api.Rebin(InputWorkspace=workspace, Params="%s, %s, %s" % (tof_min, TOF_BIN, tof_max), PreserveEvents=False)
             histo_file = "/tmp/filtered_%s_%s.nxs" % (entry, "histo")
             api.SaveNexus(InputWorkspace=ws_binned, Filename=histo_file, Title='entry_%s' % entry)
             cross_sections_histo['entry-%s' % entry] = histo_file
