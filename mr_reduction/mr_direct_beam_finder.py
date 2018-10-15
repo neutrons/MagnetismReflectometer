@@ -31,9 +31,14 @@ class DirectBeamFinder(object):
         self.allow_later_runs = allow_later_runs
 
         self.wl = scatt_ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-        self.s1 = scatt_ws.getRun().getProperty("BL4A:Mot:S1:X:Gap").getStatistics().mean
-        self.s2 = scatt_ws.getRun().getProperty("BL4A:Mot:S2:X:Gap").getStatistics().mean
-        self.s3 = scatt_ws.getRun().getProperty("BL4A:Mot:S3:X:Gap").getStatistics().mean
+        if 'BL4A:Mot:S1:X:Gap' in  scatt_ws.getRun():
+            self.s1 = scatt_ws.getRun()['BL4A:Mot:S1:X:Gap'].getStatistics().mean
+            self.s2 = scatt_ws.getRun()['BL4A:Mot:S2:X:Gap'].getStatistics().mean
+            self.s3 = scatt_ws.getRun()['BL4A:Mot:S3:X:Gap'].getStatistics().mean
+        else:
+            self.s1 = scatt_ws.getRun()['S1HWidth'].getStatistics().mean
+            self.s2 = scatt_ws.getRun()['S2HWidth'].getStatistics().mean
+            self.s3 = scatt_ws.getRun()['S3HWidth'].getStatistics().mean
         self.run = int(scatt_ws.getRunNumber())
 
     def search(self, skip_slits=False, allow_later_runs=False):
@@ -96,9 +101,14 @@ class DirectBeamFinder(object):
                         direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
 
                         wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-                        s1 = ws.getRun().getProperty("BL4A:Mot:S1:X:Gap").getStatistics().mean
-                        s2 = ws.getRun().getProperty("BL4A:Mot:S2:X:Gap").getStatistics().mean
-                        s3 = ws.getRun().getProperty("BL4A:Mot:S3:X:Gap").getStatistics().mean
+                        if 'BL4A:Mot:S1:X:Gap' in  ws.getRun():
+                            s1 = ws.getRun()['BL4A:Mot:S1:X:Gap'].getStatistics().mean
+                            s2 = ws.getRun()['BL4A:Mot:S2:X:Gap'].getStatistics().mean
+                            s3 = ws.getRun()['BL4A:Mot:S3:X:Gap'].getStatistics().mean
+                        else:
+                            s1 = ws.getRun()['S1HWidth'].getStatistics().mean
+                            s2 = ws.getRun()['S2HWidth'].getStatistics().mean
+                            s3 = ws.getRun()['S3HWidth'].getStatistics().mean
                         try:
                             data_info = DataInfo(ws, entry)
                             peak_pos = data_info.peak_position if data_info.peak_position is not None else direct_beam_pix

@@ -116,8 +116,12 @@ class DataInfo(object):
             low_res_max = run_object.getProperty("low_res_max").value
 
         if self.use_roi and not update_peak_range:
-            peak_min = roi_peak_min
-            peak_max = roi_peak_max
+            if force_peak_roi:
+                peak_min = peak_roi[0]
+                peak_max = peak_roi[1]
+            else:
+                peak_min = roi_peak_min
+                peak_max = roi_peak_max
         self.peak_range = [peak_min, peak_max]
         self.peak_position = (peak_min+peak_max)/2.0
 
@@ -221,7 +225,7 @@ class Fitter(object):
         self.guess_x = self.center_x
         self.guess_wx = 6
         self.guess_y = self.center_y
-        self.guess_wy = 50
+        self.guess_wy = 100
         self.guess_chi2 = np.inf
 
         # Plots [optional]
@@ -257,12 +261,15 @@ class Fitter(object):
         _deriv_err = np.sqrt(_running)[:-1]
         _y = _y0[5:-5]
 
-        _coef = self._perform_beam_fit(_y, _deriv, _deriv_err, gaussian_first=False)
-        peak_min = _coef[1] - _coef[2]/2.0 - 2.0*_coef[3]
-        peak_max = _coef[1] + _coef[2]/2.0 + 2.0*_coef[3]
-        if peak_max - peak_min < 10:
-            _y_running = _y0[5:-4]
-            _coef = self._perform_beam_fit(_y, _deriv, _deriv_err, _y_running, _running, gaussian_first=True)
+        try:
+            _coef = self._perform_beam_fit(_y, _deriv, _deriv_err, gaussian_first=False)
+            peak_min = _coef[1] - _coef[2]/2.0 - 2.0*_coef[3]
+            peak_max = _coef[1] + _coef[2]/2.0 + 2.0*_coef[3]
+            if peak_max - peak_min < 10:
+                _y_running = _y0[5:-4]
+                _coef = self._perform_beam_fit(_y, _deriv, _deriv_err, _y_running, _running, gaussian_first=True)
+        except:
+            return [int(self.guess_y-self.guess_wy/2.0), int(self.guess_y+self.guess_wy/2.0)]
 
         return [int(peak_min), int(peak_max)]
 

@@ -5,4 +5,7 @@
 """
 from mantid import simpleapi
 
-simpleapi.CloneWorkspace(InputWorkspace=input, OutputWorkspace=output)
+try:
+    simpleapi.CloneWorkspace(InputWorkspace=input, OutputWorkspace=output)
+except:
+    return input

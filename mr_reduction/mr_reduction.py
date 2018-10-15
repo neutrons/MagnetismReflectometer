@@ -334,7 +334,7 @@ class ReductionProcess(object):
                     if ws_direct.getNumberEvents() > DIRECT_BEAM_EVTS_MIN:
                         direct_info = DataInfo(ws_direct, norm_entry,
                                                use_roi=self.use_roi,
-                                               update_peak_range=self.update_peak_range,
+                                               update_peak_range=True, #self.update_peak_range,
                                                use_roi_bck=self.use_roi_bck,
                                                use_tight_bck=self.use_tight_bck,
                                                bck_offset=self.bck_offset)
