@@ -166,7 +166,10 @@ class ReductionProcess(object):
 
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
-        if self.data_ws is not None and self.use_slow_flipper_log:
+        #if self.data_ws is not None and self.use_slow_flipper_log:
+        if self.use_slow_flipper_log:
+            if self.data_ws is None:
+                self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace='raw_events')
             _xs_list = self.slow_filter_cross_sections(self.data_ws)
         else:
             _xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,

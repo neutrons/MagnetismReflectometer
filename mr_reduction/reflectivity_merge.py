@@ -43,6 +43,72 @@ def match_run_for_cross_section(run, ipts, cross_section):
                 break
     return matched_runs
 
+def _extract_sequence_id(file_path):
+    """
+        Extract the sequence id from a data file
+        @param str file_path: file to process
+    """
+    run_number = None
+    group_id = None
+    lowest_q = None
+    if os.path.isfile(file_path):
+        with open(file_path, 'r') as fd:
+            for line in fd.readlines():
+                if line.startswith("# sequence_id"):
+                    try:
+                        group_id = int(line[len("# sequence_id"):].strip())
+                    except:
+                        logger.error("Could not extract group id from line: %s" % line)
+                if line.startswith("# Input file indices:"):
+                    try:
+                        run_number = int(line[len("# Input file indices:"):].strip())
+                    except:
+                        logger.error("Could not extract run number from line: %s" % line)
+                if not line.startswith("#") and len(line.strip()) > 0:
+                    try:
+                        toks = line.split()
+                        lowest_q = float(toks[0])
+                    except:
+                        logger.error("Could not extract lowest q from line: %s" % line)
+                if run_number is not None and group_id is not None and lowest_q is not None:
+                    return run_number, group_id, lowest_q
+    return run_number, group_id, lowest_q
+
+def match_run_with_sequence(run, ipts, cross_section):
+    """
+        Return a list of matching runs to be stitched
+
+        #TODO: order the runs wth increasing Q.
+
+        @param run: run to start with
+        @param ipts: experiment identifier
+        @param cross_section: polarization entry
+    """
+    logger.notice("Matching sequence for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
+    data_dir = "/SNS/REF_M/IPTS-%s/shared/autoreduce" % ipts
+
+    # Check to see if we have the sequence information
+    file_path = os.path.join(data_dir, "REF_M_%s_%s_autoreduce.dat" % (run, cross_section))
+    _, group_id, _ = _extract_sequence_id(file_path)
+
+    # If we don't have a group id, just group together runs of increasing q-values
+    if group_id is None:
+        return match_run_for_cross_section(run, ipts, cross_section)
+
+    # Start with the run matching the sequence id
+    matched_runs = []
+    _lowest_q_available = True
+    for item in os.listdir(data_dir):
+        if item.endswith("%s_autoreduce.dat" % cross_section):
+            _run, _group_id, lowest_q = _extract_sequence_id(os.path.join(data_dir, item))
+            if _group_id == group_id:
+                matched_runs.append([str(_run), lowest_q])
+                _lowest_q_available = _lowest_q_available and lowest_q is not None
+    if _lowest_q_available:
+        match_series = [item[0] for item in sorted(matched_runs, key=lambda a:a[1])]
+        return match_series
+    return sorted(matched_runs)
+
 def compute_scaling_factors(matched_runs, ipts, cross_section):
     _previous_ws = None
     running_scale = 1.0
@@ -237,10 +303,14 @@ def combined_curves(run, ipts):
     high_stat_xs = select_cross_section(run, ipts)
 
     # Match the given run with previous runs if they are overlapping in Q
-    matched_runs = match_run_for_cross_section(run, ipts, high_stat_xs)
+    matched_runs = match_run_with_sequence(run, ipts, high_stat_xs)
+    logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section
-    scaling_factors, direct_beam_info, data_info, data_buffer, xs_label = compute_scaling_factors(matched_runs, ipts, high_stat_xs)
+    try:
+        scaling_factors, direct_beam_info, data_info, data_buffer, xs_label = compute_scaling_factors(matched_runs, ipts, high_stat_xs)
+    except:
+        return [str(run),], [1.0,]
 
     xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors)
     xs_buffers.append((high_stat_xs, data_buffer))

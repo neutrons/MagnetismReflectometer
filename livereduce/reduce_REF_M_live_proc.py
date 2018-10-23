@@ -5,6 +5,7 @@
 """
 from mantid import simpleapi
 
+simpleapi.logger.notice("Starting proc")
 try:
     simpleapi.CloneWorkspace(InputWorkspace=input, OutputWorkspace=output)
 except:

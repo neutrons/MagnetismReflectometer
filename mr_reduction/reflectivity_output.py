@@ -173,11 +173,18 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write("#\n")
     fd.write("# [Global Options]\n")
     fd.write("# name           value\n")
+    #TODO: set the sample dimension as an option
     fd.write("# sample_length  10\n")
+    if run_object.hasProperty("sequence_id"):
+        fd.write("# sequence_id %s\n" % run_object.getProperty("sequence_id").value[0])
+    if run_object.hasProperty("sequence_number"):
+        fd.write("# sequence_number %s\n" % run_object.getProperty("sequence_number").value[0])
+    if run_object.hasProperty("sequence_total"):
+        fd.write("# sequence_total %s\n" % run_object.getProperty("sequence_total").value[0])
     fd.write("#\n")
     fd.write("# [Data]\n")
     toks = [u'%12s' % item for item in [u'Qz [1/A]', u'R [a.u.]', u'dR [a.u.]', u'dQz [1/A]', u'theta [rad]']]
     fd.write(u"# %s\n" % '  '.join(toks))
-    fd.write(u"# %s\n" % data_block)
+    fd.write(u"#\n%s\n" % data_block)
 
     fd.close()
