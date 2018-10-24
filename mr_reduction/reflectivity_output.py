@@ -175,6 +175,8 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write("# name           value\n")
     #TODO: set the sample dimension as an option
     fd.write("# sample_length  10\n")
+    fd.write("#\n")
+    fd.write("# [Sequence]\n")
     if run_object.hasProperty("sequence_id"):
         fd.write("# sequence_id %s\n" % run_object.getProperty("sequence_id").value[0])
     if run_object.hasProperty("sequence_number"):
