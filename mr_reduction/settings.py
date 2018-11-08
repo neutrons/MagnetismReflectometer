@@ -18,4 +18,4 @@ ANA_VETO = "AnalyzerVeto"
 # Default TOF binning for histograms
 TOF_MIN = 10000
 TOF_MAX = 100000
-TOF_BIN = 40.0
+TOF_BIN = 400.0

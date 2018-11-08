@@ -292,6 +292,7 @@ class ReductionProcess(object):
                                         TimeAxisRange=data_info.tof_range,
                                         SpecularPixel=data_info.peak_position,
                                         ConstantQBinning=self.const_q_binning,
+                                        ConstQTrim=0.1,
                                         OutputWorkspace="r_%s_%s" % (run_number, entry))
 
         # Write output file
