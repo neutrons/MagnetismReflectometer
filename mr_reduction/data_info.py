@@ -139,14 +139,16 @@ class DataInfo(object):
         background_max = max(background_min,
                              run_object.getProperty("background_max").value)
         self.background = [background_min, background_max]
-        if not use_tight_bck:
+        if use_roi_bck:
             #bck_max = min(20, self.peak_position)
             bck_max = np.int(self.peak_position/2.0)
             self.background = [max(0, bck_max-10), bck_max]
-        else:
+        elif use_tight_bck:
             bck_min = max(0, peak_min-bck_offset)
             bck_max = min(303, peak_max+bck_offset)
             self.background = [bck_min, bck_max]
+        else:
+            self.background = [4, 103]
 
         roi_low_res_min = run_object.getProperty("roi_low_res_min").value
         roi_low_res_max = run_object.getProperty("roi_low_res_max").value
@@ -724,7 +726,7 @@ class Fitter2(object):
         #    self.guess_x = ordered[0][0]
         #    self.guess_ws = ordered[0][1]
             i_final = 0
-            if (ordered[0][2] - ordered[1][2])/ordered[0][2] < 0.75 and ordered[1][0] < ordered[0][0]:
+            if len(ordered)>1 and (ordered[0][2] - ordered[1][2])/ordered[0][2] < 0.75 and ordered[1][0] < ordered[0][0]:
                 i_final = 1
             self.guess_x = ordered[i_final][0]
             self.guess_ws = ordered[i_final][1]
