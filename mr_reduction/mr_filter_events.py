@@ -28,6 +28,9 @@ def filter_cross_sections(file_path, events=True, histo=False):
         else:
             entry = 'Off_Off'
             api.AddSampleLog(Workspace=workspace, LogName='cross_section_id', LogText=entry)
+        if workspace.getNumberEvents() < 5:
+            logging.warn("No events in %s", entry)
+            continue
 
         if events:
             events_file = "/tmp/filtered_%s_%s.nxs" % (entry, "events")
