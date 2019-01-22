@@ -235,7 +235,7 @@ def create_links(nx_quick):
 
     return nx_quick
 
-def translate(raw_event_file, events=True, histo=True, sub_dir=None, force=False):
+def translate(raw_event_file, events=True, histo=True, sub_dir=None, force=True):
     """
         Translate an event nexus file
         :param str raw_event_file: name of the event data file to process
