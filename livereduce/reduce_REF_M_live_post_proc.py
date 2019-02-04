@@ -1,5 +1,6 @@
 #pylint: disable=bare-except
 import sys
+import traceback
 import time
 import numpy as np
 import mantid
@@ -15,7 +16,11 @@ from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d
 from mr_reduction.web_report import _plot2d
 
-api.logger.notice("Starting post-proc")
+DEBUG = False
+if DEBUG:
+    logfile = open("/SNS/REF_M/shared/autoreduce/MR_live_outer.log", 'a')
+    logfile.write("Starting post-proc\n")
+
 pol_info = ''
 try:
     import polarization_analysis
@@ -142,7 +147,7 @@ reduction_info = ''
 if run_number>0 and ws is not None:
     try:
         ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
-        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=True,
+        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=False,
                                     update_peak_range=True, publish=False, debug=True)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
@@ -153,7 +158,8 @@ if run_number>0 and ws is not None:
     except:
         reduction_info += "<div>Could not reduce the data</div>\n"
         reduction_info += "<div>%s</div>\n" % sys.exc_info()[0]
-        api.logger.error(str(sys.exc_value))
+        if DEBUG:
+            logfile.write(str(sys.exc_value))
 
 output = input
 
@@ -169,13 +175,21 @@ plot_html += "</table>\n"
 plot_html += "<hr>\n"
 plot_html += pol_info
 
+if DEBUG:
+    logfile.write("html ready\n")
 
-
-mantid.logger.information('Posting plot of run %s' % run_number)
-try: # version on autoreduce
-    from postprocessing.publish_plot import publish_plot
-except ImportError: # version on instrument computers
-    from finddata import publish_plot
-request = publish_plot('REF_M', run_number, files={'file':plot_html})
-mantid.logger.information("post returned %d" % request.status_code)
-
+try:
+    mantid.logger.information('Posting plot of run %s' % run_number)
+    try: # version on autoreduce
+        from postprocessing.publish_plot import publish_plot
+    except ImportError: # version on instrument computers
+        from finddata import publish_plot
+    request = publish_plot('REF_M', run_number, files={'file':plot_html})
+except:
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    if DEBUG:
+        for line in traceback.format_exception(exc_type, exc_value, exc_traceback):
+            logfile.write(line)
+if DEBUG:
+    logfile.write("DONE\n")
+    logfile.close()
