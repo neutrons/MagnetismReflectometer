@@ -65,15 +65,16 @@ def filter_cross_sections(file_path, events=True, histo=False):
             logging.warn("No events in %s", entry)
             continue
 
+        run_number = workspace.getRunNumber()
         if events:
-            events_file = "/tmp/filtered_%s_%s.nxs" % (entry, "events")
+            events_file = "/tmp/filtered_%s_%s_%s.nxs" % (run_number, entry, "events")
             api.SaveNexus(InputWorkspace=workspace, Filename=events_file, Title='entry_%s' % entry)
             cross_sections['entry-%s' % entry] = events_file
         if histo:
             #tof_min = workspace.getTofMin()
             #tof_max = workspace.getTofMax()
             ws_binned = api.Rebin(InputWorkspace=workspace, Params="%s, %s, %s" % (tof_min, TOF_BIN, tof_max), PreserveEvents=False)
-            histo_file = "/tmp/filtered_%s_%s.nxs" % (entry, "histo")
+            histo_file = "/tmp/filtered_%s_%s_%s.nxs" % (run_number, entry, "histo")
             api.SaveNexus(InputWorkspace=ws_binned, Filename=histo_file, Title='entry_%s' % entry)
             cross_sections_histo['entry-%s' % entry] = histo_file
 
