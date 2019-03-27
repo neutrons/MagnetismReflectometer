@@ -21,6 +21,7 @@ logger.addFilter(f)
 
 from mr_reduction import mr_reduction as refm
 from mr_reduction import mr_translate
+from mr_reduction import oncat_comm as oncat
 
 if __name__=="__main__":
     """
@@ -65,4 +66,9 @@ if __name__=="__main__":
                                 use_tight_bck=${use_side_bck}, bck_offset=${bck_width})
     red.plot_2d = ${plot_in_2D}
     red.reduce()
+    if red.json_info is not None:
+        try:
+            oncat.ingest(red.json_info)
+        except:
+            logger.warning("Could not send info to ONCat")
 

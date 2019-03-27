@@ -159,10 +159,8 @@ def write_reflectivity(ws_list, output_path, cross_section):
         y = ws.readY(0)
         dy = ws.readE(0)
         dx = ws.readDx(0)
-        tth = ws.getRun().getProperty("SANGLE").getStatistics().mean * math.pi / 180.0
-        quicknxs_scale = (float(norm_x_max)-float(norm_x_min)) * (float(norm_y_max)-float(norm_y_min))
-        quicknxs_scale /= (float(peak_max)-float(peak_min)) * (float(low_res_max)-float(low_res_min))
-        quicknxs_scale *= 0.005 / math.sin(tth)
+        tth = ws.getRun().getProperty("two_theta").value * math.pi / 360.0
+        quicknxs_scale = quicknxs_scaling_factor(ws)
         for i in range(len(x)):
             data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i],
                                                                         y[i]*quicknxs_scale,
@@ -190,3 +188,21 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write(u"#\n%s\n" % data_block)
 
     fd.close()
+
+def quicknxs_scaling_factor(ws):
+    """ FOR COMPATIBILITY WITH QUICKNXS """
+    run_object = ws.getRun()
+    peak_min = run_object.getProperty("scatt_peak_min").value
+    peak_max = run_object.getProperty("scatt_peak_max").value + 1.0
+    low_res_min = run_object.getProperty("scatt_low_res_min").value
+    low_res_max = run_object.getProperty("scatt_low_res_max").value + 1.0
+    norm_x_min = run_object.getProperty("norm_peak_min").value
+    norm_x_max = run_object.getProperty("norm_peak_max").value + 1.0
+    norm_y_min = run_object.getProperty("norm_low_res_min").value
+    norm_y_max = run_object.getProperty("norm_low_res_max").value + 1.0
+    tth = run_object.getProperty("two_theta").value * math.pi / 360.0
+    quicknxs_scale = (float(norm_x_max)-float(norm_x_min)) * (float(norm_y_max)-float(norm_y_min))
+    quicknxs_scale /= (float(peak_max)-float(peak_min)) * (float(low_res_max)-float(low_res_min))
+    _scale = 0.005 / math.sin(tth) if tth > 0.0002 else 1.0
+    quicknxs_scale *= _scale
+    return quicknxs_scale

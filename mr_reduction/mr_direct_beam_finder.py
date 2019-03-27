@@ -11,6 +11,7 @@ import logging
 from mantid.simpleapi import *
 
 from .data_info import DataInfo
+from .settings import AR_OUT_DIR_TEMPLATE, DATA_DIR_TEMPLATE, DIRECT_BEAM_DIR
 
 
 class DirectBeamFinder(object):
@@ -22,9 +23,9 @@ class DirectBeamFinder(object):
             Extract information from the given workspace
             :param workspace scatt_ws: workspace to find a direct beam for
         """
-        self.data_dir = "/SNS/REF_M/%s/nexus" % experiment
-        self.ar_dir = "/SNS/REF_M/%s/shared/autoreduce" % experiment
-        self.db_dir = "/SNS/REF_M/shared/autoreduce/direct_beams/"
+        self.data_dir = DATA_DIR_TEMPLATE % dict(ipts=experiment)
+        self.ar_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=experiment)
+        self.db_dir = DIRECT_BEAM_DIR
 
         self.tolerance = tolerance
         self.skip_slits = skip_slits
@@ -146,7 +147,7 @@ class DirectBeamFinder(object):
         """
         closest = None
         for item in os.listdir(db_dir):
-            if item.endswith(".json"):
+            if item.endswith("nxs.h5.json"):
                 summary_path = os.path.join(db_dir, item)
                 fd = open(summary_path, 'r')
                 meta_data = json.loads(fd.read())

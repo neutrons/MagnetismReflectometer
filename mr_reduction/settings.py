@@ -19,3 +19,9 @@ ANA_VETO = "AnalyzerVeto"
 TOF_MIN = 10000
 TOF_MAX = 100000
 TOF_BIN = 400.0
+
+#AR_OUT_DIR_TEMPLATE = "/tmp"
+AR_OUT_DIR_TEMPLATE = "/SNS/REF_M/%(ipts)s/shared/autoreduce/"
+DATA_DIR_TEMPLATE = "/SNS/REF_M/%(ipts)s/nexus"
+DIRECT_BEAM_DIR = "/SNS/REF_M/shared/autoreduce/direct_beams/"
+GLOBAL_AR_DIR = "/SNS/REF_M/shared/autoreduce"

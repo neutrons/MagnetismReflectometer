@@ -4,11 +4,18 @@
 """
 from __future__ import (absolute_import, division, print_function)
 import sys
+import os
+import pytz
+import json
 import time
+import datetime
 import pandas
 import numpy as np
 import mantid
 from mantid.simpleapi import *
+
+from .settings import AR_OUT_DIR_TEMPLATE, DATA_DIR_TEMPLATE
+from .script_output import write_reduction_script
 
 
 def match_run_for_cross_section(run, ipts, cross_section):
@@ -26,7 +33,8 @@ def match_run_for_cross_section(run, ipts, cross_section):
     matched_runs = []
     for i in range(10):
         i_run = run - i
-        file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, i_run, cross_section)
+        output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, cross_section))
         if os.path.isfile(file_path):
             ref_data = pandas.read_csv(file_path, delim_whitespace=True,
                                        comment='#', names=['q','r','dr','dq', 'a'])
@@ -85,7 +93,7 @@ def match_run_with_sequence(run, ipts, cross_section):
         @param cross_section: polarization entry
     """
     logger.notice("Matching sequence for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
-    data_dir = "/SNS/REF_M/IPTS-%s/shared/autoreduce" % ipts
+    data_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
 
     # Check to see if we have the sequence information
     file_path = os.path.join(data_dir, "REF_M_%s_%s_autoreduce.dat" % (run, cross_section))
@@ -122,7 +130,8 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
     scaling_factors = [1.0]
 
     for i_run in matched_runs:
-        file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, i_run, cross_section)
+        output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, cross_section))
         if os.path.isfile(file_path):
             _run_info = open(file_path, 'r')
             ref_data = pandas.read_csv(_run_info,
@@ -199,7 +208,8 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
         data_buffer = ""
 
         for j, i_run in enumerate(matched_runs):
-            file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, i_run, xs)
+            output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, xs))
             if os.path.isfile(file_path):
                 _run_info = open(file_path, 'r')
                 ref_data = pandas.read_csv(_run_info,
@@ -221,14 +231,18 @@ def select_cross_section(run, ipts):
     best_error = None
 
     for xs in ['Off_Off', 'On_Off', 'Off_On', 'On_On']:
-        file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, run, xs)
+        output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
         if os.path.isfile(file_path):
+            logger.notice("Found: %s" % file_path)
             ref_data = pandas.read_csv(file_path,
                                        delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
             relative_error = np.sum(ref_data['dr'] * ref_data['dr']) / np.sum(ref_data['r'])
             if best_xs is None or relative_error < best_error:
                 best_xs = xs
                 best_error = relative_error
+        else:
+            logger.notice("NOT found: %s" % file_path)
     return best_xs
 
 def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label):
@@ -237,7 +251,8 @@ def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, dir
     dataset_options=['scale', 'P0', 'PN', 'x_pos', 'x_width', 'y_pos', 'y_width',
                      'bg_pos', 'bg_width', 'fan', 'dpix', 'tth', 'number', 'DB_ID', 'File']
 
-    file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_combined.dat" % (ipts, run, cross_section)
+    output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+    file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (run, cross_section))
     fd = open(file_path, 'w')
     fd.write("# Datafile created by QuickNXS 1.0.32\n")
     fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
@@ -265,13 +280,15 @@ def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, dir
     fd.write(u"# %s\n" % '  '.join(toks))
     fd.write(data_buffer)
     fd.close()
+    return file_path
 
 def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     data_names = []
     data_list = []
     for i, run in enumerate(matched_runs):
         for xs in ['Off_Off', 'On_Off', 'Off_On', 'On_On']:
-            file_path = "/SNS/REF_M/IPTS-%s/shared/autoreduce/REF_M_%s_%s_autoreduce.dat" % (ipts, run, xs)
+            output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
             if os.path.isfile(file_path):
                 ref_data = pandas.read_csv(file_path,
                                            delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
@@ -298,9 +315,11 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
 
 def combined_curves(run, ipts):
     """
+        Produce combined R(q)
     """
     # Select the cross section with the best statistics
     high_stat_xs = select_cross_section(run, ipts)
+    logger.notice("High xs: %s" % high_stat_xs)
 
     # Match the given run with previous runs if they are overlapping in Q
     matched_runs = match_run_with_sequence(run, ipts, high_stat_xs)
@@ -312,12 +331,53 @@ def combined_curves(run, ipts):
     except:
         return [str(run),], [1.0,]
 
+    # Write combined python script
+    write_reduction_script(matched_runs, scaling_factors, ipts)
+
     xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors)
     xs_buffers.append((high_stat_xs, data_buffer))
 
+    file_list = []
     for item in xs_buffers:
         if item[1]:
-            write_reflectivity_cross_section(matched_runs[0], ipts, item[0], matched_runs,
-                                             direct_beam_info, data_info, item[1], xs_label)
+            _file_path = write_reflectivity_cross_section(matched_runs[0], ipts, item[0],
+                                                          matched_runs, direct_beam_info,
+                                                          data_info, item[1], xs_label)
+            file_list.append(_file_path)
 
-    return matched_runs, scaling_factors
+    return matched_runs, scaling_factors, file_list
+
+def combined_catalog_info(matched_runs, ipts, output_files):
+    """
+        Produce cataloging information for reduced data
+    """
+    NEW_YORK_TZ = pytz.timezone('America/New_York')
+    info = dict(user='auto',
+                created=NEW_YORK_TZ.localize(datetime.datetime.now()).isoformat(),
+                metadata=dict())
+
+    # List of input files
+    input_list = []
+    for item in matched_runs:
+        data_dir = DATA_DIR_TEMPLATE % dict(ipts=ipts)
+        data_file = os.path.join(data_dir, 'REF_M_%s.nxs.h5' % item)
+        if os.path.isfile(data_file):
+            input_list.append(dict(location=data_file,
+                                   type='raw',
+                                   purpose='sample-data'))
+    info['input_files'] = input_list
+
+    # List of output files
+    output_list = []
+    for item in output_files:
+        output_list.append(dict(location=item,
+                                type='processed',
+                                purpose='reduced-data',
+                                fields=dict()))
+    info['output_files'] = output_list
+
+    output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+    json_path = os.path.join(output_dir, "REF_M_%s.json" % (matched_runs[0]))
+    with open(json_path, 'w') as fd:
+        fd.write(json.dumps(info, indent=4))
+    return json_path

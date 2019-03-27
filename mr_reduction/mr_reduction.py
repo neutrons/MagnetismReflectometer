@@ -13,10 +13,13 @@ import mantid
 from mantid.simpleapi import *
 
 from .settings import POL_STATE, ANA_STATE, POL_VETO, ANA_VETO
+from .settings import AR_OUT_DIR_TEMPLATE, GLOBAL_AR_DIR
 from .reflectivity_output import write_reflectivity
 from .data_info import DataInfo
 from .web_report import Report, process_collection
 from .mr_direct_beam_finder import DirectBeamFinder
+from .script_output import write_partial_script
+
 
 DIRECT_BEAM_EVTS_MIN = 1000
 
@@ -36,7 +39,7 @@ class ReductionProcess(object):
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
                  use_sangle=True, use_roi=True,
                  force_peak_roi=False, peak_roi=[0,0],
-                 force_bck_roi=False, bck_roi=[0,0], publish=True, debug=False):
+                 force_bck_roi=False, bck_roi=[0,0], publish=True, debug=False, live=False):
         """
             The automated reduction is initializable such that most of what we need can be
             changed at initialization time. That way the post-processing framework only
@@ -74,12 +77,14 @@ class ReductionProcess(object):
 
         self.use_slow_flipper_log = False
         self.publish = publish
+        self.live = live
+        self.json_info = None
 
         # Script for re-running the reduction
         self.script = ''
         self.logfile = None
         if debug:
-            self.logfile = open("/SNS/REF_M/shared/autoreduce/MR_live.log", 'a')
+            self.logfile = open(os.path.join(GLOBAL_AR_DIR, "MR_live.log"), 'a')
         self.plot_2d = False
 
     def log(self, msg):
@@ -120,6 +125,11 @@ class ReductionProcess(object):
             apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
             if direct_info is None:
                 direct_info = data_info
+
+        # Set output directory
+        if self.output_dir is None:
+            self.output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=self.ipts)
+
         # Important note: data_info is created from the cross-section with the most
         # data, so data_info.cross_section indicates which one that was.
         return data_info, direct_info, apply_norm, norm_run
@@ -148,7 +158,7 @@ class ReductionProcess(object):
                 _ws = FilterByLogValue(InputWorkspace=ws, LogName=state_log, TimeTolerance=0.1,
                                        MinimumValue=states[pol_state],
                                        MaximumValue=states[pol_state], LogBoundary='Left',
-                                       OutputWorkspace='%s_entry-%s' % (ws.getRunNumber(), pol_state))
+                                       OutputWorkspace='%s_%s' % (ws.getRunNumber(), pol_state))
                 _ws.getRun()['cross_section_id'] = pol_state
                 if _ws.getNumberEvents() > 0:
                     cross_sections.append(_ws)
@@ -162,59 +172,43 @@ class ReductionProcess(object):
             Perform the reduction
         """
         self.log("\n\n---------- %s" % time.ctime())
-        report_list = []
 
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         #if self.data_ws is not None and self.use_slow_flipper_log:
+        if self.data_ws is None:
+            self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace='raw_events')
+        self.run_number = self.data_ws.getRunNumber()
+
         if self.use_slow_flipper_log:
-            if self.data_ws is None:
-                self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace='raw_events')
             _xs_list = self.slow_filter_cross_sections(self.data_ws)
         else:
             _xs_list = MRFilterCrossSections(Filename=_filename, InputWorkspace=self.data_ws,
                                              PolState=self.pol_state,
                                              AnaState=self.ana_state,
                                              PolVeto=self.pol_veto,
-                                             AnaVeto=self.ana_veto)
+                                             AnaVeto=self.ana_veto,
+                                             CrossSectionWorkspaces="%s" % self.data_ws.getRunNumber())
             # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
             for ws in _xs_list:
                 if 'cross_section_id' not in ws.getRun():
                     ws.getRun()['cross_section_id'] = 'Off_Off'
         xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered']
 
-        # Extract data info (find peaks, etc...)
-        # This can be moved within the for-loop below re-extraction with each cross-section.
-        # Generally, the peak ranges should be consistent between cross-section.
-        data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
-
         # Reduce each cross-section
-        for ws in xs_list:
-            try:
-                self.run_number = ws.getRunNumber()
-                self.log("\n--- Run %s %s ---\n" % (self.run_number, str(ws)))
-                report = self.reduce_cross_section(self.run_number, ws=ws,
-                                                   data_info=data_info,
-                                                   apply_norm=apply_norm,
-                                                   norm_run=norm_run,
-                                                   direct_info=direct_info)
-                report_list.append(report)
-            except:
-                self.log("  - reduction failed")
-                # No data for this cross-section, skip to the next
-                logger.error("Cross section: %s" % str(sys.exc_value))
-                report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
-                report_list.append(report)
+        report_list = self.reduce_workspace_group(xs_list)
 
         # Generate stitched plot
         ref_plot = None
         try:
-            from .reflectivity_merge import combined_curves, plot_combined
+            from .reflectivity_merge import combined_curves, plot_combined, combined_catalog_info
 
-            ipts_number = self.ipts.split('-')[1]
-            matched_runs, scaling_factors = combined_curves(run=int(self.run_number), ipts=ipts_number)
+            #ipts_number = self.ipts.split('-')[1]
+            matched_runs, scaling_factors, outputs = combined_curves(run=int(self.run_number), ipts=self.ipts)
+            if not self.live:
+                self.json_info = combined_catalog_info(matched_runs, self.ipts, outputs)
             self.log("Matched runs: %s" % str(matched_runs))
-            ref_plot = plot_combined(matched_runs, scaling_factors, ipts_number, publish=False)
+            ref_plot = plot_combined(matched_runs, scaling_factors, self.ipts, publish=False)
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:
             self.log("Could not generate combined curve")
@@ -223,37 +217,30 @@ class ReductionProcess(object):
         # Generate report and script
         logger.notice("Processing collection of %s reports" % len(report_list))
         try:
-            html_report, script = process_collection(summary_content=ref_plot, report_list=report_list,
-                                                     publish=self.publish, run_number=self.run_number)
+            html_report, _ = process_collection(summary_content=ref_plot, report_list=report_list,
+                                                publish=self.publish, run_number=self.run_number)
         except:
             html_report = ''
-            script = ''
             self.log("Could not process reports %s" % sys.exc_value)
-        try:
-            if self.output_dir is None:
-                self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
-            fd = open(os.path.join(self.output_dir, 'REF_M_%s_autoreduce.py' % self.run_number), 'w')
-            fd.write(script)
-            fd.close()
-        except:
-            logger.error("Could not write reduction script: %s" % sys.exc_value)
 
         if self.logfile:
             self.logfile.close()
         return html_report
 
-    def reduce_cross_section(self, run_number, ws, data_info,
-                             apply_norm=False, norm_run=None, direct_info=None):
+    def reduce_workspace_group(self, xs_list):
         """
-            Reduce a given cross-section of a data run
-            Returns a reflectivity workspace and an information value
+        """
+        # Extract data info (find peaks, etc...)
+        # This can be moved within the for-loop below re-extraction with each cross-section.
+        # Generally, the peak ranges should be consistent between cross-section.
+        data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
 
-            Type info:
-                -1: too few counts
-                 0: direct beam run
-                 1: scattering run
-        """
+        # Determine the name of the direct beam workspace as needed
+        ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ''
+
         # Find reflectivity peak of scattering run
+        ws = xs_list[0]
+        run_number = ws.getRunNumber()
         entry = ws.getRun().getProperty("cross_section_id").value
         self.ipts = ws.getRun().getProperty("experiment_identifier").value
         logger.notice("R%s [%s] DATA TYPE: %s [ref=%s] [%s events]" % (run_number, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents()))
@@ -267,10 +254,8 @@ class ReductionProcess(object):
             self.log("  - skipping: data type=%s; events: %s [cutoff: %s]" % (data_info.data_type, ws.getNumberEvents(), self.min_number_events))
             return Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)
 
-        # Determine the name of the direct beam workspace as needed
-        ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ''
-
-        MagnetismReflectometryReduction(InputWorkspace=ws,
+        wsg = GroupWorkspaces(InputWorkspaces=xs_list)
+        MagnetismReflectometryReduction(InputWorkspace=wsg,
                                         NormalizationWorkspace=ws_norm,
                                         SignalPeakPixelRange=data_info.peak_range,
                                         SubtractSignalBackground=True,
@@ -293,19 +278,39 @@ class ReductionProcess(object):
                                         SpecularPixel=data_info.peak_position,
                                         ConstantQBinning=self.const_q_binning,
                                         ConstQTrim=0.1,
-                                        OutputWorkspace="r_%s_%s" % (run_number, entry))
+                                        OutputWorkspace="r_%s" % run_number)
 
-        # Write output file
-        reflectivity = mtd["r_%s_%s" % (run_number, entry)]
-        if self.output_dir is None:
-            self.output_dir = "/SNS/REF_M/%s/shared/autoreduce/" % self.ipts
-        self.log("  - ready to write: %s" % self.output_dir)
-        write_reflectivity([reflectivity],
-                           os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), data_info.cross_section_label)
-        SaveNexus(InputWorkspace=reflectivity,
-                  Filename=os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.nxs.h5' % (run_number, entry)))
-        self.log("  - done writing")
-        return Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
+        # Generate partial python script
+        write_partial_script(mtd["r_%s" % run_number])
+
+        report_list = []
+        for ws in xs_list:
+            try:
+                if str(ws).endswith('unfiltered'):
+                    continue
+                self.log("\n--- Run %s %s ---\n" % (self.run_number, str(ws)))
+                entry = ws.getRun().getProperty("cross_section_id").value
+                reflectivity = mtd["%s__reflectivity" % str(ws)]
+                report = Report(ws, data_info, direct_info, reflectivity,
+                                logfile=self.logfile, plot_2d=self.plot_2d)
+                report_list.append(report)
+
+                # Write output file
+                self.log("  - ready to write: %s" % self.output_dir)
+                write_reflectivity([reflectivity],
+                                   os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.dat' % (run_number, entry)), data_info.cross_section_label)
+                SaveNexus(InputWorkspace=reflectivity,
+                          Filename=os.path.join(self.output_dir, 'REF_M_%s_%s_autoreduce.nxs.h5' % (run_number, entry)))
+                self.log("  - done writing")
+                # Write partial output script
+            except:
+                self.log("  - reduction failed")
+                # No data for this cross-section, skip to the next
+                logger.error("Cross section: %s" % str(sys.exc_value))
+                report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
+                report_list.append(report)
+
+        return report_list
 
     def find_direct_beam(self, scatt_ws):
         """
