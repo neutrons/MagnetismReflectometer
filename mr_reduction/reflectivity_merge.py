@@ -12,10 +12,10 @@ import datetime
 import pandas
 import numpy as np
 import mantid
-from mantid.simpleapi import *
+import mantid.simpleapi as api
 
 from .settings import AR_OUT_DIR_TEMPLATE, DATA_DIR_TEMPLATE
-from .script_output import write_reduction_script
+from .script_output import write_reduction_script, write_tunable_reduction_script
 
 
 def match_run_for_cross_section(run, ipts, cross_section):
@@ -29,7 +29,7 @@ def match_run_for_cross_section(run, ipts, cross_section):
     _previous_q_min = 0
     _previous_q_max = 0
 
-    logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
+    api.logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
     matched_runs = []
     for i in range(10):
         i_run = run - i
@@ -40,7 +40,7 @@ def match_run_for_cross_section(run, ipts, cross_section):
                                        comment='#', names=['q','r','dr','dq', 'a'])
             q_min = min(ref_data['q'])
             q_max = max(ref_data['q'])
-            logger.notice("%s: [%s %s]" % (i_run, q_min, q_max))
+            api.logger.notice("%s: [%s %s]" % (i_run, q_min, q_max))
 
             if (q_max < _previous_q_max and q_max > _previous_q_min ) or _previous_q_max == 0:
                 _previous_q_max = q_max
@@ -66,18 +66,18 @@ def _extract_sequence_id(file_path):
                     try:
                         group_id = int(line[len("# sequence_id"):].strip())
                     except:
-                        logger.error("Could not extract group id from line: %s" % line)
+                        api.logger.error("Could not extract group id from line: %s" % line)
                 if line.startswith("# Input file indices:"):
                     try:
                         run_number = int(line[len("# Input file indices:"):].strip())
                     except:
-                        logger.error("Could not extract run number from line: %s" % line)
+                        api.logger.error("Could not extract run number from line: %s" % line)
                 if not line.startswith("#") and len(line.strip()) > 0:
                     try:
                         toks = line.split()
                         lowest_q = float(toks[0])
                     except:
-                        logger.error("Could not extract lowest q from line: %s" % line)
+                        api.logger.error("Could not extract lowest q from line: %s" % line)
                 if run_number is not None and group_id is not None and lowest_q is not None:
                     return run_number, group_id, lowest_q
     return run_number, group_id, lowest_q
@@ -92,7 +92,7 @@ def match_run_with_sequence(run, ipts, cross_section):
         @param ipts: experiment identifier
         @param cross_section: polarization entry
     """
-    logger.notice("Matching sequence for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
+    api.logger.notice("Matching sequence for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
     data_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
 
     # Check to see if we have the sequence information
@@ -137,13 +137,13 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
             ref_data = pandas.read_csv(_run_info,
                                        delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
 
-            ws = CreateWorkspace(DataX=ref_data['q'], DataY=ref_data['r'], DataE=ref_data['dr'])
-            ws = ConvertToHistogram(ws)
+            ws = api.CreateWorkspace(DataX=ref_data['q'], DataY=ref_data['r'], DataE=ref_data['dr'])
+            ws = api.ConvertToHistogram(ws)
             if _previous_ws is not None:
-                _, scale = Stitch1D(_previous_ws, ws)
+                _, scale = api.Stitch1D(_previous_ws, ws)
                 running_scale *= scale
                 scaling_factors.append(running_scale)
-            _previous_ws = CloneWorkspace(ws)
+            _previous_ws = api.CloneWorkspace(ws)
 
             # Rewind and get meta-data
             _run_info.seek(0)
@@ -234,7 +234,7 @@ def select_cross_section(run, ipts):
         output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
         file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
         if os.path.isfile(file_path):
-            logger.notice("Found: %s" % file_path)
+            api.logger.notice("Found: %s" % file_path)
             ref_data = pandas.read_csv(file_path,
                                        delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
             relative_error = np.sum(ref_data['dr'] * ref_data['dr']) / np.sum(ref_data['r'])
@@ -242,7 +242,7 @@ def select_cross_section(run, ipts):
                 best_xs = xs
                 best_error = relative_error
         else:
-            logger.notice("NOT found: %s" % file_path)
+            api.logger.notice("NOT found: %s" % file_path)
     return best_xs
 
 def write_reflectivity_cross_section(run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label):
@@ -307,10 +307,10 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
                           x_title=u"Q (1/A)", x_log=True,
                           y_title="Reflectivity", y_log=True, show_dx=False, publish=publish)
         else:
-            logger.notice("Nothing to plot")
+            api.logger.notice("Nothing to plot")
     except:
-        logger.error(str(sys.exc_value))
-        logger.error("No publisher module found")
+        api.logger.error(str(sys.exc_value))
+        api.logger.error("No publisher module found")
     return None
 
 def combined_curves(run, ipts):
@@ -319,11 +319,11 @@ def combined_curves(run, ipts):
     """
     # Select the cross section with the best statistics
     high_stat_xs = select_cross_section(run, ipts)
-    logger.notice("High xs: %s" % high_stat_xs)
+    api.logger.notice("High xs: %s" % high_stat_xs)
 
     # Match the given run with previous runs if they are overlapping in Q
     matched_runs = match_run_with_sequence(run, ipts, high_stat_xs)
-    logger.notice("Matched runs: %s" % str(matched_runs))
+    api.logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section
     try:
@@ -333,6 +333,7 @@ def combined_curves(run, ipts):
 
     # Write combined python script
     write_reduction_script(matched_runs, scaling_factors, ipts)
+    write_tunable_reduction_script(matched_runs, scaling_factors, ipts)
 
     xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors)
     xs_buffers.append((high_stat_xs, data_buffer))
