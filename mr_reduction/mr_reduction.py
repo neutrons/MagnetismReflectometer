@@ -281,6 +281,7 @@ class ReductionProcess(object):
                                         OutputWorkspace="r_%s" % run_number)
 
         # Generate partial python script
+        self.log("Workspace r_%s: %s" % (run_number, type(mtd["r_%s" % run_number])))
         write_partial_script(mtd["r_%s" % run_number])
 
         report_list = []

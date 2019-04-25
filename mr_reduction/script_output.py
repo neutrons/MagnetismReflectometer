@@ -63,20 +63,45 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts):
         fd.write(script)
 
 def write_partial_script(ws_grp):
-    script = generate_script_from_ws(ws_grp)
-    ipts = ws_grp[0].getRun().getProperty("experiment_identifier").value
-    run_number = ws_grp[0].getRunNumber()
+    """
+        Write a partial python reduction script. This script will be
+        used by the merging process to produce a clean and final reduction
+        script for the whole reflectivity curve.
+        
+        :param ws_grp: a Mantid workspace or WorkspaceGroup
+    """
+    # This should work for either a workspace or workspace group,
+    # so determine which one it is first.
+    if isinstance(ws_grp, mantid.api.WorkspaceGroup):
+        _ws = ws_grp[0]
+        _ws_list = ws_grp
+    else:
+        _ws = ws_grp
+        _ws_list = [ws_grp]
+
+    script = generate_script_from_ws(_ws_list, group_name=str(ws_grp))
+    ipts = _ws.getRun().getProperty("experiment_identifier").value
+    run_number = _ws.getRunNumber()
     output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
     with open(os.path.join(output_dir, "REF_M_%s_partial.py" % run_number), 'w') as fd:
         fd.write(script)
 
-def generate_script_from_ws(ws_grp):
+def generate_script_from_ws(ws_grp, group_name):
+    """
+        Generate a partial reduction script from a set of workspaces.
+        This algorithm needs to be compatible with the case of a single
+        workspace. For this reason, we are not assuming that ws_grp is
+        a workspace group. We therfore need the name of the grouping we
+        want to associate this set with in the output script.
+
+        :param ws_grp: list of Mantid workspaces, or workspace group
+        :param group_name: name of the group the workspace belongs to
+    """
     if len(ws_grp) == 0:
         return "# No workspace was generated\n"
-    ws_name = str(ws_grp)
 
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith('unfiltered')]
-    script = "workspaces['%s'] = %s\n" % (ws_name, str(xs_list))
+    script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
 
     script_text = api.GeneratePythonScript(ws_grp[0])
     # Skip the header
