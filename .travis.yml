@@ -21,6 +21,7 @@ before_install:
   - ls -ltr
   
 script:
+  - echo 'AR_OUT_DIR_TEMPLATE = "."' >> mr_reduction/settings.py
   - coverage run test/unit_tests.py
 
 after_success:
