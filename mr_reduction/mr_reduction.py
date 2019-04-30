@@ -206,7 +206,7 @@ class ReductionProcess(object):
             #ipts_number = self.ipts.split('-')[1]
             matched_runs, scaling_factors, outputs = combined_curves(run=int(self.run_number), ipts=self.ipts)
             if not self.live:
-                self.json_info = combined_catalog_info(matched_runs, self.ipts, outputs)
+                self.json_info = combined_catalog_info(matched_runs, self.ipts, outputs, run_number=self.run_number)
             self.log("Matched runs: %s" % str(matched_runs))
             ref_plot = plot_combined(matched_runs, scaling_factors, self.ipts, publish=False)
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))

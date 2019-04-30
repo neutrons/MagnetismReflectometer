@@ -348,9 +348,13 @@ def combined_curves(run, ipts):
 
     return matched_runs, scaling_factors, file_list
 
-def combined_catalog_info(matched_runs, ipts, output_files):
+def combined_catalog_info(matched_runs, ipts, output_files, run_number=None):
     """
         Produce cataloging information for reduced data
+        :param list matched_runs: list of matched runs
+        :param str ipts: experiment name
+        :param list output_files: list of output files for this reduction process
+        :param str run_number: run number we want to associate this reduction with
     """
     NEW_YORK_TZ = pytz.timezone('America/New_York')
     info = dict(user='auto',
@@ -378,7 +382,9 @@ def combined_catalog_info(matched_runs, ipts, output_files):
     info['output_files'] = output_list
 
     output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
-    json_path = os.path.join(output_dir, "REF_M_%s.json" % (matched_runs[0]))
+    if run_number is None:
+        run_number = matched_runs[0]
+    json_path = os.path.join(output_dir, "REF_M_%s.json" % run_number)
     with open(json_path, 'w') as fd:
         fd.write(json.dumps(info, indent=4))
     return json_path
