@@ -252,7 +252,7 @@ class ReductionProcess(object):
 
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
             self.log("  - skipping: data type=%s; events: %s [cutoff: %s]" % (data_info.data_type, ws.getNumberEvents(), self.min_number_events))
-            return Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)
+            return [Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)]
 
         wsg = GroupWorkspaces(InputWorkspaces=xs_list)
         MagnetismReflectometryReduction(InputWorkspace=wsg,

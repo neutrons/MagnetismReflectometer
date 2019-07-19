@@ -304,7 +304,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
             from .web_report import plot1d
         if data_names:
             return plot1d(matched_runs[-1], data_list, data_names=data_names, instrument='REF_M',
-                          x_title=u"Q (1/A)", x_log=True,
+                          x_title=u"Q (1/A)", x_log=False,
                           y_title="Reflectivity", y_log=True, show_dx=False, publish=publish)
         else:
             api.logger.notice("Nothing to plot")

@@ -245,7 +245,7 @@ class Report(object):
             tof_min = workspace.getTofMin()
             tof_max = workspace.getTofMax()
             workspace = Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
-    
+
             direct_summed = RefRoi(InputWorkspace=workspace, IntegrateY=True,
                                    NXPixel=n_x, NYPixel=n_y,
                                    ConvertToQ=False, YPixelMin=0, YPixelMax=n_y,
@@ -361,7 +361,8 @@ def _plot2d(x, y, z, x_range=None, y_range=None, x_label="X pixel", y_label="Y p
     fig = go.Figure(data=data, layout=layout)
     return py.plot(fig, output_type='div', include_plotlyjs=False, show_link=False)
 
-def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_range=None):
+def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_range=None,
+            x_log=False, y_log=True):
     """
         Generate a simple 1D plot
         :param array x: x-axis values
@@ -370,6 +371,8 @@ def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_rang
         :param str y_label: y-axis label
         :param str title: plot title
         :param array bck_range: array of length 2 to specify a background region in x
+        :param x_log: if true, the x-axis will be a log scale
+        :param y_log: if true, the y-axis will be a log scale
     """
     data = [go.Scatter(name='', x=x, y=y)]
 
@@ -394,10 +397,14 @@ def _plot1d(x, y, x_range=None, x_label='', y_label="Counts", title='', bck_rang
     x_layout = dict(title=x_label, zeroline=False, exponentformat="power",
                     showexponent="all", showgrid=True,
                     showline=True, mirror="all", ticks="inside")
+    if x_log:
+        x_layout['type'] = 'log'
 
     y_layout = dict(title=y_label, zeroline=False, exponentformat="power",
-                    showexponent="all", showgrid=True, type='log',
+                    showexponent="all", showgrid=True,
                     showline=True, mirror="all", ticks="inside")
+    if y_log:
+        y_layout['type'] = 'log'
 
     layout = go.Layout(
         title=title,

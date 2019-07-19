@@ -112,16 +112,16 @@ try:
             signal_x = ratio1.readX(0)
             signal_y = ratio1.readY(0)
             div_r1 = _plot1d(signal_x,signal_y, x_range=None,
-                               x_label="Wavelength", y_label=labels[0],
-                               title="")
+                             x_label="Wavelength", y_label=labels[0],
+                             title="", x_log=False, y_log=False)
             pol_info += "<td>%s</td>\n" % div_r1
             pol_info += "</tr>\n"
         if ratio2 is not None:
             signal_x = ratio2.readX(0)
             signal_y = ratio2.readY(0)
             div_r1 = _plot1d(signal_x,signal_y, x_range=None,
-                               x_label="Wavelength", y_label=labels[1],
-                               title="")
+                             x_label="Wavelength", y_label=labels[1],
+                             title="", x_log=False, y_log=False)
             pol_info += "<td>%s</td>\n" % div_r1
             pol_info += "</tr>\n"
         if asym1 is not None:
@@ -129,10 +129,9 @@ try:
             signal_y = asym1.readY(0)
             div_r1 = _plot1d(signal_x,signal_y, x_range=None,
                                x_label="Wavelength", y_label=labels[2],
-                               title="")
+                               title="", x_log=False, y_log=False)
             pol_info += "<td>%s</td>\n" % div_r1
             pol_info += "</tr>\n"
- 
     else:
         pol_info += "<tr>\n"
         div_r1 = api.SavePlot1D(InputWorkspace=ratio1, OutputType='plotly')
