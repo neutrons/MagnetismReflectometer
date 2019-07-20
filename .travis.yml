@@ -1,6 +1,6 @@
 language: python
 python:
-  - "2.7"
+  - "3.6"
 
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
@@ -10,7 +10,7 @@ before_install:
   - hash -r
   - conda update --yes conda
   - conda info -a
-  - conda install --yes python=2.7 numpy scipy pylint
+  - conda install --yes python=3.6 numpy scipy pylint
   - conda config --add channels conda-forge
   - conda config --add channels mantid
   - conda install --yes -c mantid/label/nightly mantid-framework
