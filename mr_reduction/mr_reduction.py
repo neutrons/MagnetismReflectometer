@@ -7,8 +7,8 @@ import sys
 import os
 import time
 
-from .settings import MANTID_PATH
-sys.path.insert(0, MANTID_PATH)
+# from .settings import MANTID_PATH
+# sys.path.insert(0, MANTID_PATH)
 import mantid
 from mantid.simpleapi import *
 
@@ -212,7 +212,7 @@ class ReductionProcess(object):
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:
             self.log("Could not generate combined curve")
-            logger.error(str(sys.exc_value))
+            logger.error(str(sys.exc_info()[1]))
 
         # Generate report and script
         logger.notice("Processing collection of %s reports" % len(report_list))
@@ -221,7 +221,7 @@ class ReductionProcess(object):
                                                 publish=self.publish, run_number=self.run_number)
         except:
             html_report = ''
-            self.log("Could not process reports %s" % sys.exc_value)
+            self.log("Could not process reports %s" % sys.exc_info()[1])
 
         if self.logfile:
             self.logfile.close()
@@ -307,7 +307,7 @@ class ReductionProcess(object):
             except:
                 self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
-                logger.error("Cross section: %s" % str(sys.exc_value))
+                logger.error("Cross section: %s" % str(sys.exc_info()[1]))
                 report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
                 report_list.append(report)
 
@@ -352,6 +352,6 @@ class ReductionProcess(object):
                         break
                 except:
                     # No data in this cross-section
-                    logger.error("Direct beam %s: %s" % (norm_entry, sys.exc_value))
+                    logger.error("Direct beam %s: %s" % (norm_entry, sys.exc_info()[1]))
 
         return apply_norm, norm_run, direct_info

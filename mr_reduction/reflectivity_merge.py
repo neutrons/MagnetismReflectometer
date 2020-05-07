@@ -301,7 +301,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
         try: # version on autoreduce
             from postprocessing.publish_plot import plot1d
         except ImportError: # version on instrument computers
-            from .web_report import plot1d
+            from finddata.publish_plot import plot1d
         if data_names:
             return plot1d(matched_runs[-1], data_list, data_names=data_names, instrument='REF_M',
                           x_title=u"Q (1/A)", x_log=False,
@@ -309,7 +309,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
         else:
             api.logger.notice("Nothing to plot")
     except:
-        api.logger.error(str(sys.exc_value))
+        api.logger.error(str(sys.exc_info()[1]))
         api.logger.error("No publisher module found")
     return None
 

@@ -2,6 +2,9 @@
 import logging
 import sys, os
 
+# This line will cause ar to pick the right mantid to run
+sys.path # /opt/mantid50/bin
+
 class ContextFilter(logging.Filter):
     """ Simple log filter to take out non-Mantid logs from .err file """
 
