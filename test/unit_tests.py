@@ -4,8 +4,8 @@ import os
 sys.path.append("livereduce")
 sys.path.append(".")
 
-from mr_reduction.settings import MANTID_PATH
-sys.path.insert(0, MANTID_PATH)
+#from mr_reduction.settings import MANTID_PATH
+#sys.path.insert(0, MANTID_PATH)
 import mantid.simpleapi as api
 
 import numpy as np
