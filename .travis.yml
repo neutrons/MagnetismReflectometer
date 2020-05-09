@@ -42,7 +42,7 @@ install:
   - conda install --yes numpy scipy pylint
   - conda install -c mantid boost
   - conda install -c mantid poco
-  - conda install --yes -c mantid/label/nightly mantid-workbench
+  - conda install --yes -c mantid mantid-framework
   
   - pip install --upgrade codecov
   - pip install plotly
