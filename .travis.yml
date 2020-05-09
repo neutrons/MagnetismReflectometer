@@ -17,7 +17,7 @@ before_install:
   export PATH="$HOME/miniconda/bin:$PATH"
   conda init bash
  
- install:
+install:
     # Setup conda activate/deactivate commands
   - conda init bash
   - source $(conda info --root)/etc/profile.d/conda.sh
