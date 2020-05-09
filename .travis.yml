@@ -1,8 +1,10 @@
 language: python
 dist: trusty
 
-python:
-  - "3.6"
+matrix:
+  include:
+  - os: linux
+    env: CONDA=3.6.7
 
 before_install:
 - |
@@ -14,14 +16,27 @@ before_install:
   bash miniconda.sh -b -p $HOME/miniconda
   export PATH="$HOME/miniconda/bin:$PATH"
   conda init bash
-  
+ 
  install:
+    # Setup conda activate/deactivate commands
+  - conda init bash
+  - source $(conda info --root)/etc/profile.d/conda.sh
+  - conda info --root
+
+    # Conda config - behavior and channel setup
+  - conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+  - conda config --add channels conda-forge --add channels mantid --add channels mantid/label/nightly --add channels defaults
+
+    # Install mamba
+  - conda install mamba -c conda-forge
+  - mamba update mamba -c conda-forge
+  - mamba info -a
+
+  - mamba create -q -n mr_test python=$CONDA
+  - conda activate mr_test
+  
   - hash -r
-  - conda update --yes conda
-  - conda info -a
-  - conda install --yes python=3.6 numpy scipy pylint
-  - conda config --add channels conda-forge
-  - conda config --add channels mantid --add channels mantid/label/nightly
+  - conda install --yes numpy scipy pylint
   - conda install --yes -c mantid/label/nightly mantid-framework
   - pip install --upgrade codecov
   - pip install plotly
