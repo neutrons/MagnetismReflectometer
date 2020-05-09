@@ -35,10 +35,12 @@ install:
   - mamba update mamba -c conda-forge
   - mamba info -a
   
-  - conda install --yes numpy scipy pylint
-  - conda install --yes -c mantid/label/nightly mantid-framework
   - mamba create -q -n mr_test python=$CONDA
   - conda activate mr_test
+  - python --version
+  
+  - conda install --yes numpy scipy pylint
+  - conda install --yes -c mantid/label/nightly mantid-framework
   
   - pip install --upgrade codecov
   - pip install plotly
