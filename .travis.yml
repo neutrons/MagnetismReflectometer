@@ -40,6 +40,7 @@ install:
   - python --version
   
   - conda install --yes numpy scipy pylint
+  - conda install -c statiskit libboost_python
   - conda install --yes -c mantid/label/nightly mantid-framework
   
   - pip install --upgrade codecov
