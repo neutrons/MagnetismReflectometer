@@ -35,10 +35,10 @@ install:
   - mamba update mamba -c conda-forge
   - mamba info -a
   
-  - mamba create -q -n mr_test python=$CONDA qt=5.6.2 flake8 conda-build anaconda-client pytest pytest-qt pytest-mpl
+script:
+  - mamba create -q -n mr_test python=$CONDA flake8 conda-build anaconda-client pytest pytest-qt pytest-mpl
   - mamba info --envs
   - conda activate mr_test
-  - python --version
   
   - conda install --yes numpy scipy pylint
   - conda install -c mantid boost
@@ -48,6 +48,24 @@ install:
   - pip install --upgrade codecov
   - pip install plotly
   - pip install pandas
+  
+  - mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
+  - cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
+  - ls ${CONDA_PREFIX}/conda-bld
+  - ls ${CONDA_PREFIX}/conda-bld/linux-64
+  - conda index ${CONDA_PREFIX}/conda-bld
+  
+  - python --version
+
+  - |
+    # Mantid pre-requiste - create a properties file that turns off network access
+    mkdir ~/.mantid
+    echo "CheckMantidVersion.OnStartup=0" > ~/.mantid/Mantid.user.properties
+    echo "UpdateInstrumentDefinitions.OnStartup=0" >> ~/.mantid/Mantid.user.properties
+    echo "usagereports.enabled=0" >> ~/.mantid/Mantid.user.properties
+    export DISPLAY=:99.0
+    sleep 3
+
   - wget http://198.74.56.37/ftp/external-data/MD5/214df921d4fa70ff5a33c4eb6f8284ad -O REF_M_24949
   - wget http://198.74.56.37/ftp/external-data/MD5/58d6698e1d6bf98e0315687cb980d333 -O REF_M_29160
   - ls -ltr
