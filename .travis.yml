@@ -49,12 +49,7 @@ script:
   - pip install plotly
   - pip install pandas
   
-  - mkdir -p ${CONDA_PREFIX}/conda-bld/linux-64/
-  - cp ${PKG_FILE} ${CONDA_PREFIX}/conda-bld/linux-64/
-  - ls ${CONDA_PREFIX}/conda-bld
-  - ls ${CONDA_PREFIX}/conda-bld/linux-64
-  - conda index ${CONDA_PREFIX}/conda-bld
-  
+ 
   - python --version
 
   - |
