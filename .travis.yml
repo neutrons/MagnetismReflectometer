@@ -13,7 +13,7 @@ before_install:
   - conda install --yes python=3.6 numpy scipy pylint
   - conda config --add channels conda-forge
   - conda config --add channels mantid --add channels mantid/label/nightly
-  - conda install --yes -c mantid/label/nightly mantid-workbench
+  - conda install --yes -c mantid/label/nightly mantid-framework
   - pip install --upgrade codecov
   - pip install plotly
   - pip install pandas
