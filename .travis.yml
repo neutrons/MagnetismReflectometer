@@ -12,6 +12,7 @@ before_install:
   - conda info -a
   - conda install --yes python=3.6 numpy scipy pylint
   - conda config --add channels conda-forge
+  - conda install -c anaconda libopenblas
   - conda config --add channels mantid/label/nightly
   - conda install --yes -c mantid/label/nightly mantid-framework
   - pip install --upgrade codecov
