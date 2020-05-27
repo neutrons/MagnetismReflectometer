@@ -45,7 +45,10 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         _, NamesOfOutputs = LeftHandSide.lhs('both')
     except Exception as e:
         print('WARNING: {}:'.format(e.__class__.__name__), e)
-        NamesOfOutputs = ["ratio1", "ratio2", "asym1"]
+        # FIXME: introspection changed for python3
+        # last value from running old working version
+        # this is a terrible variable name
+        NamesOfOutputs = ["ratio1", "ratio2", "asym1", '_']
 
     if slow_filter:
         wsg = filter_GetDI(workspace)
