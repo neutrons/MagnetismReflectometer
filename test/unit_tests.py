@@ -48,13 +48,13 @@ class FindPeaks(unittest.TestCase):
             REF_M_24949_event.nxs.md5: 214df921d4fa70ff5a33c4eb6f8284ad
             http://198.74.56.37/ftp/external-data/md5/%(hash)
         """
-        ws=api.LoadEventNexus(Filename='REF_M_24949', OutputWorkspace='REF_M_24949')
+        ws=api.LoadEventNexus(Filename='REF_M_29160', OutputWorkspace='REF_M_29160')
         fitter = Fitter(ws, prepare_plot_data=True)
         x, y = fitter.fit_2d_peak()
         api.logger.notice("Found: %s %s" % (str(x), str(y)))
         center_x = np.sum(x)/2.0
         self.assertGreater(center_x, 120)
-        self.assertLess(center_x, 130)
+        self.assertLess(center_x, 174)
 
 class TestReduction(unittest.TestCase):
     def test_reduce(self):
