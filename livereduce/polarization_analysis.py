@@ -40,12 +40,16 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
         run number, or workspace.
     """
-    
+
     try:
         _, NamesOfOutputs = LeftHandSide.lhs('both')
-    except:
-        NamesOfOutputs = ["ratio1", "ratio2", "asym1"]
-    
+    except Exception as e:
+        print('WARNING: {}:'.format(e.__class__.__name__), e)
+        # FIXME: introspection changed for python3
+        # last value from running old working version
+        # this is a terrible variable name
+        NamesOfOutputs = ["ratio1", "ratio2", "asym1", '_']
+
     if slow_filter:
         wsg = filter_GetDI(workspace)
     else:
@@ -62,7 +66,7 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
     for item in wsg:
         if mantid.mtd[item].getNumberEvents() > 100:
             mantid.logger.notice("Cross-section %s: %s events" % (item, mantid.mtd[item].getNumberEvents()))
-            ws_non_zero.append(item) 
+            ws_non_zero.append(item)
         s = extract_roi(workspace=item, step = delta_wl , roi = roi)
         ws_list.append(s)
     mantid.logger.notice("Cross-sections found: %s" % len(wsg))

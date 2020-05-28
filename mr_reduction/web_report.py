@@ -53,12 +53,12 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             from postprocessing.publish_plot import publish_plot
             _publisher_found = True
         except ImportError: # version on instrument computers
-            from finddata import publish_plot
+            from finddata.publish_plot import publish_plot
             _publisher_found = True
         if _publisher_found:
             publish_plot("REF_M", run_number, files={'file': str(plot_html)})
         else:
-            logger.error("Could not publish web report: %s" % sys.exc_value)
+            logger.error("Could not publish web report: %s" % sys.exc_info()[1])
 
     return plot_html, script
 
@@ -232,7 +232,7 @@ class Report(object):
                 #integrated = Integration(workspace)
                 signal = np.log10(workspace.extractY())
                 z=np.reshape(signal, (n_x, n_y))
-                xy_plot = _plot2d(z=z.T, x=range(n_x), y=range(n_y),
+                xy_plot = _plot2d(z=z.T, x=list(range(n_x)), y=list(range(n_y)),
                                   x_range=scatt_peak, y_range=scatt_low_res, x_bck_range=self.data_info.background,
                                   title="r%s [%s]" % (self.data_info.run_number, cross_section))
             except:
@@ -254,7 +254,7 @@ class Report(object):
             tof_axis = direct_summed.extractX()[0]/1000.0
 
             if self.plot_2d:
-                x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
+                x_tof_plot = _plot2d(z=signal, y=list(range(signal.shape[0])), x=tof_axis,
                                      x_range=None, y_range=scatt_peak, y_bck_range=self.data_info.background,
                                      x_label="TOF (ms)", y_label="X pixel",
                                      title="r%s [%s]" % (self.data_info.run_number, cross_section))
@@ -268,7 +268,7 @@ class Report(object):
             integrated = Integration(direct_summed)
             integrated = Transpose(integrated)
             signal_y = integrated.readY(0)
-            signal_x = range(len(signal_y))
+            signal_x = list(range(len(signal_y)))
             peak_pixels = _plot1d(signal_x,signal_y, x_range=scatt_peak, bck_range=self.data_info.background,
                                   x_label="X pixel", y_label="Counts",
                                   title="r%s [%s]" % (self.data_info.run_number, cross_section))

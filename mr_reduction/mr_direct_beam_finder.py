@@ -86,7 +86,7 @@ class DirectBeamFinder(object):
                         except:
                             # If there's no data in the entry, LoadEventNexus will fail.
                             # This is expected so we just need to proceed with the next entry.
-                            logging.debug("Finding direct beam: %s [%s]: %s", item, entry, sys.exc_value)
+                            logging.debug("Finding direct beam: %s [%s]: %s", item, entry, sys.exc_info()[1])
 
                     if not is_valid:
                         meta_data = dict(run=0, invalid=True)
