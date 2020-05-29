@@ -1,3 +1,6 @@
+"""
+    For future reference: ask Tim for details.
+"""
 import dis, inspect, opcode
 
 ############################################################################################
@@ -95,12 +98,12 @@ def decompile(code_object):
  
 # Print the byte code in a human readable format
 def pretty_print(instructions):
-    print '%5s %-20s %3s  %5s  %-20s  %s' %  ('OFFSET', 'INSTRUCTION', 'OPCODE', 'ARG', 'TYPE', 'VALUE')
+    print('%5s %-20s %3s  %5s  %-20s  %s' %  ('OFFSET', 'INSTRUCTION', 'OPCODE', 'ARG', 'TYPE', 'VALUE'))
     for (offset, op, name, argument, argtype, argvalue) in instructions:
-        print '%5d  %-20s (%3d)  ' % (offset, name, op),
+        print('%5d  %-20s (%3d)  ' % (offset, name, op))
         if argument != None:
-            print '%5d  %-20s  (%s)' % (argument, argtype, argvalue),
-        print
+            print('%5d  %-20s  (%s)' % (argument, argtype, argvalue))
+        print()
 
 
 def lhs(output='names'):

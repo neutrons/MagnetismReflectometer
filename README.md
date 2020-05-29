@@ -1,5 +1,5 @@
-[![TRAVISCI](https://travis-ci.org/mdoucet/MagnetismReflectometer.svg?branch=master)](https://travis-ci.org/mdoucet/MagnetismReflectometer)
-[![codecov](https://codecov.io/gh/mdoucet/MagnetismReflectometer/branch/master/graph/badge.svg)](https://codecov.io/gh/mdoucet/MagnetismReflectometer)
+[![TRAVISCI](https://travis-ci.org/neutrons/MagnetismReflectometer.svg?branch=master)](https://travis-ci.org/neutrons/MagnetismReflectometer)
+[![codecov](https://codecov.io/gh/neutrons/MagnetismReflectometer/branch/master/graph/badge.svg)](https://codecov.io/gh/neutrons/MagnetismReflectometer)
 
 # MR automated reduction
 Automated reduction code based on Mantid.

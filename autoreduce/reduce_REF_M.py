@@ -2,6 +2,9 @@
 import logging
 import sys, os
 
+# This line will cause ar to pick the right mantid to run
+sys.path # /opt/mantid50/bin
+
 class ContextFilter(logging.Filter):
     """ Simple log filter to take out non-Mantid logs from .err file """
 
@@ -20,7 +23,6 @@ f = ContextFilter()
 logger.addFilter(f)
 
 from mr_reduction import mr_reduction as refm
-from mr_reduction import mr_translate
 
 if __name__=="__main__":
     """
@@ -45,10 +47,6 @@ if __name__=="__main__":
     # The new format is REF_L_xyz.nxs.h5
     run_number = event_file.split('_')[2]
     run_number = run_number.replace('.nxs.h5', '')
-
-    # Translate event data to legacy QuickNXS-compatible files.
-    if event_file_path.endswith('.h5'):
-        mr_translate.translate(event_file_path, histo=True, sub_dir='../data')
 
     red = refm.ReductionProcess(data_run=event_file_path,
                                 output_dir=outdir,

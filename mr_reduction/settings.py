@@ -1,7 +1,7 @@
 """
     Reduction settings for MR
 """
-MANTID_PATH = "/opt/mantidnightly/bin"
+#MANTID_PATH = ["/opt/mantid50/lib", "/opt/mantid50/bin"]
 #MANTID_PATH = '/SNS/users/m2d/mantid_build_area/master_release/bin'
 
 # Polarization states
