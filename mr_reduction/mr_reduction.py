@@ -270,7 +270,7 @@ class ReductionProcess(object):
                                         LowResNormAxisPixelRange=direct_info.low_res_range,
                                         CutTimeAxis=True,
                                         QMin=0.001,
-                                        QStep=-0.01,
+                                        QStep=-0.025,
                                         UseWLTimeAxis=False,
                                         TimeAxisStep=40,
                                         UseSANGLE=self.use_sangle,
