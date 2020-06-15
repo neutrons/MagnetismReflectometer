@@ -25,7 +25,7 @@ pol_info = ''
 try:
     import polarization_analysis
 except:
-    pol_info = "<div>Error: %s</div>\n" % sys.exc_value
+    pol_info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 def generate_plots(run_number, workspace):
     """
@@ -86,7 +86,7 @@ try:
 except:
     plots = []
     pol_info += "<div>Error generating plots</div>\n"
-    mantid.logger.error(str(sys.exc_value))
+    mantid.logger.error(str(sys.exc_info()[1]))
 
 info = ''
 try:
@@ -97,7 +97,7 @@ try:
     info += "<div>Sequence: %s of %s</div>\n" % (seq_number, seq_total) 
     info += "<div>Report time: %s</div>\n" % time.ctime()
 except:
-    info = "<div>Error: %s</div>\n" % sys.exc_value
+    info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 pol_info += "<table style='width:100%'>\n"
 ws = None
@@ -138,7 +138,7 @@ try:
         pol_info += "<td>%s</td>\n" % div_r1
         pol_info += "</tr>\n"
 except:
-    pol_info += "<div>Error: %s</div>\n" % sys.exc_value
+    pol_info += "<div>Error: %s</div>\n" % sys.exc_info()[1]
 pol_info += "</table>\n"
 
 # Try to reduce the data
@@ -158,7 +158,7 @@ if run_number>0 and ws is not None:
         reduction_info += "<div>Could not reduce the data</div>\n"
         reduction_info += "<div>%s</div>\n" % sys.exc_info()[0]
         if DEBUG:
-            logfile.write(str(sys.exc_value))
+            logfile.write(str(sys.exc_info()[1]))
 
 output = input
 

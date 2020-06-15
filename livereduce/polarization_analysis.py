@@ -4,7 +4,6 @@
 import sys
 import mantid
 import mantid.simpleapi as api
-import LeftHandSide
 
 
 def filter_GetDI(ws):
@@ -40,16 +39,6 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
         CalcRatioSa calculates the flipping ratios and the SA (normalized difference) for a given file,
         run number, or workspace.
     """
-
-    try:
-        _, NamesOfOutputs = LeftHandSide.lhs('both')
-    except Exception as e:
-        print('WARNING: {}:'.format(e.__class__.__name__), e)
-        # FIXME: introspection changed for python3
-        # last value from running old working version
-        # this is a terrible variable name
-        NamesOfOutputs = ["ratio1", "ratio2", "asym1", '_']
-
     if slow_filter:
         wsg = filter_GetDI(workspace)
     else:
@@ -91,19 +80,17 @@ def calculate_ratios(workspace, delta_wl=0.01, roi=[1,256,1,256], slow_filter=Fa
             ratio2 = None
             labels = None
     except:
-        mantid.logger.notice(str(sys.exc_value))
+        mantid.logger.notice(str(sys.exc_info()[1]))
 
-
-    if NamesOfOutputs:
-        if ratio1 is not None:
-            api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace=NamesOfOutputs[1])
-            ratio1 = mantid.mtd[NamesOfOutputs[1]]
-        if ratio2 is not None:
-            api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace=NamesOfOutputs[2])
-            ratio2 = mantid.mtd[NamesOfOutputs[2]]
-        if asym1 is not None:
-            api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace=NamesOfOutputs[3])
-            asym1 = mantid.mtd[NamesOfOutputs[3]]
+    if ratio1 is not None:
+        api.CloneWorkspace(InputWorkspace=ratio1, OutputWorkspace="ratio1")
+        ratio1 = mantid.mtd["ratio1"]
+    if ratio2 is not None:
+        api.CloneWorkspace(InputWorkspace=ratio2, OutputWorkspace="ratio2")
+        ratio2 = mantid.mtd["ratio2"]
+    if asym1 is not None:
+        api.CloneWorkspace(InputWorkspace=asym1, OutputWorkspace="asym1")
+        asym1 = mantid.mtd["asym1"]
 
     return ws_non_zero, ratio1, ratio2, asym1, labels
 
