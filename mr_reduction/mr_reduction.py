@@ -212,6 +212,7 @@ class ReductionProcess(object):
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:
             self.log("Could not generate combined curve")
+            self.log(str(sys.exc_info()[1]))
             logger.error(str(sys.exc_info()[1]))
 
         # Generate report and script
