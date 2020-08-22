@@ -52,19 +52,19 @@ def read_configuration():
             return json.loads(_json_data)
         except:
             if DEBUG:
-                logfile.write("Could not parse reduction options from the reduction script")
+                logfile.write("Could not parse reduction options from the reduction script\n")
     return None
 
 
-def call_reduction(ws):
+def call_reduction(ws, options=None):
     """
         Call automated reduction.
         Use good defaults when no configuration is available.
     """
-    options = read_configuration()
+    
     if options:
         if DEBUG:
-            logfile.write("Using reduction options")
+            logfile.write("Using reduction options\n")
         use_const_q = options['use_const_q'] if 'use_const_q' in options else False
         fit_peak_in_roi = options['fit_peak_in_roi'] if 'fit_peak_in_roi' in options else False
         use_roi_bck = options['use_roi_bck'] if 'use_roi_bck' in options else False
@@ -95,7 +95,7 @@ def call_reduction(ws):
                                      update_peak_range=True, publish=False, debug=True)
 
 
-def generate_plots(run_number, workspace):
+def generate_plots(run_number, workspace, options=None):
     """
         Generate diagnostics plots
     """
@@ -114,7 +114,7 @@ def generate_plots(run_number, workspace):
     signal = np.log10(direct_summed.extractY())
     tof_axis = direct_summed.extractX()[0]/1000.0
 
-    x_tof_plot = _plot2d(z=signal, y=range(signal.shape[0]), x=tof_axis,
+    x_tof_plot = _plot2d(z=signal, y=np.arange(signal.shape[0]), x=tof_axis,
                          x_label="TOF (ms)", y_label="X pixel",
                          title="r%s" % run_number)
 
@@ -129,7 +129,7 @@ def generate_plots(run_number, workspace):
     integrated = api.Integration(direct_summed)
     integrated = api.Transpose(integrated)
     signal_y = integrated.readY(0)
-    signal_x = range(len(signal_y))
+    signal_x = np.arange(len(signal_y))
     peak_pixels = _plot1d(signal_x,signal_y,
                           x_label="X pixel", y_label="Counts",
                           title="r%s" % run_number)
@@ -144,6 +144,9 @@ def generate_plots(run_number, workspace):
 
     return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
 
+# Get reduction options
+options = read_configuration()
+
 try:
     run_number = input.getRunNumber()
 except:
@@ -152,6 +155,8 @@ except:
 try:
     plots = generate_plots(run_number, input)
 except:
+    if DEBUG:
+        logfile.write("%s\n" % sys.exc_info()[1])
     plots = []
     pol_info += "<div>Error generating plots</div>\n"
     mantid.logger.error(str(sys.exc_info()[1]))
@@ -214,7 +219,7 @@ reduction_info = ''
 if run_number>0 and ws is not None:
     try:
         ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
-        red = call_reduction(ws)
+        red = call_reduction(ws, options=options)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
         red.ana_state = "SF2"
