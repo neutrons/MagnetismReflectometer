@@ -1,7 +1,9 @@
 #pylint: disable=bare-except
 import sys
+import os
 import traceback
 import time
+import json
 import numpy as np
 import mantid
 from mantid import simpleapi as api
@@ -16,7 +18,7 @@ from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d
 from mr_reduction.web_report import _plot2d
 
-DEBUG = False
+DEBUG = True
 if DEBUG:
     logfile = open("/SNS/REF_M/shared/autoreduce/MR_live_outer.log", 'a')
     logfile.write("Starting post-proc\n")
@@ -26,6 +28,72 @@ try:
     import polarization_analysis
 except:
     pol_info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
+
+
+def read_configuration():
+    """
+        Read the reduction options from the automated reduction script.
+    """
+    _json_data = ''
+    with open(os.path.join(AR_DIR, "reduce_REF_M.py"), 'r') as fd:
+        _json_started = False
+        for line in fd.readlines():
+            if "END_JSON" in line:
+                _json_started = False
+            if _json_started:
+                # The assumption is that all parameters are lowercase.
+                # Json only understands true/false, but not True/False.
+                _json_data += line.lower()
+            if "START_JSON" in line:
+                _json_started = True
+
+    if len(_json_data) > 0:
+        try:
+            return json.loads(_json_data)
+        except:
+            if DEBUG:
+                logfile.write("Could not parse reduction options from the reduction script")
+    return None
+
+
+def call_reduction(ws):
+    """
+        Call automated reduction.
+        Use good defaults when no configuration is available.
+    """
+    options = read_configuration()
+    if options:
+        if DEBUG:
+            logfile.write("Using reduction options")
+        use_const_q = options['use_const_q'] if 'use_const_q' in options else False
+        fit_peak_in_roi = options['fit_peak_in_roi'] if 'fit_peak_in_roi' in options else False
+        use_roi_bck = options['use_roi_bck'] if 'use_roi_bck' in options else False
+        force_peak = options['force_peak'] if 'force_peak' in options else False
+        peak_roi=[0,0]
+        if 'peak_min' in options and 'peak_max' in options:
+            peak_roi = [options['peak_min'], options['peak_max']]
+        use_side_bck = options['use_side_bck'] if 'use_side_bck' in options else False
+        bck_width = options['bck_width'] if 'bck_width' in options else 3
+        use_sangle = options['use_sangle'] if 'use_sangle' in options else True
+        force_background = options['force_background'] if 'force_background' in options else False
+        bck_roi = [0,0]
+        if 'bck_min' in options and 'bck_max' in options:
+            bck_roi = [options['bck_min'], options['bck_max']]
+
+        return refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None,
+                                     use_sangle=use_sangle,
+                                     const_q_binning=use_const_q,
+                                     update_peak_range=fit_peak_in_roi,
+                                     use_roi=True,
+                                     use_roi_bck=use_roi_bck,
+                                     force_peak_roi=force_peak, peak_roi=peak_roi,
+                                     force_bck_roi=force_background, bck_roi=bck_roi,
+                                     use_tight_bck=use_side_bck, bck_offset=bck_width)
+            
+    else:
+        return refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=False, use_sangle=False,
+                                     update_peak_range=True, publish=False, debug=True)
+
 
 def generate_plots(run_number, workspace):
     """
@@ -146,8 +214,7 @@ reduction_info = ''
 if run_number>0 and ws is not None:
     try:
         ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
-        red = refm.ReductionProcess(data_run=None, data_ws=ws, output_dir=None, use_roi=False, use_sangle=False,
-                                    update_peak_range=True, publish=False, debug=True)
+        red = call_reduction(ws)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
         red.ana_state = "SF2"

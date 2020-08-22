@@ -36,11 +36,17 @@ if __name__=="__main__":
         Force background: ${force_background} [${bck_min}, ${bck_max}]
         Use side bck:     ${use_side_bck}
         Bck width:        ${bck_width}
-        Skip conversion   ${skip_quicknxs}
         Produce 2D plots  ${plot_in_2D}
 
     Not used yet:
         Const-Q cutoff:   ${const_q_cutoff}
+
+START_JSON
+{"use_sangle":${use_sangle}, "use_const_q":${use_const_q}, "fit_peak_in_roi":${fit_peak_in_roi}, "use_roi_bck":${use_roi_bck},
+ "force_peak":${force_peak}, "peak_min":${peak_min}, "peak_max":${peak_max}, "force_background":${force_background},
+ "bck_min":${bck_min}, "bck_max":${bck_max}, "use_side_bck":${use_side_bck}, "bck_width":${bck_width}
+}
+END_JSON
     """
 
     event_file_path=sys.argv[1]
