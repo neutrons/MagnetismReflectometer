@@ -193,7 +193,7 @@ class ReductionProcess(object):
             for ws in _xs_list:
                 if 'cross_section_id' not in ws.getRun():
                     ws.getRun()['cross_section_id'] = 'Off_Off'
-        xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered']
+        xs_list = [ws for ws in _xs_list if not ws.getRun()['cross_section_id'].value == 'unfiltered' and ws.getNumberEvents() > 0]
 
         # Reduce each cross-section
         report_list = self.reduce_workspace_group(xs_list)
@@ -235,6 +235,7 @@ class ReductionProcess(object):
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
         data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
+        self.log("Norm run: %g" % norm_run)
 
         # Determine the name of the direct beam workspace as needed
         ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ''

@@ -85,6 +85,7 @@ def call_reduction(ws, options=None):
                                      const_q_binning=use_const_q,
                                      update_peak_range=fit_peak_in_roi,
                                      use_roi=True,
+                                     debug=DEBUG,
                                      use_roi_bck=use_roi_bck,
                                      force_peak_roi=force_peak, peak_roi=peak_roi,
                                      force_bck_roi=force_background, bck_roi=bck_roi,

@@ -155,14 +155,17 @@ class DirectBeamFinder(object):
                 if 'invalid' in meta_data.keys():
                     continue
                 run_number = meta_data['run']
-                theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
 
                 wl = meta_data['wl']
                 s1 = meta_data['s1']
                 s2 = meta_data['s2']
                 s3 = meta_data['s3']
                 data_type = meta_data['data_type'] if 'data_type' in meta_data else -1
-                if run_number == self.run or (data_type == -1 and theta_d > self.tolerance) or data_type == 0:
+
+                # Data type = 1 is for direct beams
+                #theta_d = meta_data['theta_d'] if 'theta_d' in meta_data else 0
+                #if run_number == self.run or (data_type == -1 and theta_d > self.tolerance) or data_type == 0:
+                if run_number == self.run or not data_type == 1:
                     continue
                 # If we don't allow runs taken later than the run we are processing...
                 if not self.allow_later_runs and run_number > self.run:
