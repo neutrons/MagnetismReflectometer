@@ -37,7 +37,7 @@ class ReductionProcess(object):
 
     def __init__(self, data_run, data_ws=None, output_dir=None, const_q_binning=False, const_q_cutoff=0.02,
                  update_peak_range=False, use_roi_bck=False, use_tight_bck=False, bck_offset=3,
-                 use_sangle=True, use_roi=True,
+                 use_sangle=True, use_roi=True, q_step=-0.02,
                  force_peak_roi=False, peak_roi=[0,0],
                  force_bck_roi=False, bck_roi=[0,0], publish=True, debug=False, live=False):
         """
@@ -68,6 +68,7 @@ class ReductionProcess(object):
         self.use_roi_bck = use_roi_bck
         self.use_tight_bck = use_tight_bck
         self.bck_offset = bck_offset
+        self.q_step = q_step
 
         # Options to override the ROI
         self.force_peak_roi = force_peak_roi
@@ -272,7 +273,7 @@ class ReductionProcess(object):
                                         LowResNormAxisPixelRange=direct_info.low_res_range,
                                         CutTimeAxis=True,
                                         QMin=0.001,
-                                        QStep=-0.025,
+                                        QStep=self.q_step,
                                         UseWLTimeAxis=False,
                                         TimeAxisStep=40,
                                         UseSANGLE=self.use_sangle,

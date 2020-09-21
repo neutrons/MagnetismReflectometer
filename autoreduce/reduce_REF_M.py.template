@@ -37,6 +37,7 @@ if __name__=="__main__":
         Use side bck:     ${use_side_bck}
         Bck width:        ${bck_width}
         Produce 2D plots  ${plot_in_2D}
+        Q step:           -0.02
 
     Not used yet:
         Const-Q cutoff:   ${const_q_cutoff}
@@ -44,8 +45,7 @@ if __name__=="__main__":
 START_JSON
 {"use_sangle":${use_sangle}, "use_const_q":${use_const_q}, "fit_peak_in_roi":${fit_peak_in_roi}, "use_roi_bck":${use_roi_bck},
  "force_peak":${force_peak}, "peak_min":${peak_min}, "peak_max":${peak_max}, "force_background":${force_background},
- "bck_min":${bck_min}, "bck_max":${bck_max}, "use_side_bck":${use_side_bck}, "bck_width":${bck_width}, "plot_2d":${plot_in_2D}
-}
+ "bck_min":${bck_min}, "bck_max":${bck_max}, "use_side_bck":${use_side_bck}, "bck_width":${bck_width}, "plot_2d":${plot_in_2D}, "q_step":-0.02}
 END_JSON
     """
 
@@ -65,6 +65,7 @@ END_JSON
                                 update_peak_range=${fit_peak_in_roi},
                                 use_roi=True,
                                 use_roi_bck=${use_roi_bck},
+                                q_step=-0.02,
                                 force_peak_roi=${force_peak}, peak_roi=[${peak_min}, ${peak_max}],
                                 force_bck_roi=${force_background}, bck_roi=[${bck_min}, ${bck_max}],
                                 use_tight_bck=${use_side_bck}, bck_offset=${bck_width})
