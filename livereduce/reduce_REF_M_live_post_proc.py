@@ -248,8 +248,8 @@ plot_html += "<hr>\n"
 plot_html += pol_info
 
 if DEBUG:
-    logfile.write("html ready\n")
-
+    logfile.write("\nhtml ready\n")
+    #logfile.write(plot_html)
 try:
     mantid.logger.information('Posting plot of run %s' % run_number)
     try: # version on autoreduce
@@ -260,6 +260,7 @@ try:
 except:
     exc_type, exc_value, exc_traceback = sys.exc_info()
     if DEBUG:
+        logfile.write('\n'+exc_value+'\n')
         for line in traceback.format_exception(exc_type, exc_value, exc_traceback):
             logfile.write(line)
 if DEBUG:

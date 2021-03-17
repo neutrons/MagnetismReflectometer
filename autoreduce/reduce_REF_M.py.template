@@ -37,7 +37,7 @@ if __name__=="__main__":
         Use side bck:     ${use_side_bck}
         Bck width:        ${bck_width}
         Produce 2D plots  ${plot_in_2D}
-        Q step:           -0.02
+        Q step:           ${q_step}
 
     Not used yet:
         Const-Q cutoff:   ${const_q_cutoff}
