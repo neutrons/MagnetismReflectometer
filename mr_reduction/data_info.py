@@ -737,8 +737,8 @@ class Fitter2(object):
         self.peaks = self._scan_peaks()
 
         # Package the best results
-        x_min = np.int(max(0, int(self.guess_x-np.fabs(self.guess_wx))))
-        x_max = np.int(min(self.n_x-1, int(self.guess_x+np.fabs(self.guess_wx))))
+        x_min = int(max(0, int(self.guess_x-np.fabs(self.guess_wx))))
+        x_max = int(min(self.n_x-1, int(self.guess_x+np.fabs(self.guess_wx))))
 
         return [x_min, x_max]
 
@@ -782,7 +782,7 @@ class Fitter2(object):
             Fit the data distribution in y and get its range.
         """
         peak_min = 0
-        peak_max = np.int(self.n_x)
+        peak_max = int(self.n_x)
         try:
             _integral = [np.sum(self.y_vs_counts[:i]) for i in range(len(self.y_vs_counts))]
             _running = 0.1*np.convolve(self.y_vs_counts, np.ones(10), mode='valid')
@@ -801,8 +801,8 @@ class Fitter2(object):
     
             self.guess_y = _coef[1]
             self.guess_wy = (peak_max - peak_min) / 2.0
-            peak_min = np.int(max(peak_min, self.DEAD_PIXELS))
-            peak_max = np.int(min(peak_max, self.n_x-self.DEAD_PIXELS))
+            peak_min = int(max(peak_min, self.DEAD_PIXELS))
+            peak_max = int(min(peak_max, self.n_x-self.DEAD_PIXELS))
         except:
             api.logger.notice("Could not fit the beam width")
         return [peak_min, peak_max]
