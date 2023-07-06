@@ -139,16 +139,10 @@ class DataInfo(object):
         background_max = max(background_min,
                              run_object.getProperty("background_max").value)
         self.background = [background_min, background_max]
-        if use_roi_bck:
-            #bck_max = min(20, self.peak_position)
-            bck_max = np.int(self.peak_position/2.0)
-            self.background = [max(0, bck_max-10), bck_max]
-        elif use_tight_bck:
+        if use_tight_bck:
             bck_min = max(0, peak_min-bck_offset)
             bck_max = min(303, peak_max+bck_offset)
             self.background = [bck_min, bck_max]
-        else:
-            self.background = [4, 103]
 
         roi_low_res_min = run_object.getProperty("roi_low_res_min").value
         roi_low_res_max = run_object.getProperty("roi_low_res_max").value

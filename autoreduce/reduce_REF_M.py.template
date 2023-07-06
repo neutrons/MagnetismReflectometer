@@ -2,8 +2,8 @@
 import logging
 import sys, os
 
-# This line will cause ar to pick the right mantid to run
-sys.path # /opt/mantid50/bin
+sys.path.insert(0, '/opt/mantid64/bin')
+#CONDA_ENV = 'mantid'
 
 class ContextFilter(logging.Filter):
     """ Simple log filter to take out non-Mantid logs from .err file """
@@ -56,6 +56,9 @@ END_JSON
     # The new format is REF_L_xyz.nxs.h5
     run_number = event_file.split('_')[2]
     run_number = run_number.replace('.nxs.h5', '')
+    # The following line is generated from the template
+    # use_roi_bck = ${use_roi_bck} and not ${force_background}
+    use_roi_bck = ${use_roi_bck} and not ${force_background}
 
     red = refm.ReductionProcess(data_run=event_file_path,
                                 output_dir=outdir,
@@ -64,10 +67,20 @@ END_JSON
                                 const_q_cutoff=${const_q_cutoff},
                                 update_peak_range=${fit_peak_in_roi},
                                 use_roi=True,
-                                use_roi_bck=${use_roi_bck},
+                                use_roi_bck=False,
                                 q_step=${q_step},
                                 force_peak_roi=${force_peak}, peak_roi=[${peak_min}, ${peak_max}],
                                 force_bck_roi=${force_background}, bck_roi=[${bck_min}, ${bck_max}],
                                 use_tight_bck=${use_side_bck}, bck_offset=${bck_width})
     red.plot_2d = ${plot_in_2D}
     red.reduce()
+
+    try:
+        ipts = outdir.split('/')[3]
+        ipts_number = ipts.split('-')[1]
+        cmd = "/SNS/software/nses/bin/confirm-data -s Yes BL-4A %s 1 Auto" % ipts_number
+        print(cmd)
+        os.system(cmd)
+    except:
+        print("Could not set data availability")
+        print(sys.exc_info()[1])
