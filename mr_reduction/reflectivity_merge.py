@@ -36,7 +36,7 @@ def match_run_for_cross_section(run, ipts, cross_section):
         output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
         file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, cross_section))
         if os.path.isfile(file_path):
-            ref_data = pandas.read_csv(file_path, delim_whitespace=True,
+            ref_data = pandas.read_csv(file_path, sep='\s+',
                                        comment='#', names=['q','r','dr','dq', 'a'])
             q_min = min(ref_data['q'])
             q_max = max(ref_data['q'])
@@ -135,7 +135,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
         if os.path.isfile(file_path):
             _run_info = open(file_path, 'r')
             ref_data = pandas.read_csv(_run_info,
-                                       delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
+                                       sep='\s+', comment='#', names=['q','r','dr','dq', 'a'])
 
             ws = api.CreateWorkspace(DataX=ref_data['q'], DataY=ref_data['r'], DataE=ref_data['dr'])
             ws = api.ConvertToHistogram(ws)
@@ -213,7 +213,7 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
             if os.path.isfile(file_path):
                 _run_info = open(file_path, 'r')
                 ref_data = pandas.read_csv(_run_info,
-                                           delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
+                                           sep='\s+', comment='#', names=['q','r','dr','dq', 'a'])
 
                 for i in range(len(ref_data['q'])):
                     data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (ref_data['q'][i],
@@ -236,7 +236,7 @@ def select_cross_section(run, ipts):
         if os.path.isfile(file_path):
             api.logger.notice("Found: %s" % file_path)
             ref_data = pandas.read_csv(file_path,
-                                       delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
+                                       sep='\s+', comment='#', names=['q','r','dr','dq', 'a'])
             relative_error = np.sum(ref_data['dr'] * ref_data['dr']) / np.sum(ref_data['r'])
             if best_xs is None or relative_error < best_error:
                 best_xs = xs
@@ -291,7 +291,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
             file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
             if os.path.isfile(file_path):
                 ref_data = pandas.read_csv(file_path,
-                                           delim_whitespace=True, comment='#', names=['q','r','dr','dq', 'a'])
+                                           sep='\s+', comment='#', names=['q','r','dr','dq', 'a'])
                 data_list.append([ref_data['q'], scaling_factors[i]*ref_data['r'], scaling_factors[i]*ref_data['dr']])
                 data_names.append("r%s [%s]" % (run, xs))
 

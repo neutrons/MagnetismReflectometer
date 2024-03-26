@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 import logging
 import sys, os
+import warnings
+warnings.simplefilter('ignore')
 
-sys.path.insert(0, '/opt/mantid64/bin')
-#CONDA_ENV = 'mantid'
+CONDA_ENV = 'mantid'
 
 class ContextFilter(logging.Filter):
     """ Simple log filter to take out non-Mantid logs from .err file """
