@@ -7,19 +7,19 @@ all:
 install: autoreduce
 
 base:
-	cp -R mr_reduction/*.py $(prefix)/autoreduce/mr_reduction
+	cp -R src/mr_reduction/*.py $(prefix)/autoreduce/mr_reduction
 
 autoreduce: base
-	cp -R autoreduce/*.template $(prefix)/autoreduce
-	cp -R livereduce/*.py $(prefix)/livereduce
+	cp -R src/autoreduce/*.template $(prefix)/autoreduce
+	cp -R src/livereduce/*.py $(prefix)/livereduce
 
 test:
-	python test/unit_tests.py
+	python tests/unit_tests.py
 
 check:
-	diff --exclude="*.pyc" -r mr_reduction $(prefix)/autoreduce/mr_reduction
-	diff --exclude="*.pyc" --exclude="livereduce.conf" -r -q livereduce $(prefix)/livereduce
-	diff --exclude="*.pyc" -r -q autoreduce/*.template $(prefix)/autoreduce
+	diff --exclude="*.pyc" -r src/mr_reduction $(prefix)/autoreduce/mr_reduction
+	diff --exclude="*.pyc" --exclude="livereduce.conf" -r -q src/livereduce $(prefix)/livereduce
+	diff --exclude="*.pyc" -r -q src/autoreduce/*.template $(prefix)/autoreduce
 
 .PHONY: install
 .PHONY: base
