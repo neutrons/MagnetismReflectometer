@@ -8,9 +8,9 @@ from mantid.simpleapi import LoadEventNexus
 
 
 class TestPolarizationAnalysis:
-    @pytest.mark.sns_mounted()
+    @pytest.mark.datarepo()
     def test_simple_load(self, data_server):
-        ws = LoadEventNexus(Filename="/SNS/REF_M/IPTS-21391/nexus/REF_M_29160.nxs.h5")
+        ws = LoadEventNexus(Filename=data_server.path_to("REF_M_29160.nxs.h5"))
         _, ratio1, ratio2, asym1, _ = calculate_ratios(ws, delta_wl=0.05, roi=[156, 210, 49, 170], slow_filter=True)
 
         y1 = ratio1.readY(0)

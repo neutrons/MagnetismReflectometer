@@ -9,13 +9,13 @@ from mr_reduction.logging import logger
 
 
 class TestFindPeaks:
-    @pytest.mark.sns_mounted()
-    def test_peaks(self):
+    @pytest.mark.datarepo()
+    def test_peaks(self, data_server):
         """
         REF_M_24949_event.nxs.md5: 214df921d4fa70ff5a33c4eb6f8284ad
         http://198.74.56.37/ftp/external-data/md5/%(hash)
         """
-        ws = LoadEventNexus(Filename="/SNS/REF_M/IPTS-21391/nexus/REF_M_29160.nxs.h5", OutputWorkspace="REF_M_29160")
+        ws = LoadEventNexus(Filename=data_server.path_to("REF_M_29160.nxs.h5"), OutputWorkspace="REF_M_29160")
         fitter = Fitter(ws, prepare_plot_data=True)
         x, y = fitter.fit_2d_peak()
         logger.info("Found: %s %s" % (str(x), str(y)))

@@ -5,9 +5,9 @@ import pytest
 
 
 class TestReduction:
-    @pytest.mark.sns_mounted()
-    def test_reduce(self, tempdir: str):
-        processor = mr.ReductionProcess(data_run="/SNS/REF_M/IPTS-21391/nexus/REF_M_29160.nxs.h5", output_dir=tempdir)
+    @pytest.mark.datarepo()
+    def test_reduce(self, data_server, tempdir: str):
+        processor = mr.ReductionProcess(data_run=data_server.path_to("REF_M_29160.nxs.h5"), output_dir=tempdir)
         processor.pol_state = "SF1"
         processor.ana_state = "SF2"
         processor.pol_veto = ""
