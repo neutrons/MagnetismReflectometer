@@ -3,6 +3,7 @@
 Welcome to MagnetismReflectometer documentation
 ===============================================
 
+
 User Guide
 ----------
 
@@ -34,3 +35,8 @@ Developer Guide
 
    /developer/contributing
    /developer/developer
+
+Deployment
+----------
+The configuration file under `livereduce/livereduce.conf` needs to be place under `/etc` on
+the live reduction node.

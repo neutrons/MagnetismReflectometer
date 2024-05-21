@@ -7,6 +7,12 @@ Developer Documentation
    :local:
    :depth: 1
 
+Directory Tree
+--------------
+ - Code under `mr_reduction/` is common reduction code.
+ - Code under `autoreduce/` is the top-level code used by the post-processing.
+ - Code under `livereduce/` is the top-level code for live reduction.
+
 Local Environment
 -----------------
 For purposes of development, create conda environment `mr_reduction` with file `environment.yml`, and then
@@ -52,6 +58,33 @@ synchronized across these files:
 - environment.yml
 - conda.recipe/meta.yml
 - .github/workflows/package.yml
+- .github/workflows/unittest.yml
+
+Using the Data Repository mr_reduction-data
+---------------------------------------
+To some of the tests in your local environment, it is necessary first to download the data files.
+Because of their size, the files are stored in the Git LFS repository
+`mr_reduction-data <https://code.ornl.gov/sns-hfir-scse/infrastructure/test-data/mr_reduction-data>`_.
+
+It is necessary to have package `git-lfs` installed in your machine.
+
+.. code-block:: bash
+
+   $> sudo apt install git-lfs
+
+After this step, initialize or update the data repository:
+
+.. code-block:: bash
+
+   $> cd /path/to/usanred
+   $> git submodule update --init
+
+This will either clone `usansred-data` into `/path/to/usanred/tests/usansred-data` or
+bring the `usansred-data`'s refspec in sync with the refspec listed within file `/path/to/usanred/.gitmodules`.
+
+An intro to Git LFS in the context of the Neutron Data Project is found in the
+`Confluence pages <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/19103745/Using+git-lfs+for+test+data>`_
+(login required).
 
 
 Coverage reports
