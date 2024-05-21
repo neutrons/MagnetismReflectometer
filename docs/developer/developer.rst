@@ -50,18 +50,8 @@ Development procedure
    A PR can only be approved and merged by the reviewer.
 6. The developer changes the task’s status to **Complete** and closes the associated issue.
 
-Updating mantid dependency
---------------------------
-The mantid version and the mantid conda channel (`mantid/label/main` or `mantid/label/nightly`) **must** be
-synchronized across these files:
-
-- environment.yml
-- conda.recipe/meta.yml
-- .github/workflows/package.yml
-- .github/workflows/unittest.yml
-
 Using the Data Repository mr_reduction-data
----------------------------------------
+-------------------------------------------
 To some of the tests in your local environment, it is necessary first to download the data files.
 Because of their size, the files are stored in the Git LFS repository
 `mr_reduction-data <https://code.ornl.gov/sns-hfir-scse/infrastructure/test-data/mr_reduction-data>`_.
@@ -86,6 +76,20 @@ An intro to Git LFS in the context of the Neutron Data Project is found in the
 `Confluence pages <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/19103745/Using+git-lfs+for+test+data>`_
 (login required).
 
+Running tests
+-------------
+After activating your conda environment for development, one can run three types of tests with `pytest`:
+
+- tests that do not require any input data files
+- tests requiring input data files from the data repository
+- tests requiring input data files from the /SNS and /HFIR file systems
+
+.. code-block:: bash
+
+   $> python -m pytest -vv -m "not datarepo and not sns_mounted" tests/
+   $> python -m pytest -vv -m "datarepo" tests/
+   $> python -m pytest -vv -m "sns_mounted" tests/
+
 
 Coverage reports
 ----------------
@@ -108,6 +112,16 @@ To manually build the documentation:
 After this, point your browser to
 `file:///path/to/mr_reduction/docs/build/html/index.html`
 
+
+Updating mantid dependency
+--------------------------
+The mantid version and the mantid conda channel (`mantid/label/main` or `mantid/label/nightly`) **must** be
+synchronized across these files:
+
+- environment.yml
+- conda.recipe/meta.yml
+- .github/workflows/package.yml
+- .github/workflows/unittest.yml
 
 Creating a stable release
 -------------------------
