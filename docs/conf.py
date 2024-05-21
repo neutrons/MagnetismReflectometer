@@ -6,14 +6,14 @@ import os
 import sys
 import versioningit
 
-sys.path.insert(0, os.path.abspath("../src"))
+sys.path.insert(0, os.path.abspath("../"))  # so we can import mr_reduction
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Project Name"
+project = "Magnetism Reflectometer Automated Reduction"
 copyright = "Copyright 2024"
-author = "Author Name"
+author = "Mathieu Doucet"
 
 # The short X.Y version
 # NOTE: need to specify the location of the pyproject.toml file instead of the
@@ -66,7 +66,8 @@ autosummary_generate = True
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
 
-html_static_path = ["_static"]
+if os.path.exists("_static"):
+    html_static_path = ["_static"]
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
