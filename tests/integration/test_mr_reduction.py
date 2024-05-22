@@ -20,6 +20,7 @@ class TestReduction:
         processor.pol_veto = ""
         processor.ana_veto = ""
         processor.reduce()
+        # assert reduction files have been produced
         for file in [
             "REF_M_29160_combined.py",
             "REF_M_29160.json",

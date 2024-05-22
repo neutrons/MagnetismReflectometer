@@ -269,7 +269,7 @@ class ReductionProcess(object):
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
         data_info, direct_info, apply_norm, norm_run = self._extract_data_info(xs_list)
-        self.log("Norm run: %g" % norm_run)
+        self.log(f"Norm run: {norm_run}")
 
         # Determine the name of the direct beam workspace as needed
         ws_norm = direct_info.workspace_name if apply_norm and norm_run is not None else ""
