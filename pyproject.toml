@@ -22,7 +22,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["src/livereduce*", "src/autoreduce*", "tests*", "scripts*", "docs*", "notebooks*"]
+exclude = ["livereduce*", "autoreduce*", "tests*", "scripts*", "docs*", "notebooks*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yml","*.yaml","*.ini"]
