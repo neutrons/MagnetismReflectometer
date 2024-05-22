@@ -69,8 +69,8 @@ After this step, initialize or update the data repository:
    $> cd /path/to/usanred
    $> git submodule update --init
 
-This will either clone `usansred-data` into `/path/to/usanred/tests/usansred-data` or
-bring the `usansred-data`'s refspec in sync with the refspec listed within file `/path/to/usanred/.gitmodules`.
+This will either clone `mr_reduction-data` into `/path/to/usanred/tests/mr_reduction-data` or
+bring the `mr_reduction-data`'s refspec in sync with the refspec listed within file `/path/to/mr_reduction/.gitmodules`.
 
 An intro to Git LFS in the context of the Neutron Data Project is found in the
 `Confluence pages <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/19103745/Using+git-lfs+for+test+data>`_
