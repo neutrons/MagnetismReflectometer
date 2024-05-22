@@ -1,4 +1,4 @@
-from packagenamepy import __version__
+from mr_reduction import __version__
 
 
 def test_version():

@@ -4,45 +4,48 @@ import time
 import mantid
 import mantid.simpleapi as api
 
-from .settings import AR_OUT_DIR_TEMPLATE
+from mr_reduction.settings import ar_out_dir
+
 from .reflectivity_output import quicknxs_scaling_factor
+
 
 def write_reduction_script(matched_runs, scaling_factors, ipts):
     """
-        Write a combined reduction script
+    Write a combined reduction script
     """
     script = "# Mantid version %s\n" % mantid.__version__
-    script += "# Date: %s\n\n" % time.strftime(u"%Y-%m-%d %H:%M:%S")
+    script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
     script += "from mantid.simpleapi import *\n\n"
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
 
-    output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+    output_dir = ar_out_dir(ipts)
     for i, run in enumerate(matched_runs):
         file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % run)
         if not os.path.isfile(file_path):
             api.logger.notice("Partial script doesn't exist: %s" % file_path)
             continue
-        with open(file_path, 'r') as _fd:
+        with open(file_path, "r") as _fd:
             script += "# Run:%s\n" % run
             script += "scaling_factor = %s\n" % scaling_factors[i]
-            script += _fd.read() + '\n'
+            script += _fd.read() + "\n"
 
-    with open(os.path.join(output_dir, "REF_M_%s_combined.py" % matched_runs[0]), 'w') as fd:
+    with open(os.path.join(output_dir, "REF_M_%s_combined.py" % matched_runs[0]), "w") as fd:
         fd.write(script)
+
 
 def write_tunable_reduction_script(matched_runs, scaling_factors, ipts):
     """
-        Write a combined reduction script
+    Write a combined reduction script
     """
     script = "# Mantid version %s\n" % mantid.__version__
-    script += "# Date: %s\n\n" % time.strftime(u"%Y-%m-%d %H:%M:%S")
+    script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
     script += "from mantid.simpleapi import *\n\n"
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
     script += "parameters = dict()\n\n"
 
-    output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
+    output_dir = ar_out_dir(ipts=ipts)
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
     for i, run in enumerate(matched_runs):
@@ -59,16 +62,17 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts):
 
     script += prepare_call
     script += reduce_call
-    with open(os.path.join(output_dir, "REF_M_%s_tunable_combined.py" % matched_runs[0]), 'w') as fd:
+    with open(os.path.join(output_dir, "REF_M_%s_tunable_combined.py" % matched_runs[0]), "w") as fd:
         fd.write(script)
+
 
 def write_partial_script(ws_grp):
     """
-        Write a partial python reduction script. This script will be
-        used by the merging process to produce a clean and final reduction
-        script for the whole reflectivity curve.
-        
-        :param ws_grp: a Mantid workspace or WorkspaceGroup
+    Write a partial python reduction script. This script will be
+    used by the merging process to produce a clean and final reduction
+    script for the whole reflectivity curve.
+
+    :param ws_grp: a Mantid workspace or WorkspaceGroup
     """
     # This should work for either a workspace or workspace group,
     # so determine which one it is first.
@@ -82,33 +86,34 @@ def write_partial_script(ws_grp):
     script = generate_script_from_ws(_ws_list, group_name=str(ws_grp))
     ipts = _ws.getRun().getProperty("experiment_identifier").value
     run_number = _ws.getRunNumber()
-    output_dir = AR_OUT_DIR_TEMPLATE % dict(ipts=ipts)
-    with open(os.path.join(output_dir, "REF_M_%s_partial.py" % run_number), 'w') as fd:
+    output_dir = ar_out_dir(ipts)
+    with open(os.path.join(output_dir, "REF_M_%s_partial.py" % run_number), "w") as fd:
         fd.write(script)
+
 
 def generate_script_from_ws(ws_grp, group_name):
     """
-        Generate a partial reduction script from a set of workspaces.
-        This algorithm needs to be compatible with the case of a single
-        workspace. For this reason, we are not assuming that ws_grp is
-        a workspace group. We therfore need the name of the grouping we
-        want to associate this set with in the output script.
+    Generate a partial reduction script from a set of workspaces.
+    This algorithm needs to be compatible with the case of a single
+    workspace. For this reason, we are not assuming that ws_grp is
+    a workspace group. We therfore need the name of the grouping we
+    want to associate this set with in the output script.
 
-        :param ws_grp: list of Mantid workspaces, or workspace group
-        :param group_name: name of the group the workspace belongs to
+    :param ws_grp: list of Mantid workspaces, or workspace group
+    :param group_name: name of the group the workspace belongs to
     """
     if len(ws_grp) == 0:
         return "# No workspace was generated\n"
 
-    xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith('unfiltered')]
+    xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
     script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
 
     script_text = api.GeneratePythonScript(ws_grp[0])
     # Skip the header
-    lines = script_text.split('\n')
-    script_text = '\n'.join(lines[4:])
-    script += script_text.replace(', ', ',\n                                ')
-    script += '\n'
+    lines = script_text.split("\n")
+    script_text = "\n".join(lines[4:])
+    script += script_text.replace(", ", ",\n                                ")
+    script += "\n"
     qnxs_scale = quicknxs_scaling_factor(ws_grp[0])
     # Scale correction for QuickNXS compatibility
     script += "scaling_factor *= %s\n" % qnxs_scale
@@ -118,18 +123,19 @@ def generate_script_from_ws(ws_grp, group_name):
 
     return script
 
+
 def generate_split_script(run_number, partial_script_path):
     """
-        Split a reduction script into two parts: one to set up the
-        parameters and one to execute the reduction.
-        :param int or str run_number: run number
-        :param str partial_script_path: path to partial script
-        :param float scaling_factor: scaling factor for this run
+    Split a reduction script into two parts: one to set up the
+    parameters and one to execute the reduction.
+    :param int or str run_number: run number
+    :param str partial_script_path: path to partial script
+    :param float scaling_factor: scaling factor for this run
     """
-    red_script = 'def prepare_%s():\n' % run_number
-    scale_script = ''
+    red_script = "def prepare_%s():\n" % run_number
+    scale_script = ""
 
-    with open(partial_script_path, 'r') as fd:
+    with open(partial_script_path, "r") as fd:
         _script_started = False
         _scale_started = False
         _first_line = True
@@ -141,24 +147,26 @@ def generate_split_script(run_number, partial_script_path):
 
             if _script_started:
                 if _first_line:
-                    red_script += '    ' + line
+                    red_script += "    " + line
                     _first_line = False
                 else:
-                    red_script += '                        ' + line.strip() + '\n'
-                if line.endswith(')\n'):
+                    red_script += "                        " + line.strip() + "\n"
+                if line.endswith(")\n"):
                     _script_started = False
             elif _scale_started:
-                scale_script += '    ' + line.replace('scaling_factor',
-                                                      'parameters["r_%s"]["sf_%s"]' % (run_number, run_number))
+                scale_script += "    " + line.replace(
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_number, run_number)
+                )
             else:
-                red_script += '    ' + line.replace('scaling_factor',
-                                                    'parameters["r_%s"]["sf_%s"]' % (run_number, run_number))
+                red_script += "    " + line.replace(
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_number, run_number)
+                )
 
-    red_script = red_script.replace('MagnetismReflectometryReduction', 'params_%s = dict' % run_number)
-    red_script = red_script.replace('wsg', 'wsg_%s' % run_number)
+    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_number)
+    red_script = red_script.replace("wsg", "wsg_%s" % run_number)
     red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_number, run_number)
 
-    red_script += '\ndef reduce_%s():\n' % run_number
+    red_script += "\ndef reduce_%s():\n" % run_number
     red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_number
     red_script += scale_script
 

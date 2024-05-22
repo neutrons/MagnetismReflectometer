@@ -17,22 +17,20 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          channels: conda-forge,defaults
+          channels: mantid/label/main,conda-forge,defaults
           mamba-version: "*"
           environment-file: environment.yml
           cache-environment-key: ${{ runner.os }}-env-${{ hashFiles('**/environment.yml') }}
           cache-downloads-key: ${{ runner.os }}-downloads-${{ hashFiles('**/environment.yml') }}
-      - name: install additional dependencies
-        run: |
-          echo "installing additional dependencies from environment_development.yml"
       - name: build conda package
         run: |
           # set up environment
           cd conda.recipe
           echo "versioningit $(versioningit ../)"
           # build the package
-          VERSION=$(versioningit ../) conda mambabuild --channel conda-forge --output-folder . .
-          conda verify noarch/mypackagename*.tar.bz2
+          CHANNELS="--channel mantid/label/main --channel conda-forge"
+          VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
+          conda verify noarch/mr_reduction*.tar.bz2
       - name: upload conda package to anaconda
         shell: bash -l {0}
         if: startsWith(github.ref, 'refs/tags/v')
@@ -44,4 +42,4 @@ jobs:
           CONDA_LABEL="main"
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
           echo pushing ${{ github.ref }} with label $CONDA_LABEL
-          anaconda upload --label $CONDA_LABEL conda.recipe/noarch/mypackagename*.tar.bz2
+          anaconda upload --label $CONDA_LABEL conda.recipe/noarch/mr_reduction*.tar.bz2

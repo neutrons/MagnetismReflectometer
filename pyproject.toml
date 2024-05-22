@@ -1,6 +1,6 @@
 [project]
-name = "examplepyapp"
-description = "Example Python repo for neutrons"
+name = "mr_reduction"
+description = "Magnetism Reflectometer Automated Reduction"
 dynamic = ["version"]
 requires-python = ">=3.10"
 dependencies = [
@@ -9,7 +9,7 @@ dependencies = [
 license = { text = "MIT" }
 
 [project.urls]
-homepage = "https://github.com/neutrons/python_project_template/"  # if no homepage, use repo url
+homepage = "https://github.com/neutrons/MagnetismReflectometer/"
 
 [build-system]
 requires = [
@@ -20,12 +20,26 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["livereduce*", "autoreduce*", "tests*", "scripts*", "docs*", "notebooks*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yml","*.yaml","*.ini"]
+
 [tool.black]
 line-length = 119
 
+[tool.ruff]
+line-length = 119
+# https://beta.ruff.rs/docs/rules/
+lint.select = ["A", "ARG", "BLE", "E", "F", "I", "PT"]
+lint.ignore = ["F403", "F405", "F401", # wild imports and  unknown names
+]
+
 [tool.versioningit.vcs]
 method = "git"
-default-tag = "0.0.1"
+default-tag = "1.0.0"
 
 [tool.versioningit.next-version]
 method = "minor"
@@ -36,20 +50,10 @@ dirty = "{version}+d{build_date:%Y%m%d}"
 distance-dirty = "{next_version}.dev{distance}+d{build_date:%Y%m%d%H%M}"
 
 [tool.versioningit.write]
-file = "src/packagenamepy/_version.py"
+file = "src/mr_reduction/_version.py"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["tests*", "scripts*", "docs*", "notebooks*"]
-
-[tool.setuptools.package-data]
-"*" = ["*.yml","*.yaml","*.ini"]
-
-[project.scripts]
-packagename-cli = "packagenamepy.packagename:main"
-
-[project.gui-scripts]
-packagenamepy = "packagenamepy.packagename:gui"
+# [project.scripts]
+# packagename-cli = "mr_reduction.packagename:main"
 
 [tool.pytest.ini_options]
 pythonpath = [
@@ -59,11 +63,12 @@ testpaths = ["tests"]
 python_files = ["test*.py"]
 norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__", "*dataset*", "*data_set*"]
 markers = [
-    "mymarker: example markers goes here"
+    "datarepo: using repository mr_reduction-data",
+    "sns_mounted: requires the /SNS filesystem"
 ]
 
 [tool.pylint]
-max-line-length = 120
+max-line-length = 119
 disable = ["too-many-locals",
            "too-many-statements",
            "too-many-instance-attributes",

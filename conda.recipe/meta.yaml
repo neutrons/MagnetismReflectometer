@@ -12,7 +12,7 @@
 {% set build_number = 0 %}
 
 package:
-  name: mypackagename
+  name: mr_reduction
   version: {{ version_number }}
 
 source:
@@ -35,6 +35,15 @@ requirements:
 
   run:
     - python
+    - mantid=6.9.0
+    - numpy
+    - scipy
+    - pandas
+    - plotly
+
+tests:
+  imports:
+    - mr_reduction
 
 about:
   home: {{ url }}
