@@ -1,16 +1,14 @@
 # standard imports
 import os
 import sys
-import time
+import unittest.mock as mock
+from collections import namedtuple
 from typing import List
 
 import pytest
 
 # third party imports
 from mantid.simpleapi import config
-
-# mr_reduction imports
-from mr_reduction.logging import logger
 
 this_module_path = sys.modules[__name__].__file__
 
@@ -19,6 +17,26 @@ this_module_path = sys.modules[__name__].__file__
 def tempdir(tmpdir):
     r"""Get the path of pytest fixture tmpdir as a string"""
     return str(tmpdir)
+
+
+@pytest.fixture()
+def mock_filesystem(tempdir):
+    r"""
+    A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
+    and /SNS/REF_M/%(ipts)s/nexus to a temporary directory.
+    """
+    MockSetup = namedtuple("MockSetup", ["tempdir", "DirectBeamFinder"])
+
+    with (
+        mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
+        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
+        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
+    ):
+        # Setup Mocks
+        mock_ar_out_dir.return_value = tempdir
+        mock_ar_out_dir2.return_value = tempdir
+
+        yield MockSetup(tempdir, mock_DirectBeamFinder)
 
 
 @pytest.fixture(scope="session")
