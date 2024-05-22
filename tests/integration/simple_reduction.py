@@ -25,14 +25,15 @@ def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
     return DataInfo(xs_list[i_main], entry)
 
 
-@pytest.mark.sns_mounted()
-def test_reduction_simple():
+@pytest.mark.datarepo()
+def test_reduction_simple(data_server):
     # Directory containing test data for the MR upgrade
-    data_dir = "/SNS/REF_M/shared/ADARA.Test.Data.2018/"
+    # data_dir = "/SNS/REF_M/shared/ADARA.Test.Data.2018/"
 
     # file_path = data_dir + 'REF_M_25647.nxs.h5' # single xs
     # file_path =  data_dir + 'REF_M_25631.nxs.h5' # four xs
-    file_path = os.path.join(data_dir, "REF_M_28142.nxs.h5")  # 3 xs
+    # file_path = os.path.join(data_dir, "REF_M_28142.nxs.h5")  # 3 xs
+    file_path = data_server.path_to("REF_M_28142.nxs.h5")
     # file_path = "/SNS/REF_M/IPTS-16469/0/25631/NeXus/REF_M_25631_event.nxs"
 
     # Extract a workspace for each cross-section
