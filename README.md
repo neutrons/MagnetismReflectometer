@@ -10,13 +10,13 @@ Automated reduction code of magnetic reflectometry data.
 
 # User
 
-User guide at [readthedocs](https://mr_reduction.readthedocs.io/en/latest)
+User guide at [readthedocs](https://mr-reduction.readthedocs.io/en/latest)
 
 # Developer
 
-Developer documentation at [readthedocs](https://mr_reduction.readthedocs.io/en/latest)
+Developer documentation at [readthedocs](https://mr-reduction.readthedocs.io/en/latest)
 
-- [contributing to the project](https://mr_reduction.readthedocs.io/en/latest/source/developer/contributing.html)
+- [contributing to the project](https://mr-reduction.readthedocs.io/en/latest/source/developer/contributing.html)
 
 
 
