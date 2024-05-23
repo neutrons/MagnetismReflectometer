@@ -8,6 +8,9 @@ dependencies:
   - mantidworkbench=6.9
   - pandas
   - plotly
+  - pip
+  - pip:
+    - git+https://github.com/peterfpeterson/finddata@v0.8.4
   # -- Development dependencies
   - pre-commit
   - sphinx
@@ -23,4 +26,3 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
-  - pip
