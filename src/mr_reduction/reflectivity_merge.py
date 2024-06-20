@@ -3,66 +3,102 @@
 Merging tools for REF_M
 """
 
-from __future__ import absolute_import, division, print_function
-
+# standard imports
 import datetime
 import json
 import os
 import sys
 import time
+from glob import glob
+from typing import List, Tuple
 
+# third party imports
 import mantid
 import mantid.simpleapi as api
 import numpy as np
 import pandas
 import pytz
 
+# mr_reduction iports
+from mr_reduction.runsample import RunSampleNumber
+from mr_reduction.script_output import write_reduction_script, write_tunable_reduction_script
 from mr_reduction.settings import ar_out_dir, nexus_data_dir
 
-from .script_output import write_reduction_script, write_tunable_reduction_script
 
+def match_run_for_cross_section(run, ipts, cross_section) -> List[str]:
+    """Return a list of matching runs (or RunSampleNumber's) to be stitched
 
-def match_run_for_cross_section(run, ipts, cross_section):
+    Examples
+    --------
+    >>> match_run_for_cross_section("1234", "IPTS-42666", "Off_Off")
+    ["1233", "1234"]
+
+    >>> match_run_for_cross_section("1234_2", "IPTS-42666", "Off_On")
+    ["1234_2", "1235_2"]
+
+    Parameters
+    ----------
+    run: str, RunSampleNumber
+        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
+    ipts: str
+        experiment identifier e.g. "IPTS-42666"
+
+    cross_section: str
+        polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
+
+    Returns
+    -------
+    List[str]
     """
-    Return a list of matching runs to be stitched
+    runsample = RunSampleNumber(run)
 
-    @param run: run to start with
-    @param ipts: experiment identifier
-    @param cross_section: polarization entry
-    """
     _previous_q_min = 0
     _previous_q_max = 0
 
     api.logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
     matched_runs = []
     for i in range(10):
-        i_run = run - i
+        i_runsample = RunSampleNumber(runsample.run_number - i, runsample.sample_number)
         output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, cross_section))
+        file_path = os.path.join(output_dir, f"REF_M_{i_runsample}_{cross_section}_autoreduce.dat")
         if os.path.isfile(file_path):
             ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
             q_min = min(ref_data["q"])
             q_max = max(ref_data["q"])
-            api.logger.notice("%s: [%s %s]" % (i_run, q_min, q_max))
+            api.logger.notice("%s: [%s %s]" % (i_runsample, q_min, q_max))
 
             if (q_max < _previous_q_max and q_max > _previous_q_min) or _previous_q_max == 0:
                 _previous_q_max = q_max
                 _previous_q_min = q_min
-                matched_runs.insert(0, str(i_run))
+                matched_runs.insert(0, str(i_runsample))
             else:
                 # The series stops here
                 break
     return matched_runs
 
 
-def _extract_sequence_id(file_path):
+def _extract_sequence_id(file_path) -> Tuple[str, str, float]:
+    """Extract the sequence_id from an autoreduced data file (REF_M_*_autoreduce.dat)
+
+    The sequence_id indicates the first run number having the same sample(s) as the current
+    run number. For instance, if the run number being reduced is 41447 and the sequence_id is 41445, it means
+    that experiments with run numbers 41445, 41446, and 41447 were all done with the same sample(s) and same
+    experiment configuation.
+
+    Parameters
+    ----------
+    file_path: str
+        File to process
+
+    Returns
+    -------
+    tuple
+        run_sample_number str: RunSampleNumber's that were reduced
+        group_id str: sequence_id
+        lowest_q: float
     """
-    Extract the sequence id from a data file
-    @param str file_path: file to process
-    """
-    run_number = None
-    group_id = None
-    lowest_q = None
+    assert file_path.endswith("autoreduce.dat"), "Input file is not an autoreduced data file"
+    run_sample_number, group_id, lowest_q = None, None, None
     if os.path.isfile(file_path):
         with open(file_path, "r") as fd:
             for line in fd.readlines():
@@ -73,7 +109,7 @@ def _extract_sequence_id(file_path):
                         api.logger.error("Could not extract group id from line: %s" % line)
                 if line.startswith("# Input file indices:"):
                     try:
-                        run_number = int(line[len("# Input file indices:") :].strip())
+                        run_sample_number = line[len("# Input file indices:") :].strip()
                     except:  # noqa E722
                         api.logger.error("Could not extract run number from line: %s" % line)
                 if not line.startswith("#") and len(line.strip()) > 0:
@@ -82,52 +118,95 @@ def _extract_sequence_id(file_path):
                         lowest_q = float(toks[0])
                     except:  # noqa E722
                         api.logger.error("Could not extract lowest q from line: %s" % line)
-                if run_number is not None and group_id is not None and lowest_q is not None:
-                    return run_number, group_id, lowest_q
-    return run_number, group_id, lowest_q
+                if all(x is not None for x in [run_sample_number, group_id, lowest_q]):
+                    return run_sample_number, group_id, lowest_q
+    return run_sample_number, group_id, lowest_q
 
 
-def match_run_with_sequence(run, ipts, cross_section):
-    """
-    Return a list of matching runs to be stitched
+def match_run_with_sequence(run, ipts, cross_section) -> List[str]:
+    r"""List of matching runs (or RunSampleNumber's) to be stitched
 
     #TODO: order the runs wth increasing Q.
 
-    @param run: run to start with
-    @param ipts: experiment identifier
-    @param cross_section: polarization entry
+    Examples
+    --------
+    >>> match_run_with_sequence("1234", "IPTS-42666", "Off_Off")
+    ["1233", "1234"]
+
+    >>> match_run_with_sequence("1234_2", "IPTS-42666", "Off_On")
+    ["1233_2", "1234_2"]
+
+    Parameters
+    ----------
+    run: str, RunSampleNumber
+        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
+    ipts: str
+        experiment identifier e.g. "IPTS-42666"
+
+    cross_section: str
+        polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
+
+    Returns
+    -------
+    List[str]
     """
-    api.logger.notice("Matching sequence for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
+    runsample = RunSampleNumber(run)
+    api.logger.notice(f"Matching sequence for {ipts} r{runsample} [{cross_section}]")
     data_dir = ar_out_dir(ipts)
 
-    # Check to see if we have the sequence information
-    file_path = os.path.join(data_dir, "REF_M_%s_%s_autoreduce.dat" % (run, cross_section))
+    # Check to see if we have the sequence_id information
+    file_path = os.path.join(data_dir, f"REF_M_{runsample}_{cross_section}_autoreduce.dat")
     _, group_id, _ = _extract_sequence_id(file_path)
 
     # If we don't have a group id, just group together runs of increasing q-values
     if group_id is None:
-        return match_run_for_cross_section(run, ipts, cross_section)
+        return match_run_for_cross_section(runsample, ipts, cross_section)
 
     # Start with the run matching the sequence id
     matched_runs = []
     _lowest_q_available = True
-    for item in os.listdir(data_dir):
-        if item.endswith("%s_autoreduce.dat" % cross_section):
-            _run, _group_id, lowest_q = _extract_sequence_id(os.path.join(data_dir, item))
-            if _group_id == group_id:
-                matched_runs.append([str(_run), lowest_q])
-                _lowest_q_available = _lowest_q_available and lowest_q is not None
+    for file_path in glob(os.path.join(data_dir, f"REF_M_*_{cross_section}_autoreduce.dat")):
+        _runsample, _group_id, lowest_q = _extract_sequence_id(file_path)
+        if _group_id == group_id:
+            matched_runs.append([str(_runsample), lowest_q])
+            _lowest_q_available = _lowest_q_available and lowest_q is not None
     if _lowest_q_available:
         match_series = [item[0] for item in sorted(matched_runs, key=lambda a: a[1])]
         return match_series
     return sorted(matched_runs)
 
 
-def compute_scaling_factors(matched_runs, ipts, cross_section):
+def compute_scaling_factors(matched_runs, ipts, cross_section) -> Tuple[List[float], str, str, str, str]:
+    r"""Compute the scaling factors for an input set of runs (or RunSampleNumber's) by comparing with
+    direct-beam runs having the same instrument configuration as the `matched_runs`.
+
+    Compute the successive scaling factors for an input set of runs (or RunSampleNumber's) ordered by increasing Q as
+    we stitch one after the other.
+
+    Parameters
+    ----------
+    matched_runs: List[str]
+        List of RunSampleNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
+        sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
+        stitched together.
+    ipts: str
+        Experiment identifier (e.g. 'IPTS-42666')
+    cross_section: str
+            polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
+
+    Returns
+    -------
+    Tuple[List[float], str, str, str, str]
+        scaling_factors: List[float]
+        direct_beam_info: str
+        data_info: str
+        data_buffer: str
+        _cross_section_label: str Polarization state
+    """
     _previous_ws = None
     running_scale = 1.0
-    data_buffer = ""
     direct_beam_info = ""
+    data_buffer = ""
     data_info = ""
     _cross_section_label = cross_section
 
@@ -135,12 +214,12 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
     run_count = 0
     scaling_factors = [1.0]
 
-    for i_run in matched_runs:
+    for i_runsample in matched_runs:
         output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, cross_section))
+        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, cross_section))
         if os.path.isfile(file_path):
-            _run_info = open(file_path, "r")
-            ref_data = pandas.read_csv(_run_info, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+            _file_handle = open(file_path, "r")
+            ref_data = pandas.read_csv(_file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
 
             ws = api.CreateWorkspace(DataX=ref_data["q"], DataY=ref_data["r"], DataE=ref_data["dr"])
             ws = api.ConvertToHistogram(ws)
@@ -151,10 +230,10 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
             _previous_ws = api.CloneWorkspace(ws)
 
             # Rewind and get meta-data
-            _run_info.seek(0)
+            _file_handle.seek(0)
             _direct_beams_started = 0
             _data_runs_started = 0
-            for line in _run_info.readlines():
+            for line in _file_handle.readlines():
                 # Look for cross-section label
                 if line.find("Extracted states:") > 0:
                     toks = line.split(":")
@@ -162,7 +241,7 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
                         _cross_section_label = toks[1].strip()
 
                 # If we are in the data run block, copy the data we need
-                if _data_runs_started == 1 and line.find(str(i_run)) > 0:
+                if _data_runs_started == 1 and line.find(str(i_runsample)) > 0:
                     toks = ["%8s" % t for t in line.split()]
                     if len(toks) > 10:
                         toks[1] = "%8g" % scaling_factors[run_count]
@@ -205,21 +284,46 @@ def compute_scaling_factors(matched_runs, ipts, cross_section):
     return scaling_factors, direct_beam_info, data_info, data_buffer, _cross_section_label
 
 
-def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
+def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors) -> List[Tuple[str, str]]:
+    r"""Apply the scaling factors (used for stitching) that were computed with the cross-section having the highest
+    event count to rescale the reflectivity profiles of the other cross-sections.
+
+    The goals is to stitch the data runs for the other cross sections using the scaling factors computed with the
+    events from the cross-section having the highest event count.
+
+    Parameters
+    ----------
+    matched_runs: List[str]
+        List of RunSampleNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
+        sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
+        stitched together.
+    ipts: str
+        Experiment identifier (e.g. 'IPTS-42666')
+    cross_section: str
+        polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On". It should be the cross section
+        with the highest event count.
+    scaling_factors: List[float]
+        Numbers by which to multiply each matched reflectivity curve, when stitching
+
+    Returns
+    -------
+    List[Tuple[str, str]]
+        Rescaled reflectiviy profiles of the other cross-sections. One entry per cross section other than
+        input `cross_section`, e.g ('On_Off', '0.02344 5.666 ....'), ("On_On", '')
+    """
     data_buffers = []
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
-        # Skip the cross section that we computed the scaling factors with
-        # since we havce that data already
+        # Skip the cross section that we computed the scaling factors with since we havce that data already
         if xs == cross_section:
             continue
         data_buffer = ""
 
-        for j, i_run in enumerate(matched_runs):
+        for j, i_runsample in enumerate(matched_runs):
             output_dir = ar_out_dir(ipts)
-            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_run, xs))
+            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, xs))
             if os.path.isfile(file_path):
-                _run_info = open(file_path, "r")
-                ref_data = pandas.read_csv(_run_info, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+                with open(file_path, "r") as file_handle:
+                    ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
 
                 for i in range(len(ref_data["q"])):
                     data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
@@ -235,12 +339,28 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors):
 
 
 def select_cross_section(run, ipts):
+    r"""Select the cross-section with the lowest relative error
+
+    Parameters
+    ----------
+    run: str, RunSampleNumber
+        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
+
+    ipts: str
+        experiment identifier e.g. "IPTS-42666"
+
+    Returns
+    -------
+    str
+        One of "Off_Off", "On_Off", "Off_On", and "On_On"
+    """
+    runsample = RunSampleNumber(run)  # e.g. "12345" or "12345_2"
     best_xs = None
     best_error = None
 
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
+        file_path = os.path.join(output_dir, f"REF_M_{runsample}_{xs}_autoreduce.dat")
         if os.path.isfile(file_path):
             api.logger.notice("Found: %s" % file_path)
             ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
@@ -254,8 +374,37 @@ def select_cross_section(run, ipts):
 
 
 def write_reflectivity_cross_section(
-    run, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label
-):
+    runsample, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label
+) -> str:
+    r"""
+
+    Parameters
+    ----------
+    runsample: str
+        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2") with the lowest Q-range among all data
+        runs to be stitched together.
+    ipts: str
+        Experiment identifier (e.g. "IPTS-42666")
+    cross_section: str
+        Polarization entry. One of "Off_Off", "On_Off", "Off_On", or "On_On"
+    matched_runs: List[str]
+        List of RunSampleNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
+        sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
+        stitched together.
+    direct_beam_info: str
+        Configuration for the "reduction" of the direct beam run. Items are
+        DB_ID, P0, PN, x_pos, x_width, y_pos, y_width, bg_pos, bg_width, dpix, tth, runnumber, filepath]
+    data_info: str
+    data_buffer: str
+        Stitched reflectivity profiles
+    xs_label: str
+        Cross section label. One of "Off-Off", "On-Off", "Off-On", or "On-On"
+
+    Returns
+    -------
+    str
+        File path to the reflectivity profile
+    """
     direct_beam_options = [
         "DB_ID",
         "P0",
@@ -290,7 +439,7 @@ def write_reflectivity_cross_section(
     ]
 
     output_dir = ar_out_dir(ipts)
-    file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (run, cross_section))
+    file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runsample, cross_section))
     fd = open(file_path, "w")
     fd.write("# Datafile created by QuickNXS 1.0.32\n")
     fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
@@ -322,29 +471,49 @@ def write_reflectivity_cross_section(
 
 
 def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
-    data_names = []
-    data_list = []
-    for i, run in enumerate(matched_runs):
+    r"""Create plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container.
+
+    Parameters
+    ----------
+    matched_runs: List[str]
+        List of RunSampleNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
+        sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
+        stitched together.
+    scaling_factors: List[float]
+        Numbers by which to multiply each matched reflectivity curve, when stitching
+    ipts: str
+        Experiment identifier (e.g. "IPTS-42666")
+    publish: bool
+        if True, store the HTML page in the livedata server
+
+    Returns
+    -------
+    str
+        The contents inside the <div>..</div> element
+    """
+    # Collect reflectivity profiles for each cross section
+    data_names = []  # list of cross sections
+    data_list = []  # a list of reflectivity profiles with columns Q, r, and dr. One profile for each cross section
+    for i, runsample in enumerate(matched_runs):
         for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
             output_dir = ar_out_dir(ipts)
-            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (run, xs))
+            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (runsample, xs))
             if os.path.isfile(file_path):
                 ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
                 data_list.append(
                     [ref_data["q"], scaling_factors[i] * ref_data["r"], scaling_factors[i] * ref_data["dr"]]
                 )
-                data_names.append("r%s [%s]" % (run, xs))
+                data_names.append("r%s [%s]" % (runsample, xs))
 
     try:
-        # Depending on where we run, we might get our publisher from
-        # different places, or not at all.
+        # Depending on where we run, we might get our publisher from different places, or not at all.
         try:  # version on autoreduce
             from postprocessing.publish_plot import plot1d
         except ImportError:  # version on instrument computers
             from finddata.publish_plot import plot1d
         if data_names:
             return plot1d(
-                matched_runs[-1],
+                RunSampleNumber(matched_runs[-1]).run_number,
                 data_list,
                 data_names=data_names,
                 instrument="REF_M",
@@ -363,16 +532,30 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     return None
 
 
-def combined_curves(run, ipts):
+def combined_curves(run, ipts) -> Tuple[List[str], List[float], List[str]]:
+    r"""Produce combined R(q)
+
+    Parameters
+    ----------
+    run: str, RunSampleNumber
+        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
+    ipts: str
+        e.g. "IPTS-21391"
+
+    Returns
+    -------
+    Tuple[List[str], List[float], List[str]]
+        matched_runs: List[str] Data runs (or RunSampleNumber's) ordered by increasing Q, to be stitched together
+        scaling_factors: List[float] numbers by which to multiply each matched reflectivity curve, when stitching
+        file_list: List[str]] paths to the reflectivity profile files, one file for each cross section.
     """
-    Produce combined R(q)
-    """
+    runsample = RunSampleNumber(run)  # e.g. "12345", "12345_2"
     # Select the cross section with the best statistics
-    high_stat_xs = select_cross_section(run, ipts)
+    high_stat_xs = select_cross_section(runsample, ipts)
     api.logger.notice("High xs: %s" % high_stat_xs)
 
     # Match the given run with previous runs if they are overlapping in Q
-    matched_runs = match_run_with_sequence(run, ipts, high_stat_xs)
+    matched_runs = match_run_with_sequence(runsample, ipts, high_stat_xs)
     api.logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section
@@ -391,8 +574,8 @@ def combined_curves(run, ipts):
     xs_buffers.append((high_stat_xs, data_buffer))
 
     file_list = []
-    for item in xs_buffers:
-        if item[1]:
+    for item in xs_buffers:  # e.g ('On_On', '0.00345  9.92443 ...')
+        if item[1]:  # reflectivity profile exists for the selected cross-section
             _file_path = write_reflectivity_cross_section(
                 matched_runs[0], ipts, item[0], matched_runs, direct_beam_info, data_info, item[1], xs_label
             )
@@ -401,36 +584,50 @@ def combined_curves(run, ipts):
     return matched_runs, scaling_factors, file_list
 
 
-def combined_catalog_info(matched_runs, ipts, output_files, run_number=None):
-    """
-    Produce cataloging information for reduced data
-    :param list matched_runs: list of matched runs
-    :param str ipts: experiment name
-    :param list output_files: list of output files for this reduction process
-    :param str run_number: run number we want to associate this reduction with
+def combined_catalog_info(matched_runs, ipts, output_files, run_sample_number=None) -> str:
+    r"""Produce cataloging information for reduced data and save to file in JSON format.
+
+    Parameters
+    ----------
+    matched_runs: List[str]
+        List of RunSampleNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
+        sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
+        stitched together.
+    ipts: str
+        Experiment identifier (e.g. "IPTS-42666")
+    output_files: List[str]]
+        Paths to the reflectivity profile files, one file for each cross section.
+    run_sample_number: str
+        run-sample number (e.g. '12345' or '12345_2') we want to associate this reduction with. If `None`, pick
+        the first run-sample number from `matched_runs`
+
+    Returns
+    -------
+    str
+        File path to the JSON file containing the catalog info, its name is f"REF_M_{run_sample_number}.json"
     """
     NEW_YORK_TZ = pytz.timezone("America/New_York")
     info = dict(user="auto", created=NEW_YORK_TZ.localize(datetime.datetime.now()).isoformat(), metadata=dict())
 
     # List of input files
     input_list = []
-    for item in matched_runs:
-        data_dir = nexus_data_dir(ipts)
-        data_file = os.path.join(data_dir, "REF_M_%s.nxs.h5" % item)
+    for runsample in matched_runs:
+        data_filename = f"REF_M_{RunSampleNumber(runsample).run_number}.nxs.h5"
+        data_file = os.path.join(nexus_data_dir(ipts), data_filename)
         if os.path.isfile(data_file):
             input_list.append(dict(location=data_file, type="raw", purpose="sample-data"))
     info["input_files"] = input_list
 
     # List of output files
     output_list = []
-    for item in output_files:
-        output_list.append(dict(location=item, type="processed", purpose="reduced-data", fields=dict()))
+    for runsample in output_files:
+        output_list.append(dict(location=runsample, type="processed", purpose="reduced-data", fields=dict()))
     info["output_files"] = output_list
 
     output_dir = ar_out_dir(ipts)
-    if run_number is None:
-        run_number = matched_runs[0]
-    json_path = os.path.join(output_dir, "REF_M_%s.json" % run_number)
+    if run_sample_number is None:
+        run_sample_number = matched_runs[0]
+    json_path = os.path.join(output_dir, f"REF_M_{run_sample_number}.json")
     with open(json_path, "w") as fd:
         fd.write(json.dumps(info, indent=4))
     return json_path

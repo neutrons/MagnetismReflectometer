@@ -19,26 +19,6 @@ def tempdir(tmpdir):
     return str(tmpdir)
 
 
-@pytest.fixture()
-def mock_filesystem(tempdir):
-    r"""
-    A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
-    and /SNS/REF_M/%(ipts)s/nexus to a temporary directory.
-    """
-    MockSetup = namedtuple("MockSetup", ["tempdir", "DirectBeamFinder"])
-
-    with (
-        mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
-        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
-        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
-    ):
-        # Setup Mocks
-        mock_ar_out_dir.return_value = tempdir
-        mock_ar_out_dir2.return_value = tempdir
-
-        yield MockSetup(tempdir, mock_DirectBeamFinder)
-
-
 @pytest.fixture(scope="session")
 def data_server():
     r"""Object containing info and functionality for data files
@@ -49,8 +29,10 @@ def data_server():
     _backup = {key: config[key] for key in _options}
 
     class _DataServe(object):
+        datarepo = os.path.join(os.path.dirname(this_module_path), "mr_reduction-data")
+
         def __init__(self):
-            self._directories = [os.path.join(os.path.dirname(this_module_path), "mr_reduction-data")]
+            self._directories = [self.datarepo]
             for directory in self._directories:
                 config.appendDataSearchDir(directory)
             config["default.facility"] = "SNS"
@@ -83,3 +65,25 @@ def data_server():
     yield _DataServe()
     for key, val in _backup.items():
         config[key] = val
+
+
+@pytest.fixture()
+def mock_filesystem(tempdir, data_server):
+    r"""
+    A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
+    and /SNS/REF_M/%(ipts)s/nexus to a temporary directory.
+    """
+    MockSetup = namedtuple("MockSetup", ["tempdir", "DirectBeamFinder"])
+
+    with (
+        mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
+        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
+        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
+        mock.patch("mr_reduction.reflectivity_merge.nexus_data_dir") as mock_ar_out_dir3,
+    ):
+        # Setup Mocks
+        mock_ar_out_dir.return_value = tempdir
+        mock_ar_out_dir2.return_value = tempdir
+        mock_ar_out_dir3.return_value = data_server.datarepo
+
+        yield MockSetup(tempdir, mock_DirectBeamFinder)

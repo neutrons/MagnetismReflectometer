@@ -1,17 +1,35 @@
+# standard imports
 import os
 import time
 
+# third-party imports
 import mantid
 import mantid.simpleapi as api
 
+# mr_reduction imports
+from mr_reduction.reflectivity_output import quicknxs_scaling_factor
+from mr_reduction.runsample import RunSampleNumber
 from mr_reduction.settings import ar_out_dir
 
-from .reflectivity_output import quicknxs_scaling_factor
 
+def write_reduction_script(matched_runs, scaling_factors, ipts) -> str:
+    r"""Write a combined reduction script by pasting together the reduction script for each run that
+    is to be stitched with the others.
 
-def write_reduction_script(matched_runs, scaling_factors, ipts):
-    """
-    Write a combined reduction script
+    Parameters
+    ----------
+    matched_runs : List[str]
+        Data runs (or RunSampleNumber's) ordered by increasing Q, to be stitched together
+        e.g ['1234', '1235'], ['1234_2', '1235_2']
+    scaling_factors : List[float]
+        Numbers by which to multiply each matched reflectivity curve, when stitching
+    ipts: str
+        Experiment identifier (e.g. 'IPTS-42666')
+
+    Returns
+    -------
+    str
+        File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_combined.py")
     """
     script = "# Mantid version %s\n" % mantid.__version__
     script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
@@ -20,23 +38,39 @@ def write_reduction_script(matched_runs, scaling_factors, ipts):
     script += "workspaces =  dict()\n"
 
     output_dir = ar_out_dir(ipts)
-    for i, run in enumerate(matched_runs):
-        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % run)
+    for i, runsample in enumerate(matched_runs):
+        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % runsample)
         if not os.path.isfile(file_path):
             api.logger.notice("Partial script doesn't exist: %s" % file_path)
             continue
         with open(file_path, "r") as _fd:
-            script += "# Run:%s\n" % run
+            script += "# Run:%s\n" % runsample
             script += "scaling_factor = %s\n" % scaling_factors[i]
             script += _fd.read() + "\n"
 
-    with open(os.path.join(output_dir, "REF_M_%s_combined.py" % matched_runs[0]), "w") as fd:
+    script_filename = f"REF_M_{matched_runs[0]}_combined.py"
+    with open(os.path.join(output_dir, script_filename), "w") as fd:
         fd.write(script)
+    return script_filename
 
 
-def write_tunable_reduction_script(matched_runs, scaling_factors, ipts):
-    """
-    Write a combined reduction script
+def write_tunable_reduction_script(matched_runs, scaling_factors, ipts) -> str:
+    """Write a combined reduction script
+
+    Parameters
+    ----------
+    matched_runs : List[str]
+        Data runs (or RunSampleNumber's) ordered by increasing Q, to be stitched together
+        e.g ['1234', '1235'], ['1234_2', '1235_2']
+    scaling_factors : List[float]
+        Numbers by which to multiply each matched reflectivity curve, when stitching
+    ipts: str
+        Experiment identifier (e.g. 'IPTS-42666')
+
+    Returns
+    -------
+    str
+        File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_tunable_combined.py"")
     """
     script = "# Mantid version %s\n" % mantid.__version__
     script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
@@ -48,22 +82,24 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts):
     output_dir = ar_out_dir(ipts=ipts)
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
-    for i, run in enumerate(matched_runs):
-        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % run)
+    for i, runsample in enumerate(matched_runs):
+        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % runsample)
         if not os.path.isfile(file_path):
             api.logger.notice("Partial script doesn't exist: %s" % file_path)
             continue
-        script += "\n# Run:%s\n" % run
-        script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (run, run, scaling_factors[i])
-        _script = generate_split_script(run, file_path)
+        script += "\n# Run:%s\n" % runsample
+        script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runsample, runsample, scaling_factors[i])
+        _script = generate_split_script(runsample, file_path)
         script += _script + "\n"
-        reduce_call += "    reduce_%s()\n" % run
-        prepare_call += "    prepare_%s()\n" % run
+        reduce_call += "    reduce_%s()\n" % runsample
+        prepare_call += "    prepare_%s()\n" % runsample
 
     script += prepare_call
     script += reduce_call
-    with open(os.path.join(output_dir, "REF_M_%s_tunable_combined.py" % matched_runs[0]), "w") as fd:
+    script_filepath = os.path.join(output_dir, f"REF_M_{matched_runs[0]}_tunable_combined.py")
+    with open(script_filepath, "w") as fd:
         fd.write(script)
+    return script_filepath
 
 
 def write_partial_script(ws_grp):
@@ -86,21 +122,38 @@ def write_partial_script(ws_grp):
     script = generate_script_from_ws(_ws_list, group_name=str(ws_grp))
     ipts = _ws.getRun().getProperty("experiment_identifier").value
     run_number = _ws.getRunNumber()
+    sample_number = RunSampleNumber.sample_number_log(_ws)
+    runsample = RunSampleNumber(run_number, sample_number)
     output_dir = ar_out_dir(ipts)
-    with open(os.path.join(output_dir, "REF_M_%s_partial.py" % run_number), "w") as fd:
+    with open(os.path.join(output_dir, f"REF_M_{runsample}_partial.py"), "w") as fd:
         fd.write(script)
 
 
 def generate_script_from_ws(ws_grp, group_name):
-    """
-    Generate a partial reduction script from a set of workspaces.
-    This algorithm needs to be compatible with the case of a single
-    workspace. For this reason, we are not assuming that ws_grp is
-    a workspace group. We therfore need the name of the grouping we
-    want to associate this set with in the output script.
+    r"""Generate a partial reduction script from a set of workspaces.
 
-    :param ws_grp: list of Mantid workspaces, or workspace group
-    :param group_name: name of the group the workspace belongs to
+    This function needs to be compatible with the case of a single workspace.
+    For this reason, we are not assuming that ws_grp is a workspace group.
+    We therefore need the name of the grouping we want to associate this set with in the output script.
+
+    The script calls the following algorithms sequentially:
+        LoadEventNexus
+        MRFilterCrossSections
+        LoadEventNexus
+        GroupWorkspaces
+        MagnetismReflectometryReduction
+        Scale
+
+    Parameters
+    ----------
+    ws_grp: list, mantid.dataobjects.Workspace2D, mantid.api.WorkspaceGroup
+        Mantid workspace(s), or workspace group
+    group_name: str
+        name of the group the workspace belongs to
+
+    Returns
+    -------
+    str
     """
     if len(ws_grp) == 0:
         return "# No workspace was generated\n"
@@ -124,15 +177,27 @@ def generate_script_from_ws(ws_grp, group_name):
     return script
 
 
-def generate_split_script(run_number, partial_script_path):
+def generate_split_script(run_sample_number, partial_script_path) -> str:
+    r"""Split a reduction script into two parts: one to set up the parameters and one to execute the reduction.
+
+    This script is the same as input `partial_script_path` except that the call to Mantid algorithm
+    MagnetismReflectometryReduction uses kwargs dictionary, and the call is wrapped by a python function which
+    is not called in the script. Thus, this script does everything to reduce the run except the actual call to
+    MagnetismReflectometryReduction.
+
+    Parameters
+    ----------
+    run_sample_number: str
+        run number (e.g. '12345') or RunSampleNumber (e.g. '12345_2')
+    partial_script_path: str
+        File path to the reduction script for one data run (e.g. '/tmp/REF_M_12345_2_partial.py' for run `12345_2`)
+
+    Returns
+    -------
+    str
+        Contents of the reduction script
     """
-    Split a reduction script into two parts: one to set up the
-    parameters and one to execute the reduction.
-    :param int or str run_number: run number
-    :param str partial_script_path: path to partial script
-    :param float scaling_factor: scaling factor for this run
-    """
-    red_script = "def prepare_%s():\n" % run_number
+    red_script = "def prepare_%s():\n" % run_sample_number
     scale_script = ""
 
     with open(partial_script_path, "r") as fd:
@@ -155,19 +220,19 @@ def generate_split_script(run_number, partial_script_path):
                     _script_started = False
             elif _scale_started:
                 scale_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_number, run_number)
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_sample_number, run_sample_number)
                 )
             else:
                 red_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_number, run_number)
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_sample_number, run_sample_number)
                 )
 
-    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_number)
-    red_script = red_script.replace("wsg", "wsg_%s" % run_number)
-    red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_number, run_number)
+    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_sample_number)
+    red_script = red_script.replace("wsg", "wsg_%s" % run_sample_number)
+    red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_sample_number, run_sample_number)
 
-    red_script += "\ndef reduce_%s():\n" % run_number
-    red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_number
+    red_script += "\ndef reduce_%s():\n" % run_sample_number
+    red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_sample_number
     red_script += scale_script
 
     return red_script
