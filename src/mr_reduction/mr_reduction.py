@@ -37,7 +37,7 @@ from mr_reduction.web_report import Report, process_collection
 DIRECT_BEAM_EVTS_MIN = 1000
 
 
-class ReductionProcess(object):
+class ReductionProcess:
     """
     MR automated reduction
     """

@@ -28,7 +28,7 @@ def data_server():
     _options = ["datasearch.directories", "default.facility", "default.instrument"]
     _backup = {key: config[key] for key in _options}
 
-    class _DataServe(object):
+    class _DataServe:
         datarepo = os.path.join(os.path.dirname(this_module_path), "mr_reduction-data")
 
         def __init__(self):

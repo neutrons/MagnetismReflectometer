@@ -126,7 +126,7 @@ def paste_collection_reports(collection_reports, run_number, publish=False) -> s
     return composite
 
 
-class Report(object):
+class Report:
     """
     Take the output of the reduction and generate
     diagnostics plots, and a block of meta data.
