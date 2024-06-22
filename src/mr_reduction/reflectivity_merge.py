@@ -51,7 +51,7 @@ def match_run_for_cross_section(run, ipts, cross_section) -> List[str]:
     List[str]
     """
     runsample = RunSampleNumber(run)
-
+    sample_number = runsample.sample_number
     _previous_q_min = 0
     _previous_q_max = 0
 
@@ -62,6 +62,8 @@ def match_run_for_cross_section(run, ipts, cross_section) -> List[str]:
         output_dir = ar_out_dir(ipts)
         file_path = os.path.join(output_dir, f"REF_M_{i_runsample}_{cross_section}_autoreduce.dat")
         if os.path.isfile(file_path):
+            if RunSampleNumber(i_runsample).sample_number != sample_number:
+                continue
             ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
             q_min = min(ref_data["q"])
             q_max = max(ref_data["q"])
@@ -151,6 +153,7 @@ def match_run_with_sequence(run, ipts, cross_section) -> List[str]:
     List[str]
     """
     runsample = RunSampleNumber(run)
+    sample_number = runsample.sample_number
     api.logger.notice(f"Matching sequence for {ipts} r{runsample} [{cross_section}]")
     data_dir = ar_out_dir(ipts)
 
@@ -167,6 +170,8 @@ def match_run_with_sequence(run, ipts, cross_section) -> List[str]:
     _lowest_q_available = True
     for file_path in glob(os.path.join(data_dir, f"REF_M_*_{cross_section}_autoreduce.dat")):
         _runsample, _group_id, lowest_q = _extract_sequence_id(file_path)
+        if RunSampleNumber(_runsample).sample_number != sample_number:
+            continue
         if _group_id == group_id:
             matched_runs.append([str(_runsample), lowest_q])
             _lowest_q_available = _lowest_q_available and lowest_q is not None
