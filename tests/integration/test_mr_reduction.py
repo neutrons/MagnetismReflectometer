@@ -2,7 +2,6 @@
 import itertools
 import os
 import shutil
-from unittest import mock
 
 # mr_reduction imports
 import mr_reduction.mr_reduction as mr
@@ -14,6 +13,7 @@ import pytest
 class TestReduction:
     @pytest.mark.datarepo()
     def test_reduce(self, mock_filesystem, data_server):
+        # direct beam for data run 29137
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 29137
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_29160.nxs.h5"),
@@ -49,7 +49,6 @@ class TestReduction:
             output_dir=mock_filesystem.tempdir,  # mocks /SNS/REF_M/IPTS-21391/shared/autoreduce/
             use_sangle=False,
             const_q_binning=False,
-            const_q_cutoff=None,
             update_peak_range=False,
             use_roi=True,
             use_roi_bck=False,
@@ -87,10 +86,6 @@ class TestReduction:
     @pytest.mark.datarepo()
     def test_reduce_multiple_samples(self, mock_filesystem, data_server):
         r"""Find a run with two samples, then reduce each, then paste their reports"""
-        # Reduce the two samples for 42535 to produce autoreduction files that will be stored in datarepo
-
-        # Reduce the two samples for 42536, which will need the autoreduction files previously stored in the datarepo
-
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 42534
 
         # autoreduced files from previous runs, to be stitched to profile from 41447
@@ -108,7 +103,6 @@ class TestReduction:
                 output_dir=mock_filesystem.tempdir,  # mocks /SNS/REF_M/IPTS-31954/shared/autoreduce/
                 use_sangle=False,
                 const_q_binning=False,
-                const_q_cutoff=None,
                 update_peak_range=False,
                 use_roi=True,
                 use_roi_bck=False,
@@ -123,8 +117,8 @@ class TestReduction:
             )
             processor.plot_2d = True
             processor.reduce()
-        # assert reduction files have been produced for run 42537
 
+        # assert reduction files have been produced for run 42537
         for sn in (1, 2):  # sample number
             for suffix in [
                 "_Off_Off_autoreduce.dat",

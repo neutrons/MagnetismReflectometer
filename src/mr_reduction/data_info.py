@@ -74,17 +74,18 @@ class DataInfo:
         force_bck_roi=False,
         bck_roi=[0, 0],
     ):
+        # inspect Workspace `ws` and populate its logs with the reflectivity peak position, the pixel range, and more
         api.MRInspectData(
             Workspace=ws,
-            UseROI=use_roi,
             UpdatePeakRange=update_peak_range,
-            UseROIBck=use_roi_bck,
-            UseTightBck=use_tight_bck,
-            BckWidth=bck_offset,
+            UseROI=use_roi,
             ForcePeakROI=force_peak_roi,
             PeakROI=peak_roi,
+            UseROIBck=use_roi_bck,
             ForceBckROI=force_bck_roi,
             BckROI=bck_roi,
+            UseTightBck=use_tight_bck,
+            BckWidth=bck_offset,
         )
 
         self.cross_section = cross_section

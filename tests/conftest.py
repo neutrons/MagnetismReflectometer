@@ -3,6 +3,7 @@ import os
 import sys
 import unittest.mock as mock
 from collections import namedtuple
+from os.path import dirname
 from typing import List
 
 import pytest
@@ -42,6 +43,11 @@ def data_server():
         def directories(self) -> List[str]:
             r"""Absolute path to the data-repo directory"""
             return self._directories
+
+        @property
+        def path_to_template(self) -> str:
+            r"""Absolute path to reduce_REF_M.py.template"""
+            return os.path.join(dirname(dirname(self.datarepo)), "src", "autoreduce", "reduce_REF_M.py.template")
 
         def path_to(self, basename: str) -> str:
             r"""

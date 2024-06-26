@@ -17,16 +17,22 @@ from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, S
 from requests import Response
 
 
-def upload_html_report(run_number, html_report) -> Optional[Response]:
+def upload_html_report(html_report, publish=True, run_number=None, report_file=None) -> Optional[Response]:
     r"""Upload html report to the livedata server
+
+    If `html_report` contains more than one report, then merge them.
 
     Parameters
     ----------
+    html_report: str, List[str]
+        one or more compendium of <div> and <table> elements. Has all the information from reducing a run,
+        possibly including reports from more than one sample when the run contains many samples.
+    publish: bool
+        Upload the report to the livedata server
     run_number: str
-        Run number
-    html_report:
-        A compendium of <div> and <table> elements. Has all the information from reducing a run, possibly including
-        reports from more than one sample when the run contains many samples.
+        Run number (e.g. '123435'). Required if `publish` is True
+    report_file: Optional[str]
+        Save the report to a file
 
     Returns
     -------
@@ -34,8 +40,45 @@ def upload_html_report(run_number, html_report) -> Optional[Response]:
         `Response` object returned by the livedata server, or `None` if the function is unable to do find the
         library to generate the `request.post()`
     """
-    # Depending on where we run, we might get our publisher from
-    # different places, or not at all.
+
+    def _merge(reports):
+        if isinstance(reports, (list, tuple)):
+            composite = "\n".join([str(report) for report in reports])
+        else:
+            composite = str(reports)
+        return composite
+
+    report_composite = _merge(html_report)
+
+    if bool(report_file) is True and isinstance(report_file, str):
+        # add the javascript engine so that the report can be displayed in a web browser
+        prefix = """<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Plotly Chart</title>
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        </head>
+        <body>
+
+        """
+        suffix = """
+
+        </body>
+        </html>
+        """
+        with open(report_file, "w") as f:
+            f.write(prefix + report_composite + suffix)
+
+    if publish is False:
+        return None
+
+    if run_number is None:
+        logger.error("Could not publish web report. No run number provided")
+        return None
+
+    # Depending on where we run, we might get our publisher from different places, or not at all.
     _publisher_found = False
     try:  # version on autoreduce
         from postprocessing.publish_plot import publish_plot
@@ -46,9 +89,9 @@ def upload_html_report(run_number, html_report) -> Optional[Response]:
 
         _publisher_found = True
     if _publisher_found:
-        return publish_plot("REF_M", run_number, files={"file": str(html_report)})
+        return publish_plot("REF_M", run_number, files={"file": report_composite})
     else:
-        logger.error("Could not publish web report: %s" % sys.exc_info()[1])
+        logger.error(f"Could not publish web report: {sys.exc_info()[1]}")
         return None
 
 
@@ -97,7 +140,7 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
     if publish:
         if run_number is None and report_list:
             run_number = report_list[0].data_info.run_number
-        upload_html_report(run_number, plot_html)
+        upload_html_report(plot_html, run_number=run_number)
 
     return plot_html, script
 
@@ -122,7 +165,7 @@ def paste_collection_reports(collection_reports, run_number, publish=False) -> s
     """
     composite = "\n".join(collection_reports)
     if publish is True:
-        upload_html_report(run_number, composite)
+        upload_html_report(composite, run_number=run_number)
     return composite
 
 
