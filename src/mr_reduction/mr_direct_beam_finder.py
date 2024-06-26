@@ -16,7 +16,7 @@ from .data_info import DataInfo
 from .settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
 
 
-class DirectBeamFinder(object):
+class DirectBeamFinder:
     """ """
 
     def __init__(self, scatt_ws, skip_slits=False, allow_later_runs=False, tolerance=0.2, experiment=""):

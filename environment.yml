@@ -2,12 +2,16 @@ name: mr_reduction
 channels:
   - mantid/label/main
   - conda-forge
+  - oncat
 dependencies:
   - python>=3.10
   - versioningit
   - mantidworkbench=6.9
   - pandas
   - plotly
+  - pyoncat
+  - flask
+  - gunicorn
   - pip
   - pip:
     - git+https://github.com/peterfpeterson/finddata@v0.8.4
