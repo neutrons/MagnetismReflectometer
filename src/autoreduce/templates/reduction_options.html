@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form to JSON</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Increase the font size */
+        }
+        .container {
+            width: 90%;
+            margin: auto;
+        }
+        .form-section {
+            margin-bottom: 20px;
+        }
+        .form-section label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-section input[type="text"],
+        .form-section input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .samples-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .sample {
+            width: 30%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>REF_M reduction of a single run</h1>
+        <p>(Hover over text for tooltip info)</p>
+
+        <div class="form-section">
+            <h2 title="Path to REF_M_xxxx.nxs.h5 file">Nexus events file</h2>
+            <input type="text" id="events_file" onclick="this.select()" style="width: 800px;" value="/SNS/REF_M/IPTS-21391/nexus/REF_M_41445.nxs.h5">
+        </div>
+
+        <div class="form-section">
+            <h2 title="Output directory path for reduced and reports files">Output Directory</h2>
+            <input type="text" id="outdir" onclick="this.select()" style="width: 800px;" value="/tmp/test_webform">
+        </div>
+
+        <div class="form-section">
+            <h2>Options for all samples</h2>
+
+            <label title="Check the following box to see 2D plots on the monitor.
+Loading the page for each run will take much longer when this option is turned on.">
+                <input type="checkbox" id="plot_in_2D" checked> Show 2D plots</label>
+
+            <label><input type="checkbox" id="use_const_q"> Use constant-Q binning</label>
+
+            <label>Q step <input type="number" id="q_step" step="0.01" style="width: 65px;" value="-0.02"></label>
+
+            <label title="Check the following box if you want to use SANGLE,
+otherwise DANGLE will be used."><input type="checkbox" id="use_sangle" checked> Use SANGLE</label>
+
+            <label title="Once the reflected peak ROI is selected for each sample below,
+you can try to fine tune this ROI by fitting for a peak within that
+region and updating the ROI [both center and width] according to the
+location found. Check the box if you want to find a peak within the
+ROI and redefine the ROI afterwards."><input type="checkbox" id="fit_peak_in_roi" checked> Automated ROI</label>
+
+            <label title="Number of samples in the run" style="font-weight:bold; font-size:1.2em;">
+                Sample count <input type="number" id="sample_count" style="width: 25px;" value="1"></label>
+        </div>
+
+        <div class="samples-container">
+            <div class="form-section sample" id="sample1">
+                <h2>Sample #1</h2>
+
+                <label title="You can choose to replace the ROI in the data by your own range.
+Check the following box if you want to define your own ROI and
+use it for peak selection."><input type="checkbox" id="force_peak" checked> Force peak ROI</label>
+
+                <label>Pixel min <input type="number" id="peak_min" style="width: 50px;" value="149"></label>
+
+                <label>Pixel max <input type="number" id="peak_max" style="width: 50px;" value="159"></label>
+
+                <label title="A second ROI is available in the data file and can be used to define the background.
+Check the following box if you want to use the 2nd ROI for your background,
+otherwise a default region will be used."><input type="checkbox" id="use_roi_bck" checked> Use 2nd ROI</label>
+
+                <label title="You can choose to replace the 2nd ROI in the data by your own range.
+Check the following box if you want to define your own 2nd ROI and use it for background selection.
+The option to use the 2nd ROI has to be turned ON to use this option.">
+                    <input type="checkbox" id="force_background" checked> Force background ROI</label>
+
+                <label>Bck min <input type="number" id="bck_min" style="width: 50px;" value="28"></label>
+
+                <label>Bck max <input type="number" id="bck_max" style="width: 50px;" value="80"></label>
+
+                <label title="As an alternative to using the 2nd ROI,  you can use a region around
+the reflected peak to estimate the background. Check the following box
+if you want to use the region on each side of the peak to estimate your background.">
+                    <input type="checkbox" id="use_side_bck"> Use side background</label>
+
+                <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width"></label>
+            </div>
+
+            <div class="form-section sample" id="sample2">
+                <h2 title="Sample 2 options ignored if Sample count is 1">Sample #2</h2>
+
+                <label title="You can choose to replace the ROI in the data by your own range.
+Check the following box if you want to define your own ROI and
+use it for peak selection."><input type="checkbox" id="force_peak_s2" checked> Force peak ROI</label>
+
+                <label>Pixel min <input type="number" id="peak_min_s2" style="width: 50px;" value="160"></label>
+
+                <label>Pixel max <input type="number" id="peak_max_s2" style="width: 50px;" value="180"></label>
+
+                <label title="A second ROI is available in the data file and can be used to define the background.
+Check the following box if you want to use the 2nd ROI for your background,
+otherwise a default region will be used."><input type="checkbox" id="use_roi_bck_s2" checked> Use 2nd ROI</label>
+
+                <label title="You can choose to replace the 2nd ROI in the data by your own range.
+Check the following box if you want to define your own 2nd ROI and use it for background selection.
+The option to use the 2nd ROI has to be turned ON to use this option.">
+                    <input type="checkbox" id="force_background_s2" checked> Force background ROI</label>
+
+                <label>Bck min <input type="number" id="bck_min_s2" style="width: 50px;" value="30"></label>
+
+                <label>Bck max <input type="number" id="bck_max_s2" style="width: 50px;" value="70"></label>
+
+                <label title="As an alternative to using the 2nd ROI,  you can use a region around
+the reflected peak to estimate the background. Check the following box
+if you want to use the region on each side of the peak to estimate your background.">
+                    <input type="checkbox" id="use_side_bck_s2"> Use side background</label>
+
+                <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s2"></label>
+            </div>
+
+            <div class="form-section sample" id="sample3">
+                <h2 title="Sample 3 options ignored if Sample count is smaller than three">Sample #3</h2>
+
+                <label title="You can choose to replace the ROI in the data by your own range.
+Check the following box if you want to define your own ROI and
+use it for peak selection."><input type="checkbox" id="force_peak_s3" checked> Force peak ROI</label>
+
+                <label>Pixel min <input type="number" id="peak_min_s3" style="width: 50px;" value="160"></label>
+
+                <label>Pixel max <input type="number" id="peak_max_s3" style="width: 50px;" value="180"></label>
+
+                <label title="A second ROI is available in the data file and can be used to define the background.
+Check the following box if you want to use the 2nd ROI for your background,
+otherwise a default region will be used."><input type="checkbox" id="use_roi_bck_s3" checked> Use 2nd ROI</label>
+
+                <label title="You can choose to replace the 2nd ROI in the data by your own range.
+Check the following box if you want to define your own 2nd ROI and use it for background selection.
+The option to use the 2nd ROI has to be turned ON to use this option.">
+                    <input type="checkbox" id="force_background_s3" checked> Force background ROI</label>
+
+                <label>Bck min <input type="number" id="bck_min_s3" style="width: 50px;" value="30"></label>
+
+                <label>Bck max <input type="number" id="bck_max_s3" style="width: 50px;" value="70"></label>
+
+                <label title="As an alternative to using the 2nd ROI,  you can use a region around
+the reflected peak to estimate the background. Check the following box
+if you want to use the region on each side of the peak to estimate your background.">
+                    <input type="checkbox" id="use_side_bck_s3"> Use side background</label>
+
+                <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s3"></label>
+            </div>
+        </div>
+
+        <button id="submit_form_button" style="padding: 10px 20px; font-size: 22px;" onclick="submitForm()">Submit</button>
+        <button id="view_report_button" style="padding: 10px 20px; font-size: 22px;" onclick="viewReport()" disabled>View Report</button>
+    </div>
+
+    <script>
+        let jsonData = null;
+        function handleCheckboxConstraints(useRoiBckId, forceBackgroundId, useSideBckId) {
+            const use_roi_bck = document.getElementById(useRoiBckId);
+            const force_background = document.getElementById(forceBackgroundId);
+            const use_side_bck = document.getElementById(useSideBckId);
+
+            use_roi_bck.addEventListener('change', () => {
+                if (use_roi_bck.checked) {
+                    use_side_bck.checked = false;
+                } else {
+                    force_background.checked = false;
+                }
+            });
+
+            force_background.addEventListener('change', () => {
+                if (force_background.checked) {
+                    use_roi_bck.checked = true;
+                    use_side_bck.checked = false;
+                }
+            });
+
+            use_side_bck.addEventListener('change', () => {
+                if (use_side_bck.checked) {
+                    use_roi_bck.checked = false;
+                    force_background.checked = false;
+                }
+            });
+        }
+
+        function initializeConstraints() {
+            handleCheckboxConstraints('use_roi_bck', 'force_background', 'use_side_bck');
+            handleCheckboxConstraints('use_roi_bck_s2', 'force_background_s2', 'use_side_bck_s2');
+            handleCheckboxConstraints('use_roi_bck_s3', 'force_background_s3', 'use_side_bck_s3');
+        }
+
+        async function submitForm() {
+            let submit_form_button = document.getElementById('submit_form_button');
+            let view_report_button = document.getElementById('view_report_button')
+            submit_form_button.disabled = true; // disable button while running reduction
+            view_report_button.disabled = true;
+
+            const formValues = {
+                events_file: document.getElementById('events_file').value,
+                outdir: document.getElementById('outdir').value,
+                plot_in_2D: document.getElementById('plot_in_2D').checked,
+                use_const_q: document.getElementById('use_const_q').checked,
+                q_step: document.getElementById('q_step').value,
+                use_sangle: document.getElementById('use_sangle').checked,
+                fit_peak_in_roi: document.getElementById('fit_peak_in_roi').checked,
+                sample_count: document.getElementById('sample_count').value,
+
+                force_peak: document.getElementById('force_peak').checked,
+                peak_min: document.getElementById('peak_min').value,
+                peak_max: document.getElementById('peak_max').value,
+                use_roi_bck: document.getElementById('use_roi_bck').checked,
+                force_background: document.getElementById('force_background').checked,
+                bck_min: document.getElementById('bck_min').value,
+                bck_max: document.getElementById('bck_max').value,
+                use_side_bck: document.getElementById('use_side_bck').checked,
+                bck_width: document.getElementById('bck_width').value,
+
+                force_peak_s2: document.getElementById('force_peak_s2').checked,
+                peak_min_s2: document.getElementById('peak_min_s2').value,
+                peak_max_s2: document.getElementById('peak_max_s2').value,
+                use_roi_bck_s2: document.getElementById('use_roi_bck_s2').checked,
+                force_background_s2: document.getElementById('force_background_s2').checked,
+                bck_min_s2: document.getElementById('bck_min_s2').value,
+                bck_max_s2: document.getElementById('bck_max_s2').value,
+                use_side_bck_s2: document.getElementById('use_side_bck_s2').checked,
+                bck_width_s2: document.getElementById('bck_width_s2').value,
+
+                force_peak_s3: document.getElementById('force_peak_s3').checked,
+                peak_min_s3: document.getElementById('peak_min_s3').value,
+                peak_max_s3: document.getElementById('peak_max_s3').value,
+                use_roi_bck_s3: document.getElementById('use_roi_bck_s3').checked,
+                force_background_s3: document.getElementById('force_background_s3').checked,
+                bck_min_s3: document.getElementById('bck_min_s3').value,
+                bck_max_s3: document.getElementById('bck_max_s3').value,
+                use_side_bck_s3: document.getElementById('use_side_bck_s3').checked,
+                bck_width_s3: document.getElementById('bck_width_s3').value,
+            };
+            fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formValues)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // throw and error
+                    return response.json().then(err => {throw new Error(err.error);})
+                }
+                return response.json();
+            })
+            .then(data => {
+                jsonData = data;
+                submit_form_button.disabled = false;  // reenable submit button
+                view_report_button.disabled = false;
+             })
+            .catch((error) => {
+                jsonData = null;
+                console.error('Error:', error);
+                submit_form_button.disabled = false;  // reenable submit button
+                view_report_button.disabled = false;
+                alert('Error: ' + error.message);
+            });
+        }
+
+        function viewReport() {
+
+            let data = JSON.stringify(jsonData);
+            let url = "/report?report_file=" + encodeURIComponent(jsonData.report_file);
+            window.open(url, "_blank");
+            // window.open("/report", "_blank");
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeConstraints);
+
+    </script>
+</body>
+</html>

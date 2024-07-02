@@ -12,7 +12,7 @@ from mr_reduction.runsample import RunSampleNumber
 from mr_reduction.settings import ar_out_dir
 
 
-def write_reduction_script(matched_runs, scaling_factors, ipts) -> str:
+def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None, extra_search_dir=None) -> str:
     r"""Write a combined reduction script by pasting together the reduction script for each run that
     is to be stitched with the others.
 
@@ -25,6 +25,11 @@ def write_reduction_script(matched_runs, scaling_factors, ipts) -> str:
         Numbers by which to multiply each matched reflectivity curve, when stitching
     ipts: str
         Experiment identifier (e.g. 'IPTS-42666')
+    output_dir: str
+        Directory where to write the reduction script. If `None`, defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
+    extra_search_dir: Optional[str]
+        additional directory where to find matching partial scripts for the matching runs
 
     Returns
     -------
@@ -37,24 +42,31 @@ def write_reduction_script(matched_runs, scaling_factors, ipts) -> str:
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
 
-    output_dir = ar_out_dir(ipts)
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     for i, runsample in enumerate(matched_runs):
-        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % runsample)
-        if not os.path.isfile(file_path):
-            api.logger.notice("Partial script doesn't exist: %s" % file_path)
-            continue
-        with open(file_path, "r") as _fd:
-            script += "# Run:%s\n" % runsample
-            script += "scaling_factor = %s\n" % scaling_factors[i]
-            script += _fd.read() + "\n"
+        for search_dir in search_dirs:
+            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runsample)
+            if os.path.isfile(file_path):
+                with open(file_path, "r") as _fd:
+                    script += "# Run:%s\n" % runsample
+                    script += "scaling_factor = %s\n" % scaling_factors[i]
+                    script += _fd.read() + "\n"
+                break  # no need to search in the other search directory
 
     script_filename = f"REF_M_{matched_runs[0]}_combined.py"
+    if output_dir is None or os.path.isdir(output_dir) is False:
+        output_dir = ar_out_dir(ipts)
     with open(os.path.join(output_dir, script_filename), "w") as fd:
         fd.write(script)
     return script_filename
 
 
-def write_tunable_reduction_script(matched_runs, scaling_factors, ipts) -> str:
+def write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None, extra_search_dir=None) -> str:
     """Write a combined reduction script
 
     Parameters
@@ -66,6 +78,12 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts) -> str:
         Numbers by which to multiply each matched reflectivity curve, when stitching
     ipts: str
         Experiment identifier (e.g. 'IPTS-42666')
+    output_dir: str
+        Directory where to write the reduction script. If `None`, defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
+    extra_search_dir: Optional[str]
+        additional directory where to find matching partial scripts for the matching runs. Search will also
+        be carried out the canonical autoreduce directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
@@ -79,36 +97,49 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts) -> str:
     script += "workspaces =  dict()\n"
     script += "parameters = dict()\n\n"
 
-    output_dir = ar_out_dir(ipts=ipts)
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
     for i, runsample in enumerate(matched_runs):
-        file_path = os.path.join(output_dir, "REF_M_%s_partial.py" % runsample)
-        if not os.path.isfile(file_path):
-            api.logger.notice("Partial script doesn't exist: %s" % file_path)
-            continue
-        script += "\n# Run:%s\n" % runsample
-        script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runsample, runsample, scaling_factors[i])
-        _script = generate_split_script(runsample, file_path)
-        script += _script + "\n"
-        reduce_call += "    reduce_%s()\n" % runsample
-        prepare_call += "    prepare_%s()\n" % runsample
+        for search_dir in search_dirs:
+            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runsample)
+            if os.path.isfile(file_path):
+                script += "\n# Run:%s\n" % runsample
+                script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runsample, runsample, scaling_factors[i])
+                _script = generate_split_script(runsample, file_path)
+                script += _script + "\n"
+                reduce_call += "    reduce_%s()\n" % runsample
+                prepare_call += "    prepare_%s()\n" % runsample
+                break  # no need to search in the other search directory
 
     script += prepare_call
     script += reduce_call
+    if output_dir is None or os.path.isdir(output_dir) is False:
+        output_dir = ar_out_dir(ipts)
     script_filepath = os.path.join(output_dir, f"REF_M_{matched_runs[0]}_tunable_combined.py")
     with open(script_filepath, "w") as fd:
         fd.write(script)
     return script_filepath
 
 
-def write_partial_script(ws_grp):
-    """
+def write_partial_script(ws_grp, output_dir=None):
+    r"""
     Write a partial python reduction script. This script will be
     used by the merging process to produce a clean and final reduction
     script for the whole reflectivity curve.
 
-    :param ws_grp: a Mantid workspace or WorkspaceGroup
+    Parameters
+    ----------
+    ws_grp:
+        a Mantid workspace or WorkspaceGroup
+    output_dir: str
+        Directory where to write the reduction script. If `None`, defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
     """
     # This should work for either a workspace or workspace group,
     # so determine which one it is first.
@@ -124,7 +155,8 @@ def write_partial_script(ws_grp):
     run_number = _ws.getRunNumber()
     sample_number = RunSampleNumber.sample_number_log(_ws)
     runsample = RunSampleNumber(run_number, sample_number)
-    output_dir = ar_out_dir(ipts)
+    if output_dir is None:
+        output_dir = ar_out_dir(ipts)
     with open(os.path.join(output_dir, f"REF_M_{runsample}_partial.py"), "w") as fd:
         fd.write(script)
 

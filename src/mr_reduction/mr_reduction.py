@@ -250,7 +250,6 @@ class ReductionProcess:
         Perform the reduction
         """
         self.log("\n\n---------- %s" % time.ctime())
-
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         # if self.data_ws is not None and self.use_slow_flipper_log:
@@ -287,17 +286,22 @@ class ReductionProcess:
         ref_plot = None
         try:
             run_sample_number = str(RunSampleNumber(self.run_number, self.sample_number))
-            matched_runs, scaling_factors, outputs = combined_curves(run=run_sample_number, ipts=self.ipts)
+            matched_runs, scaling_factors, outputs = combined_curves(
+                run=run_sample_number, ipts=self.ipts, output_dir=self.output_dir
+            )
             if not self.live:
                 self.json_info = combined_catalog_info(
                     matched_runs,
                     self.ipts,
                     outputs,
+                    output_dir=self.output_dir,
                     run_sample_number=str(RunSampleNumber(self.run_number, self.sample_number)),
                 )
             self.log("Matched runs: %s" % str(matched_runs))
             # plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container
-            ref_plot = plot_combined(matched_runs, scaling_factors, self.ipts, publish=False)
+            ref_plot = plot_combined(
+                matched_runs, scaling_factors, self.ipts, extra_search_dir=self.output_dir, publish=False
+            )
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:  # noqa E722
             self.log("Could not generate combined curve")
@@ -308,7 +312,10 @@ class ReductionProcess:
         logger.notice("Processing collection of %s reports" % len(report_list))
         try:
             html_report, _ = process_collection(
-                summary_content=ref_plot, report_list=report_list, publish=self.publish, run_number=self.run_number
+                summary_content=ref_plot,
+                report_list=report_list,
+                publish=self.publish,
+                run_number=str(self.run_number),
             )
         except:  # noqa E722
             html_report = ""
@@ -319,7 +326,6 @@ class ReductionProcess:
         return html_report
 
     def reduce_workspace_group(self, xs_list):
-        """ """
         # Extract data info (find peaks, etc...)
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
@@ -386,7 +392,7 @@ class ReductionProcess:
 
         # Generate partial python script
         self.log("Workspace r_%s: %s" % (runsample, type(mtd["r_%s" % runsample])))
-        write_partial_script(mtd["r_%s" % runsample])
+        write_partial_script(mtd["r_%s" % runsample], output_dir=self.output_dir)
 
         report_list = []
         for ws in xs_list:
@@ -435,7 +441,6 @@ class ReductionProcess:
                 "Run %s [%s]: Could not find direct beam with matching slit, trying with wl only" % (run_number, entry)
             )
             norm_run = db_finder.search(skip_slits=True)
-
         apply_norm = False
         direct_info = None
         if norm_run is None:
@@ -464,5 +469,4 @@ class ReductionProcess:
                 except:  # noqa E722
                     # No data in this cross-section
                     logger.error("Direct beam %s: %s" % (norm_entry, sys.exc_info()[1]))
-
         return apply_norm, norm_run, direct_info

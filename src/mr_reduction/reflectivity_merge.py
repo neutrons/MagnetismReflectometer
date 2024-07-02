@@ -25,7 +25,7 @@ from mr_reduction.script_output import write_reduction_script, write_tunable_red
 from mr_reduction.settings import ar_out_dir, nexus_data_dir
 
 
-def match_run_for_cross_section(run, ipts, cross_section) -> List[str]:
+def match_run_for_cross_section(run, ipts, cross_section, extra_search_dir=None) -> List[str]:
     """Return a list of matching runs (or RunSampleNumber's) to be stitched
 
     Examples
@@ -46,40 +46,56 @@ def match_run_for_cross_section(run, ipts, cross_section) -> List[str]:
     cross_section: str
         polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
 
+    extra_search_dir: Optional[None]
+        additional directory to look for matching runs for stitching
+
     Returns
     -------
     List[str]
     """
     runsample = RunSampleNumber(run)
     sample_number = runsample.sample_number
+
+    # assemble the list of search directories
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     _previous_q_min = 0
     _previous_q_max = 0
 
     api.logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
     matched_runs = []
-    for i in range(10):
+    series_end = False
+    for i in range(10):  # search the previous 10 runs
+        if series_end:
+            break
         i_runsample = RunSampleNumber(runsample.run_number - i, runsample.sample_number)
-        output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, f"REF_M_{i_runsample}_{cross_section}_autoreduce.dat")
-        if os.path.isfile(file_path):
-            if RunSampleNumber(i_runsample).sample_number != sample_number:
-                continue
-            ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
-            q_min = min(ref_data["q"])
-            q_max = max(ref_data["q"])
-            api.logger.notice("%s: [%s %s]" % (i_runsample, q_min, q_max))
+        for search_dir in search_dirs:
+            file_path = os.path.join(search_dir, f"REF_M_{i_runsample}_{cross_section}_autoreduce.dat")
+            if os.path.isfile(file_path):
+                if RunSampleNumber(i_runsample).sample_number != sample_number:
+                    continue  # sample numbers must be the same
+                ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+                q_min = min(ref_data["q"])
+                q_max = max(ref_data["q"])
+                api.logger.notice("%s: [%s %s]" % (i_runsample, q_min, q_max))
 
-            if (q_max < _previous_q_max and q_max > _previous_q_min) or _previous_q_max == 0:
-                _previous_q_max = q_max
-                _previous_q_min = q_min
-                matched_runs.insert(0, str(i_runsample))
-            else:
-                # The series stops here
-                break
+                if (q_max < _previous_q_max and q_max > _previous_q_min) or _previous_q_max == 0:
+                    _previous_q_max = q_max
+                    _previous_q_min = q_min
+                    matched_runs.insert(0, str(i_runsample))
+                else:  # previous runs won't be a match, thus exit the `for i in range(10)` loop
+                    series_end = True
+
+                break  # no need to search in the other search directories
+
     return matched_runs
 
 
-def _extract_sequence_id(file_path) -> Tuple[str, str, float]:
+def _extract_sequence_id(file_path):
     """Extract the sequence_id from an autoreduced data file (REF_M_*_autoreduce.dat)
 
     The sequence_id indicates the first run number having the same sample(s) as the current
@@ -94,7 +110,7 @@ def _extract_sequence_id(file_path) -> Tuple[str, str, float]:
 
     Returns
     -------
-    tuple
+    Tuple[str, str, Optional[float]]
         run_sample_number str: RunSampleNumber's that were reduced
         group_id str: sequence_id
         lowest_q: float
@@ -125,63 +141,80 @@ def _extract_sequence_id(file_path) -> Tuple[str, str, float]:
     return run_sample_number, group_id, lowest_q
 
 
-def match_run_with_sequence(run, ipts, cross_section) -> List[str]:
-    r"""List of matching runs (or RunSampleNumber's) to be stitched
+def match_run_with_sequence(run, ipts, cross_section, extra_search_dir=None):
+    r"""List of matching runs (or RunSampleNumber's) to be stitched.
 
-    #TODO: order the runs wth increasing Q.
+        Matching runs are searched in `search_dir` as well as in the canonical aoutoreduce directory,
+        /SNS/REF_M/IPTS-XXXX/shared/autoreduce.
 
-    Examples
-    --------
-    >>> match_run_with_sequence("1234", "IPTS-42666", "Off_Off")
-    ["1233", "1234"]
+        Examples
+        --------
+        >>> match_run_with_sequence("1234", "IPTS-42666", "Off_Off")
+        ["1233", "1234"]
 
-    >>> match_run_with_sequence("1234_2", "IPTS-42666", "Off_On")
-    ["1233_2", "1234_2"]
+        >>> match_run_with_sequence("1234_2", "IPTS-42666", "Off_On")
+        ["1233_2", "1234_2"]
 
-    Parameters
-    ----------
-    run: str, RunSampleNumber
-        Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
-    ipts: str
-        experiment identifier e.g. "IPTS-42666"
+        Parameters
+        ----------
+        run: str, RunSampleNumber
+            Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
+        ipts: str
+            experiment identifier e.g. "IPTS-42666"
+        cross_section: str
+            polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
+    `    extra_search_dir: Optional[str]
+            additional directory to find matching runs`
 
-    cross_section: str
-        polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
-
-    Returns
-    -------
-    List[str]
+        Returns
+        -------
+        List[str]
     """
     runsample = RunSampleNumber(run)
     sample_number = runsample.sample_number
     api.logger.notice(f"Matching sequence for {ipts} r{runsample} [{cross_section}]")
-    data_dir = ar_out_dir(ipts)
+
+    # assemble the list of data directories
+    data_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        data_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in data_dirs:
+        data_dirs.append(ar_out_dir(ipts))
 
     # Check to see if we have the sequence_id information
-    file_path = os.path.join(data_dir, f"REF_M_{runsample}_{cross_section}_autoreduce.dat")
-    _, group_id, _ = _extract_sequence_id(file_path)
+    group_id = None
+    for data_dir in data_dirs:
+        file_path = os.path.join(data_dir, f"REF_M_{runsample}_{cross_section}_autoreduce.dat")
+        if os.path.isfile(file_path):
+            _, group_id, _ = _extract_sequence_id(file_path)
+            break
 
     # If we don't have a group id, just group together runs of increasing q-values
     if group_id is None:
-        return match_run_for_cross_section(runsample, ipts, cross_section)
+        return match_run_for_cross_section(runsample, ipts, cross_section, extra_search_dir=extra_search_dir)
 
-    # Start with the run matching the sequence id
-    matched_runs = []
+    matched_runs = []  # list of [run-number, lowest-q] pairs
     _lowest_q_available = True
-    for file_path in glob(os.path.join(data_dir, f"REF_M_*_{cross_section}_autoreduce.dat")):
-        _runsample, _group_id, lowest_q = _extract_sequence_id(file_path)
-        if RunSampleNumber(_runsample).sample_number != sample_number:
-            continue
-        if _group_id == group_id:
-            matched_runs.append([str(_runsample), lowest_q])
-            _lowest_q_available = _lowest_q_available and lowest_q is not None
-    if _lowest_q_available:
+    for data_dir in data_dirs:
+        for file_path in glob(os.path.join(data_dir, f"REF_M_*_{cross_section}_autoreduce.dat")):
+            _runsample, _group_id, lowest_q = _extract_sequence_id(file_path)
+            if _runsample in [m[0] for m in matched_runs]:
+                continue  # this matching run number has been found in a previous data directory
+            if RunSampleNumber(_runsample).sample_number != sample_number:
+                continue  # the sample numbers must be the same
+            if _group_id == group_id:
+                matched_runs.append([str(_runsample), lowest_q])
+                _lowest_q_available = _lowest_q_available and lowest_q is not None
+    if _lowest_q_available:  # sort by lowest-q
         match_series = [item[0] for item in sorted(matched_runs, key=lambda a: a[1])]
-        return match_series
-    return sorted(matched_runs)
+    else:  # sort by run-number
+        match_series = [item[0] for item in sorted(matched_runs, key=lambda a: a[0])]
+    return match_series
 
 
-def compute_scaling_factors(matched_runs, ipts, cross_section) -> Tuple[List[float], str, str, str, str]:
+def compute_scaling_factors(
+    matched_runs, ipts, cross_section, extra_search_dir=None
+) -> Tuple[List[float], str, str, str, str]:
     r"""Compute the scaling factors for an input set of runs (or RunSampleNumber's) by comparing with
     direct-beam runs having the same instrument configuration as the `matched_runs`.
 
@@ -198,6 +231,9 @@ def compute_scaling_factors(matched_runs, ipts, cross_section) -> Tuple[List[flo
         Experiment identifier (e.g. 'IPTS-42666')
     cross_section: str
             polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On"
+    extra_search_dir: str
+        Directory where to find the reduced matching runs, in addition to the canonicalautoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
@@ -219,77 +255,85 @@ def compute_scaling_factors(matched_runs, ipts, cross_section) -> Tuple[List[flo
     run_count = 0
     scaling_factors = [1.0]
 
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    search_dirs.append(ar_out_dir(ipts))
+
     for i_runsample in matched_runs:
-        output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, cross_section))
-        if os.path.isfile(file_path):
-            _file_handle = open(file_path, "r")
-            ref_data = pandas.read_csv(_file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+        for search_dir in search_dirs:
+            file_path = os.path.join(search_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, cross_section))
+            if os.path.isfile(file_path):
+                _file_handle = open(file_path, "r")
+                ref_data = pandas.read_csv(_file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
 
-            ws = api.CreateWorkspace(DataX=ref_data["q"], DataY=ref_data["r"], DataE=ref_data["dr"])
-            ws = api.ConvertToHistogram(ws)
-            if _previous_ws is not None:
-                _, scale = api.Stitch1D(_previous_ws, ws)
-                running_scale *= scale
-                scaling_factors.append(running_scale)
-            _previous_ws = api.CloneWorkspace(ws)
+                ws = api.CreateWorkspace(DataX=ref_data["q"], DataY=ref_data["r"], DataE=ref_data["dr"])
+                ws = api.ConvertToHistogram(ws)
+                if _previous_ws is not None:
+                    _, scale = api.Stitch1D(_previous_ws, ws)
+                    running_scale *= scale
+                    scaling_factors.append(running_scale)
+                _previous_ws = api.CloneWorkspace(ws)
 
-            # Rewind and get meta-data
-            _file_handle.seek(0)
-            _direct_beams_started = 0
-            _data_runs_started = 0
-            for line in _file_handle.readlines():
-                # Look for cross-section label
-                if line.find("Extracted states:") > 0:
-                    toks = line.split(":")
-                    if len(toks) > 1:
-                        _cross_section_label = toks[1].strip()
+                # Rewind and get meta-data
+                _file_handle.seek(0)
+                _direct_beams_started = 0
+                _data_runs_started = 0
+                for line in _file_handle.readlines():
+                    # Look for cross-section label
+                    if line.find("Extracted states:") > 0:
+                        toks = line.split(":")
+                        if len(toks) > 1:
+                            _cross_section_label = toks[1].strip()
 
-                # If we are in the data run block, copy the data we need
-                if _data_runs_started == 1 and line.find(str(i_runsample)) > 0:
-                    toks = ["%8s" % t for t in line.split()]
-                    if len(toks) > 10:
-                        toks[1] = "%8g" % scaling_factors[run_count]
-                        run_count += 1
-                        toks[14] = "%8s" % str(run_count)
-                        _line = "  ".join(toks).strip() + "\n"
-                        data_info += _line.replace("# ", "#")
+                    # If we are in the data run block, copy the data we need
+                    if _data_runs_started == 1 and line.find(str(i_runsample)) > 0:
+                        toks = ["%8s" % t for t in line.split()]
+                        if len(toks) > 10:
+                            toks[1] = "%8g" % scaling_factors[run_count]
+                            run_count += 1
+                            toks[14] = "%8s" % str(run_count)
+                            _line = "  ".join(toks).strip() + "\n"
+                            data_info += _line.replace("# ", "#")
 
-                # Find out whether we started the direct beam block
-                if line.find("Data Runs") > 0:
-                    _direct_beams_started = 0
-                    _data_runs_started = 1
+                    # Find out whether we started the direct beam block
+                    if line.find("Data Runs") > 0:
+                        _direct_beams_started = 0
+                        _data_runs_started = 1
 
-                # Get the direct beam info
-                if _direct_beams_started == 2:
-                    toks = ["%8s" % t for t in line.split()]
-                    if len(toks) > 10:
-                        direct_beam_count += 1
-                        toks[1] = "%8g" % direct_beam_count
-                        _line = "  ".join(toks).strip() + "\n"
-                        direct_beam_info += _line.replace("# ", "#")
+                    # Get the direct beam info
+                    if _direct_beams_started == 2:
+                        toks = ["%8s" % t for t in line.split()]
+                        if len(toks) > 10:
+                            direct_beam_count += 1
+                            toks[1] = "%8g" % direct_beam_count
+                            _line = "  ".join(toks).strip() + "\n"
+                            direct_beam_info += _line.replace("# ", "#")
 
-                # If we are in the direct beam block, we need to skip the column info line
-                if _direct_beams_started == 1 and line.find("DB_ID") > 0:
-                    _direct_beams_started = 2
+                    # If we are in the direct beam block, we need to skip the column info line
+                    if _direct_beams_started == 1 and line.find("DB_ID") > 0:
+                        _direct_beams_started = 2
 
-                # Find out whether we started the direct beam block
-                if line.find("Direct Beam Runs") > 0:
-                    _direct_beams_started = 1
+                    # Find out whether we started the direct beam block
+                    if line.find("Direct Beam Runs") > 0:
+                        _direct_beams_started = 1
 
-            for i in range(len(ref_data["q"])):
-                data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
-                    ref_data["q"][i],
-                    running_scale * ref_data["r"][i],
-                    running_scale * ref_data["dr"][i],
-                    ref_data["dq"][i],
-                    ref_data["a"][i],
-                )
+                for i in range(len(ref_data["q"])):
+                    data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
+                        ref_data["q"][i],
+                        running_scale * ref_data["r"][i],
+                        running_scale * ref_data["dr"][i],
+                        ref_data["dq"][i],
+                        ref_data["a"][i],
+                    )
+                break  # no need to search in the other search directories
 
     return scaling_factors, direct_beam_info, data_info, data_buffer, _cross_section_label
 
 
-def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors) -> List[Tuple[str, str]]:
+def apply_scaling_factors(
+    matched_runs, ipts, cross_section, scaling_factors, extra_search_dir=None
+) -> List[Tuple[str, str]]:
     r"""Apply the scaling factors (used for stitching) that were computed with the cross-section having the highest
     event count to rescale the reflectivity profiles of the other cross-sections.
 
@@ -309,6 +353,9 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors) ->
         with the highest event count.
     scaling_factors: List[float]
         Numbers by which to multiply each matched reflectivity curve, when stitching
+    extra_search_dir: Optional[str]
+        additional directory where to find matching partial scripts for the matching runs. Search is also
+        carried out on the canonical autoreduce directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
@@ -316,6 +363,13 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors) ->
         Rescaled reflectiviy profiles of the other cross-sections. One entry per cross section other than
         input `cross_section`, e.g ('On_Off', '0.02344 5.666 ....'), ("On_On", '')
     """
+
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     data_buffers = []
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         # Skip the cross section that we computed the scaling factors with since we havce that data already
@@ -324,62 +378,71 @@ def apply_scaling_factors(matched_runs, ipts, cross_section, scaling_factors) ->
         data_buffer = ""
 
         for j, i_runsample in enumerate(matched_runs):
-            output_dir = ar_out_dir(ipts)
-            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, xs))
-            if os.path.isfile(file_path):
-                with open(file_path, "r") as file_handle:
-                    ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
-
-                for i in range(len(ref_data["q"])):
-                    data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
-                        ref_data["q"][i],
-                        scaling_factors[j] * ref_data["r"][i],
-                        scaling_factors[j] * ref_data["dr"][i],
-                        ref_data["dq"][i],
-                        ref_data["a"][i],
-                    )
+            for search_dir in search_dirs:
+                file_path = os.path.join(search_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runsample, xs))
+                if os.path.isfile(file_path):
+                    with open(file_path, "r") as file_handle:
+                        ref_data = pandas.read_csv(
+                            file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"]
+                        )
+                    for i in range(len(ref_data["q"])):
+                        data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
+                            ref_data["q"][i],
+                            scaling_factors[j] * ref_data["r"][i],
+                            scaling_factors[j] * ref_data["dr"][i],
+                            ref_data["dq"][i],
+                            ref_data["a"][i],
+                        )
+                    break  # no need to search in the other search directory
 
         data_buffers.append((xs, data_buffer))
     return data_buffers
 
 
-def select_cross_section(run, ipts):
+def select_cross_section(run, ipts, extra_search_dir=None):
     r"""Select the cross-section with the lowest relative error
 
     Parameters
     ----------
     run: str, RunSampleNumber
         Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
-
     ipts: str
         experiment identifier e.g. "IPTS-42666"
+    extra_search_dir: Optional[str]
+        additional directory where to find reflectivity profiles for each cross section of the matching runs.
+        Search will also be carried out the canonical autoreduce directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
     str
         One of "Off_Off", "On_Off", "Off_On", and "On_On"
     """
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     runsample = RunSampleNumber(run)  # e.g. "12345" or "12345_2"
     best_xs = None
     best_error = None
 
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
-        output_dir = ar_out_dir(ipts)
-        file_path = os.path.join(output_dir, f"REF_M_{runsample}_{xs}_autoreduce.dat")
-        if os.path.isfile(file_path):
-            api.logger.notice("Found: %s" % file_path)
-            ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
-            relative_error = np.sum(ref_data["dr"] * ref_data["dr"]) / np.sum(ref_data["r"])
-            if best_xs is None or relative_error < best_error:
-                best_xs = xs
-                best_error = relative_error
-        else:
-            api.logger.notice("NOT found: %s" % file_path)
+        for search_dir in search_dirs:
+            file_path = os.path.join(search_dir, f"REF_M_{runsample}_{xs}_autoreduce.dat")
+            if os.path.isfile(file_path):
+                api.logger.notice("Found: %s" % file_path)
+                ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+                relative_error = np.sum(ref_data["dr"] * ref_data["dr"]) / np.sum(ref_data["r"])
+                if best_xs is None or relative_error < best_error:
+                    best_xs = xs
+                    best_error = relative_error
+                break  # no need to search in the other search directory
     return best_xs
 
 
 def write_reflectivity_cross_section(
-    runsample, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label
+    runsample, ipts, cross_section, matched_runs, direct_beam_info, data_info, data_buffer, xs_label, output_dir=None
 ) -> str:
     r"""
 
@@ -404,6 +467,9 @@ def write_reflectivity_cross_section(
         Stitched reflectivity profiles
     xs_label: str
         Cross section label. One of "Off-Off", "On-Off", "Off-On", or "On-On"
+    output_dir: str
+        Directory where to write the reduction script. If `None`, defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
@@ -443,39 +509,39 @@ def write_reflectivity_cross_section(
         "File",
     ]
 
-    output_dir = ar_out_dir(ipts)
+    if output_dir is None or os.path.isdir(output_dir) is False:
+        output_dir = ar_out_dir(ipts)
     file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runsample, cross_section))
-    fd = open(file_path, "w")
-    fd.write("# Datafile created by QuickNXS 1.0.32\n")
-    fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
-    fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    fd.write("# Type: Specular\n")
-    fd.write("# Input file indices: %s\n" % ",".join(matched_runs))
-    fd.write("# Extracted states: %s\n" % xs_label)
-    fd.write("#\n")
-    fd.write("# [Direct Beam Runs]\n")
-    toks = ["%8s" % item for item in direct_beam_options]
-    fd.write("# %s\n" % "  ".join(toks))
-    fd.write(direct_beam_info)
-    fd.write("#\n")
-    fd.write("# [Data Runs]\n")
-    toks = ["%8s" % item for item in dataset_options]
-    fd.write("# %s\n" % "  ".join(toks))
-    fd.write(data_info)
-    fd.write("#\n")
-    fd.write("# [Global Options]\n")
-    fd.write("# name           value\n")
-    fd.write("# sample_length  10\n")
-    fd.write("#\n")
-    fd.write("# [Data]\n")
-    toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
-    fd.write("# %s\n" % "  ".join(toks))
-    fd.write(data_buffer)
-    fd.close()
+    with open(file_path, "w") as fd:
+        fd.write("# Datafile created by QuickNXS 1.0.32\n")
+        fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
+        fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+        fd.write("# Type: Specular\n")
+        fd.write("# Input file indices: %s\n" % ",".join(matched_runs))
+        fd.write("# Extracted states: %s\n" % xs_label)
+        fd.write("#\n")
+        fd.write("# [Direct Beam Runs]\n")
+        toks = ["%8s" % item for item in direct_beam_options]
+        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(direct_beam_info)
+        fd.write("#\n")
+        fd.write("# [Data Runs]\n")
+        toks = ["%8s" % item for item in dataset_options]
+        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(data_info)
+        fd.write("#\n")
+        fd.write("# [Global Options]\n")
+        fd.write("# name           value\n")
+        fd.write("# sample_length  10\n")
+        fd.write("#\n")
+        fd.write("# [Data]\n")
+        toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
+        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(data_buffer)
     return file_path
 
 
-def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
+def plot_combined(matched_runs, scaling_factors, ipts, extra_search_dir=None, publish=True):
     r"""Create plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container.
 
     Parameters
@@ -488,6 +554,9 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
         Numbers by which to multiply each matched reflectivity curve, when stitching
     ipts: str
         Experiment identifier (e.g. "IPTS-42666")
+    extra_search_dir: Optional[str]
+        additional directory where to find reflectivity profiles for each cross section of the matching runs.
+        Search will also be carried out the canonical autoreduce directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
     publish: bool
         if True, store the HTML page in the livedata server
 
@@ -496,19 +565,26 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     str
         The contents inside the <div>..</div> element
     """
+    search_dirs = list()
+    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
+        search_dirs.append(extra_search_dir)
+    if ar_out_dir(ipts) not in search_dirs:
+        search_dirs.append(ar_out_dir(ipts))
+
     # Collect reflectivity profiles for each cross section
     data_names = []  # list of cross sections
     data_list = []  # a list of reflectivity profiles with columns Q, r, and dr. One profile for each cross section
     for i, runsample in enumerate(matched_runs):
         for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
-            output_dir = ar_out_dir(ipts)
-            file_path = os.path.join(output_dir, "REF_M_%s_%s_autoreduce.dat" % (runsample, xs))
-            if os.path.isfile(file_path):
-                ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
-                data_list.append(
-                    [ref_data["q"], scaling_factors[i] * ref_data["r"], scaling_factors[i] * ref_data["dr"]]
-                )
-                data_names.append("r%s [%s]" % (runsample, xs))
+            for search_dir in search_dirs:
+                file_path = os.path.join(search_dir, "REF_M_%s_%s_autoreduce.dat" % (runsample, xs))
+                if os.path.isfile(file_path):
+                    ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+                    data_list.append(
+                        [ref_data["q"], scaling_factors[i] * ref_data["r"], scaling_factors[i] * ref_data["dr"]]
+                    )
+                    data_names.append("r%s [%s]" % (runsample, xs))
+                    break  # no need to search in the other search directory
 
     try:
         # Depending on where we run, we might get our publisher from different places, or not at all.
@@ -537,8 +613,10 @@ def plot_combined(matched_runs, scaling_factors, ipts, publish=True):
     return None
 
 
-def combined_curves(run, ipts) -> Tuple[List[str], List[float], List[str]]:
-    r"""Produce combined R(q)
+def combined_curves(run, ipts, output_dir=None):
+    r"""Stitch reflectivity curves from different runs of the same group.
+
+    Runs of the same group were produced with the same sample and different incident angle
 
     Parameters
     ----------
@@ -546,6 +624,9 @@ def combined_curves(run, ipts) -> Tuple[List[str], List[float], List[str]]:
         Run number (e.g. "12345") or RunSampleNumber (e.g. "12345_2")
     ipts: str
         e.g. "IPTS-21391"
+    output_dir: Optional[str]
+        directory where to write the stitched reflectivity curve. Defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
 
     Returns
     -------
@@ -556,40 +637,48 @@ def combined_curves(run, ipts) -> Tuple[List[str], List[float], List[str]]:
     """
     runsample = RunSampleNumber(run)  # e.g. "12345", "12345_2"
     # Select the cross section with the best statistics
-    high_stat_xs = select_cross_section(runsample, ipts)
+    high_stat_xs = select_cross_section(runsample, ipts, extra_search_dir=output_dir)
     api.logger.notice("High xs: %s" % high_stat_xs)
 
     # Match the given run with previous runs if they are overlapping in Q
-    matched_runs = match_run_with_sequence(runsample, ipts, high_stat_xs)
+    matched_runs = match_run_with_sequence(runsample, ipts, high_stat_xs, extra_search_dir=output_dir)
     api.logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section
     try:
         scaling_factors, direct_beam_info, data_info, data_buffer, xs_label = compute_scaling_factors(
-            matched_runs, ipts, high_stat_xs
+            matched_runs, ipts, high_stat_xs, extra_search_dir=output_dir
         )
     except:  # noqa E722
         return matched_runs, np.ones(len(matched_runs)), [""] * len(matched_runs)
 
     # Write combined python script
-    write_reduction_script(matched_runs, scaling_factors, ipts)
-    write_tunable_reduction_script(matched_runs, scaling_factors, ipts)
+    write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=output_dir, extra_search_dir=output_dir)
+    write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_dir=output_dir)
 
-    xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors)
+    xs_buffers = apply_scaling_factors(matched_runs, ipts, high_stat_xs, scaling_factors, extra_search_dir=output_dir)
     xs_buffers.append((high_stat_xs, data_buffer))
 
     file_list = []
     for item in xs_buffers:  # e.g ('On_On', '0.00345  9.92443 ...')
         if item[1]:  # reflectivity profile exists for the selected cross-section
             _file_path = write_reflectivity_cross_section(
-                matched_runs[0], ipts, item[0], matched_runs, direct_beam_info, data_info, item[1], xs_label
+                matched_runs[0],
+                ipts,
+                item[0],
+                matched_runs,
+                direct_beam_info,
+                data_info,
+                item[1],
+                xs_label,
+                output_dir=output_dir,
             )
             file_list.append(_file_path)
 
     return matched_runs, scaling_factors, file_list
 
 
-def combined_catalog_info(matched_runs, ipts, output_files, run_sample_number=None) -> str:
+def combined_catalog_info(matched_runs, ipts, output_files, output_dir=None, run_sample_number=None) -> str:
     r"""Produce cataloging information for reduced data and save to file in JSON format.
 
     Parameters
@@ -602,6 +691,9 @@ def combined_catalog_info(matched_runs, ipts, output_files, run_sample_number=No
         Experiment identifier (e.g. "IPTS-42666")
     output_files: List[str]]
         Paths to the reflectivity profile files, one file for each cross section.
+    output_dir: Optional[str]
+        directory where to write the catalog file. Defaults to the canonical autoreduce
+        directory /SNS/REF_M/IPTS-XXXX/shared/autoreduce
     run_sample_number: str
         run-sample number (e.g. '12345' or '12345_2') we want to associate this reduction with. If `None`, pick
         the first run-sample number from `matched_runs`
@@ -629,7 +721,8 @@ def combined_catalog_info(matched_runs, ipts, output_files, run_sample_number=No
         output_list.append(dict(location=runsample, type="processed", purpose="reduced-data", fields=dict()))
     info["output_files"] = output_list
 
-    output_dir = ar_out_dir(ipts)
+    if output_dir is None or os.path.isdir(output_dir) is False:
+        output_dir = ar_out_dir(ipts)
     if run_sample_number is None:
         run_sample_number = matched_runs[0]
     json_path = os.path.join(output_dir, f"REF_M_{run_sample_number}.json")
