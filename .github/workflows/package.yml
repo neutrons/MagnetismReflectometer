@@ -28,7 +28,7 @@ jobs:
           cd conda.recipe
           echo "versioningit $(versioningit ../)"
           # build the package
-          CHANNELS="--channel mantid/label/main --channel conda-forge"
+          CHANNELS="--channel mantid/label/main --channel conda-forge --channel oncat"
           VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
           conda verify noarch/mr_reduction*.tar.bz2
       - name: upload conda package to anaconda

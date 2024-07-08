@@ -23,6 +23,8 @@ build:
   number: {{ build_number }}
   string: py{{py}}
   script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vvv
+  entry_points:
+    - reduce_REF_M = mr_autoreduce.reduce_REF_M_run:main
 
 requirements:
   host:
@@ -40,6 +42,9 @@ requirements:
     - scipy
     - pandas
     - plotly
+    - pyoncat
+    - flask
+    - gunicorn
 
 tests:
   imports:

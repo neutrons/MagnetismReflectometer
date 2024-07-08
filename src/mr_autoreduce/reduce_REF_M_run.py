@@ -1,6 +1,7 @@
 # standard imports
 import os
 import re
+import shlex
 import string
 import sys
 import tempfile
@@ -92,5 +93,9 @@ def show_file():
         abort(404, description="Report not found")
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+def main():
+    command = "gunicorn --timeout 60 --bind :5000 reduce_REF_M_run:app"
+    from gunicorn.app.wsgiapp import run
+
+    sys.argv = shlex.split(command)
+    run()

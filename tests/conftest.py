@@ -47,7 +47,7 @@ def data_server():
         @property
         def path_to_template(self) -> str:
             r"""Absolute path to reduce_REF_M.py.template"""
-            return os.path.join(dirname(dirname(self.datarepo)), "src", "autoreduce", "reduce_REF_M.py.template")
+            return os.path.join(dirname(dirname(self.datarepo)), "src", "mr_autoreduce", "reduce_REF_M.py.template")
 
         def path_to(self, basename: str) -> str:
             r"""

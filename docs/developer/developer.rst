@@ -10,8 +10,8 @@ Developer Documentation
 Directory Tree
 --------------
  - Code under `mr_reduction/` is common reduction code.
- - Code under `autoreduce/` is the top-level code used by the post-processing.
- - Code under `livereduce/` is the top-level code for live reduction.
+ - Code under `mr_autoreduce/` is the top-level code used by the post-processing.
+ - Code under `mr_livereduce/` is the top-level code for live reduction.
 
 Local Environment
 -----------------
