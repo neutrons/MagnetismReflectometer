@@ -94,7 +94,11 @@ def show_file():
 
 
 def main():
-    command = "gunicorn --timeout 60 --bind :5000 reduce_REF_M_run:app"
+    print("""**********************************************
+* POINT YOUR BROWSER TO http://127.0.0.1:5000/
+**********************************************
+""")
+    command = "gunicorn --timeout 60 --bind :5000 mr_autoreduce.reduce_REF_M_run:app"
     from gunicorn.app.wsgiapp import run
 
     sys.argv = shlex.split(command)
