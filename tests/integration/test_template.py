@@ -11,6 +11,7 @@ import pytest
 from mr_reduction.simple_utils import add_to_sys_path
 
 
+@pytest.mark.datarepo()
 def test_template(mock_filesystem, data_server):
     r"""Substitute values in the template and then run a reduction using functions defined within the template
 

@@ -10,6 +10,7 @@ import pytest
 from mr_reduction.simple_utils import add_to_sys_path
 
 
+@pytest.mark.datarepo()
 def test_reduce_REF_M_run(mock_filesystem, data_server):
     #
     # Gather all necessary auxiliary files for reduction of run 41447
