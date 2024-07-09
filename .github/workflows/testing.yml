@@ -35,6 +35,7 @@ jobs:
         run: |
           echo "running integration tests"
           git submodule update --init
+          cd /home/runner/work/MagnetismReflectometer/MagnetismReflectometer
           echo "CONTENTS OF ./test/mr_reduction-data"
           ls ./test/mr_reduction-data
           echo "SHA in parent repo:"
