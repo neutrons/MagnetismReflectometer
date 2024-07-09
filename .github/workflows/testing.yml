@@ -35,13 +35,12 @@ jobs:
         run: |
           echo "running integration tests"
           git submodule update --init
-          cd /home/runner/work/MagnetismReflectometer/MagnetismReflectometer
           echo "CONTENTS OF ./test/mr_reduction-data"
-          ls ./test/mr_reduction-data
+          ls /home/runner/work/MagnetismReflectometer/MagnetismReflectometer/test/mr_reduction-data
           echo "SHA in parent repo:"
-          git ls-tree $(git branch --show-current) ./tests/mr_reduction-data
+          git ls-tree $(git branch --show-current) tests/mr_reduction-data
           echo "SHA in submodule:"
-          git submodule status ./tests/mr_reduction-data
+          git submodule status tests/mr_reduction-data
           python -m pytest -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
           mv .coverage .coverage.integration
       - name: combine coverage reports
