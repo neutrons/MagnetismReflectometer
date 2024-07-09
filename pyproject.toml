@@ -22,16 +22,17 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["livereduce*", "autoreduce*", "tests*", "scripts*", "docs*", "notebooks*"]
+exclude = ["tests*", "scripts*", "docs*", "notebooks*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yml","*.yaml","*.ini"]
+"*" = ["*.yml","*.yaml","*.ini", "*sh", "*.html", "*.template"]
 
 [tool.black]
 line-length = 119
 
 [tool.ruff]
 line-length = 119
+exclude = ["src/mr_autoreduce/reduce_REF_M.py.template"]
 # https://beta.ruff.rs/docs/rules/
 lint.select = ["A", "ARG", "BLE", "E", "F", "I", "PT"]
 lint.ignore = ["F403", "F405", "F401", # wild imports and  unknown names

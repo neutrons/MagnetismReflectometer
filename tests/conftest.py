@@ -3,6 +3,7 @@ import os
 import sys
 import unittest.mock as mock
 from collections import namedtuple
+from os.path import dirname
 from typing import List
 
 import pytest
@@ -19,26 +20,6 @@ def tempdir(tmpdir):
     return str(tmpdir)
 
 
-@pytest.fixture()
-def mock_filesystem(tempdir):
-    r"""
-    A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
-    and /SNS/REF_M/%(ipts)s/nexus to a temporary directory.
-    """
-    MockSetup = namedtuple("MockSetup", ["tempdir", "DirectBeamFinder"])
-
-    with (
-        mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
-        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
-        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
-    ):
-        # Setup Mocks
-        mock_ar_out_dir.return_value = tempdir
-        mock_ar_out_dir2.return_value = tempdir
-
-        yield MockSetup(tempdir, mock_DirectBeamFinder)
-
-
 @pytest.fixture(scope="session")
 def data_server():
     r"""Object containing info and functionality for data files
@@ -48,9 +29,11 @@ def data_server():
     _options = ["datasearch.directories", "default.facility", "default.instrument"]
     _backup = {key: config[key] for key in _options}
 
-    class _DataServe(object):
+    class _DataServe:
+        datarepo = os.path.join(os.path.dirname(this_module_path), "mr_reduction-data")
+
         def __init__(self):
-            self._directories = [os.path.join(os.path.dirname(this_module_path), "mr_reduction-data")]
+            self._directories = [self.datarepo]
             for directory in self._directories:
                 config.appendDataSearchDir(directory)
             config["default.facility"] = "SNS"
@@ -60,6 +43,11 @@ def data_server():
         def directories(self) -> List[str]:
             r"""Absolute path to the data-repo directory"""
             return self._directories
+
+        @property
+        def path_to_template(self) -> str:
+            r"""Absolute path to reduce_REF_M.py.template"""
+            return os.path.join(dirname(dirname(self.datarepo)), "src", "mr_autoreduce", "reduce_REF_M.py.template")
 
         def path_to(self, basename: str) -> str:
             r"""
@@ -83,3 +71,25 @@ def data_server():
     yield _DataServe()
     for key, val in _backup.items():
         config[key] = val
+
+
+@pytest.fixture()
+def mock_filesystem(tempdir, data_server):
+    r"""
+    A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
+    and /SNS/REF_M/%(ipts)s/nexus to a temporary directory.
+    """
+    MockSetup = namedtuple("MockSetup", ["tempdir", "DirectBeamFinder"])
+
+    with (
+        mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
+        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
+        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
+        mock.patch("mr_reduction.reflectivity_merge.nexus_data_dir") as mock_ar_out_dir3,
+    ):
+        # Setup Mocks
+        mock_ar_out_dir.return_value = tempdir
+        mock_ar_out_dir2.return_value = tempdir
+        mock_ar_out_dir3.return_value = data_server.datarepo
+
+        yield MockSetup(tempdir, mock_DirectBeamFinder)

@@ -16,22 +16,24 @@ from .data_info import DataInfo
 from .settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
 
 
-class DirectBeamFinder(object):
+class DirectBeamFinder:
     """ """
 
     def __init__(self, scatt_ws, skip_slits=False, allow_later_runs=False, tolerance=0.2, experiment=""):
         """
         Extract information from the given workspace
-        :param workspace scatt_ws: workspace to find a direct beam for
+
+        Parameters
+        ----------
+        scatt_ws: mantid.api.Workspace
+            Workspace to find a direct beam for
         """
         self.data_dir = nexus_data_dir(experiment)
         self.ar_dir = ar_out_dir(experiment)
         self.db_dir = DIRECT_BEAM_DIR
-
         self.tolerance = tolerance
         self.skip_slits = skip_slits
         self.allow_later_runs = allow_later_runs
-
         self.wl = scatt_ws.getRun().getProperty("LambdaRequest").getStatistics().mean
         if "BL4A:Mot:S1:X:Gap" in scatt_ws.getRun():
             self.s1 = scatt_ws.getRun()["BL4A:Mot:S1:X:Gap"].getStatistics().mean

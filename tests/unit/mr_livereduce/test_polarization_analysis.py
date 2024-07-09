@@ -1,10 +1,10 @@
 # third party imports
 import numpy as np
 import pytest
-
-# livereduce imports
-from livereduce.polarization_analysis import calculate_ratios
 from mantid.simpleapi import LoadEventNexus
+
+# mr_livereduce imports
+from mr_livereduce.polarization_analysis import calculate_ratios
 
 
 class TestPolarizationAnalysis:
