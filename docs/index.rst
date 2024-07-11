@@ -10,6 +10,7 @@ User Guide
 .. toctree::
    :titlesonly:
 
+   /user/multiple_samples
    /user/conda_environments
    /user/reduce
    /releases

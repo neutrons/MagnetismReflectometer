@@ -3,7 +3,6 @@
 Reduction
 =========
 
-
 Manual Reduction
 ----------------
 Terminal command `reduce_REF_M` is available on the conda environments `mr_reduction-qa` and `mr_reduction`.
