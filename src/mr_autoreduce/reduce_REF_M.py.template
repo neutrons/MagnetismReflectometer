@@ -11,7 +11,6 @@ import warnings
 
 # third-party imports
 from mr_reduction.mr_reduction import ReductionProcess
-from mr_reduction import oncat_comm as oncat
 from mr_reduction.web_report import upload_html_report
 
 warnings.simplefilter('ignore')
