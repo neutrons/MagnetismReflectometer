@@ -6,8 +6,8 @@ Reduction
 
 Manual Reduction
 ----------------
-Terminal command `reduce_REF_M` is available on the three conda environments. Running this command starts
-a simple web application to configure reduction of a single experiment.
+Terminal command `reduce_REF_M` is available on the conda environments `mr_reduction-qa` and `mr_reduction`.
+Running this command starts a simple web application to configure reduction of a single experiment.
 
  .. code-block:: bash
 
