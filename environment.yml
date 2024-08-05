@@ -6,7 +6,7 @@ channels:
 dependencies:
   - python>=3.10
   - versioningit
-  - mantidworkbench=6.9
+  - mantid=6.10
   - pandas
   - plotly
   - pyoncat
