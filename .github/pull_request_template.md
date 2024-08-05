@@ -1,9 +1,24 @@
-# Description of the changes
+## Description of work:
 
-# Manual test for the reviewer
-<!-- Instructions for testing here. -->
+Check all that apply:
+- [ ] added [release notes](https://mr-reduction.readthedocs.io/en/latest/releases.html)
+(if not, provide an explanation in the work description)
+- [ ] updated documentation
+- [ ] Source added/refactored
+- [ ] Added unit tests
+- [ ] Added integration tests
+- [ ] Verified that tests requiring the /SNS and /HFIR filesystems pass without fail
 
-# Check list for the reviewer
+**References:**
+- Links to IBM EWM items:
+- Links to related issues or pull requests:
+
+## Manual test for the reviewer
+(Instructions for testing here)
+
+## Check list for the reviewer
+- [ ] [release notes](https://mr-reduction.readthedocs.io/en/latest/releases.html)
+updated, or an explanation is provided as to why release notes are unnecessary
 - [ ] best software practices
     + [ ] clearly named variables (better to be verbose in variable names)
     + [ ] code comments explaining the intent of code blocks
@@ -26,18 +41,3 @@ pytest -m mount_eqsans ./tests/unit/ ./tests/integration/
 In the above code snippet, substitute `<MERGE_REQUEST_NUMBER>` for the actual merge request number. Also substitute
 `<my_mr_reduction_environment>` with the name of the conda environment you use for development. It is critical that
 you have installed the repo in editable mode with `pip install -e .` or `conda develop .`
-
-# Check list for the author
-- [ ] I have added tests for my changes
-- [ ] I have updated the documentation accordingly
-- [ ] I ran the tests requiring the /SNS and /HFIR filesystems
-- [ ] I'm including a link to IBM EWM Story or Defect
-
-# Check list for the pull request
-- [ ] source refactored/incremented
-- [ ] tests for my changes
-- [ ] updated the documentation accordingly
-
-# References
-<!-- Links to related issues or pull requests -->
-<!-- Links to IBM EWM items if aaplicable -->
