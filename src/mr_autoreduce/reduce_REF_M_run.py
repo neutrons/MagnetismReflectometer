@@ -98,7 +98,7 @@ def main():
 * POINT YOUR BROWSER TO http://127.0.0.1:5000/
 **********************************************
 """)
-    command = "gunicorn --timeout 60 --bind :5000 mr_autoreduce.reduce_REF_M_run:app"
+    command = "gunicorn --timeout 300 --bind :5000 mr_autoreduce.reduce_REF_M_run:app"
     from gunicorn.app.wsgiapp import run
 
     sys.argv = shlex.split(command)
