@@ -10,7 +10,10 @@ import mantid.simpleapi as api
 from scipy import ndimage
 import scipy.signal
 from .peak_finding import find_peaks, peak_prominences, peak_widths
+import warnings
+from scipy.optimize import OptimizeWarning
 
+warnings.simplefilter("ignore", OptimizeWarning)
 
 def get_cross_section_label(ws, cross_section):
     """
