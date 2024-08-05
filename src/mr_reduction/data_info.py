@@ -10,6 +10,9 @@ import numpy as np
 import scipy.optimize as opt
 import scipy.signal
 from scipy import ndimage
+import warnings
+from scipy.optimize import OptimizeWarning
+warnings.simplefilter("ignore", OptimizeWarning)
 
 from .peak_finding import find_peaks, peak_prominences, peak_widths
 
