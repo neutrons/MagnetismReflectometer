@@ -2,9 +2,6 @@
 import logging
 import sys, os
 import warnings
-from scipy.optimize import OptimizeWarning
-
-warnings.simplefilter('ignore', OptimizeWarning)
 warnings.simplefilter('ignore')
 
 CONDA_ENV = 'mantid'
