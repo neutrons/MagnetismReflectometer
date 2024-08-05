@@ -14,7 +14,7 @@ dependencies:
   - gunicorn
   - pip
   - pip:
-    - git+https://github.com/peterfpeterson/finddata@v0.8.4
+    - git+https://github.com/neutrons/finddata@v0.9.1
   # -- Development dependencies
   - pre-commit
   - sphinx
