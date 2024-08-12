@@ -60,6 +60,6 @@ jobs:
           echo "versioningit $(versioningit ../)"
           # conda channels could have been defined in the conda-incubator, but you can copy/paste the lines
           # below to build the conda package in your local machine
-          CHANNELS="--channel mantid/label/main --channel conda-forge --channel oncat"
+          CHANNELS="--channel mantid/label/main --channel conda-forge --channel oncat --channel neutrons"
           VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
           conda verify noarch/mr_reduction*.tar.bz2
