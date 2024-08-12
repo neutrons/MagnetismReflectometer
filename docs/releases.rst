@@ -14,6 +14,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the Developer:**
 
+- PR #16 transition from pip to conda when installing dependency finddata
 - PR #15 increase gunicorn timeout for workers to prevent them being killed before finishing the reduction
 - PR #12 switch from mantid to mantidworkbench conda package
 - PR #8 add finddata dependency
