@@ -125,5 +125,6 @@ synchronized across these files:
 
 Creating a stable release
 -------------------------
-- Follow the `Software Maturity Model <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/23363585/Software+Maturity+Model>`_ for continuous versioning as well as creating release candidates and stable releases.
+- Follow the `Software Maturity Model <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/23363585/Software+Maturity+Model>`_
+  for continuous versioning, as well as creating Candidate and Production releases.
 - Update the :ref:`Release Notes <release_notes>` with major fixes, updates and additions since last stable release.

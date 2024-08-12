@@ -12,9 +12,8 @@ dependencies:
   - pyoncat
   - flask
   - gunicorn
+  - neutrons::finddata=0.10
   - pip
-  - pip:
-    - git+https://github.com/neutrons/finddata@v0.9.1
   # -- Development dependencies
   - pre-commit
   - sphinx

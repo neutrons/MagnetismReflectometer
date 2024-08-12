@@ -43,6 +43,7 @@ requirements:
     - pandas
     - plotly
     - pyoncat
+    - finddata=0.10
     - flask
     - gunicorn
 
