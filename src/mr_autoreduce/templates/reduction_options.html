@@ -26,11 +26,11 @@
             padding: 5px;
             margin-bottom: 10px;
         }
-        .samples-container {
+        .peaks-container {
             display: flex;
             justify-content: space-between;
         }
-        .sample {
+        .peak {
             width: 30%;
             padding: 10px;
             box-sizing: border-box;
@@ -53,7 +53,7 @@
         </div>
 
         <div class="form-section">
-            <h2>Options for all samples</h2>
+            <h2>Options for all peaks</h2>
 
             <label title="Check the following box to see 2D plots on the monitor.
 Loading the page for each run will take much longer when this option is turned on.">
@@ -66,19 +66,19 @@ Loading the page for each run will take much longer when this option is turned o
             <label title="Check the following box if you want to use SANGLE,
 otherwise DANGLE will be used."><input type="checkbox" id="use_sangle" checked> Use SANGLE</label>
 
-            <label title="Once the reflected peak ROI is selected for each sample below,
+            <label title="Once the reflected peak ROI is selected for each peak below,
 you can try to fine tune this ROI by fitting for a peak within that
 region and updating the ROI [both center and width] according to the
 location found. Check the box if you want to find a peak within the
 ROI and redefine the ROI afterwards."><input type="checkbox" id="fit_peak_in_roi" checked> Automated ROI</label>
 
-            <label title="Number of samples in the run" style="font-weight:bold; font-size:1.2em;">
-                Sample count <input type="number" id="sample_count" style="width: 25px;" value="1"></label>
+            <label title="Number of peaks in the run" style="font-weight:bold; font-size:1.2em;">
+                Peak count <input type="number" id="peak_count" style="width: 25px;" value="1"></label>
         </div>
 
-        <div class="samples-container">
-            <div class="form-section sample" id="sample1">
-                <h2>Sample #1</h2>
+        <div class="peaks-container">
+            <div class="form-section peak" id="peak1">
+                <h2>Peak #1</h2>
 
                 <label title="You can choose to replace the ROI in the data by your own range.
 Check the following box if you want to define your own ROI and
@@ -109,8 +109,8 @@ if you want to use the region on each side of the peak to estimate your backgrou
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width"></label>
             </div>
 
-            <div class="form-section sample" id="sample2">
-                <h2 title="Sample 2 options ignored if Sample count is 1">Sample #2</h2>
+            <div class="form-section peak" id="peak2">
+                <h2 title="Peak 2 options ignored if Peak count is 1">Peak #2</h2>
 
                 <label title="You can choose to replace the ROI in the data by your own range.
 Check the following box if you want to define your own ROI and
@@ -141,8 +141,8 @@ if you want to use the region on each side of the peak to estimate your backgrou
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s2"></label>
             </div>
 
-            <div class="form-section sample" id="sample3">
-                <h2 title="Sample 3 options ignored if Sample count is smaller than three">Sample #3</h2>
+            <div class="form-section peak" id="peak3">
+                <h2 title="Peak 3 options ignored if Peak count is smaller than three">Peak #3</h2>
 
                 <label title="You can choose to replace the ROI in the data by your own range.
 Check the following box if you want to define your own ROI and
@@ -228,7 +228,7 @@ if you want to use the region on each side of the peak to estimate your backgrou
                 q_step: document.getElementById('q_step').value,
                 use_sangle: document.getElementById('use_sangle').checked,
                 fit_peak_in_roi: document.getElementById('fit_peak_in_roi').checked,
-                sample_count: document.getElementById('sample_count').value,
+                peak_count: document.getElementById('peak_count').value,
 
                 force_peak: document.getElementById('force_peak').checked,
                 peak_min: document.getElementById('peak_min').value,

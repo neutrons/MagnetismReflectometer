@@ -17,7 +17,7 @@ class TestReduction:
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 29137
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_29160.nxs.h5"),
-            sample_number=2,
+            peak_number=2,
             output_dir=mock_filesystem.tempdir,
             publish=False,  # don't upload to the livedata server
         )
@@ -45,11 +45,11 @@ class TestReduction:
 
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_41447.nxs.h5"),
-            sample_number=None,
             output_dir=mock_filesystem.tempdir,  # mocks /SNS/REF_M/IPTS-21391/shared/autoreduce/
             use_sangle=False,
             const_q_binning=False,
             update_peak_range=False,
+            peak_number=None,
             use_roi=True,
             use_roi_bck=False,
             q_step=-0.022,
@@ -84,8 +84,8 @@ class TestReduction:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), "File {file} doesn't exist"
 
     @pytest.mark.datarepo()
-    def test_reduce_multiple_samples(self, mock_filesystem, data_server):
-        r"""Find a run with two samples, then reduce each, then paste their reports"""
+    def test_reduce_multiple_peaks(self, mock_filesystem, data_server):
+        r"""Find a run with two peaks, then reduce each, then paste their reports"""
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 42534
 
         # autoreduced files from previous runs, to be stitched to profile from 41447
@@ -96,10 +96,10 @@ class TestReduction:
             source_file = data_server.path_to(f"REF_M_{run}_{suffix}")
             shutil.copy(source_file, mock_filesystem.tempdir)
 
-        for sample_number, peak_roi in [(1, [169, 192]), (2, [207, 220])]:
+        for peak_number, peak_roi in [(1, [169, 192]), (2, [207, 220])]:
             processor = mr.ReductionProcess(
                 data_run=data_server.path_to("REF_M_42537.nxs.h5"),
-                sample_number=sample_number,
+                peak_number=peak_number,
                 output_dir=mock_filesystem.tempdir,  # mocks /SNS/REF_M/IPTS-31954/shared/autoreduce/
                 use_sangle=False,
                 const_q_binning=False,
@@ -119,7 +119,7 @@ class TestReduction:
             processor.reduce()
 
         # assert reduction files have been produced for run 42537
-        for sn in (1, 2):  # sample number
+        for sn in (1, 2):  # peak number
             for suffix in [
                 "_Off_Off_autoreduce.dat",
                 "_Off_Off_autoreduce.nxs.h5",

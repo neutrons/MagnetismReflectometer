@@ -29,7 +29,7 @@ from mr_reduction.data_info import DataInfo
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
-from mr_reduction.runsample import RunSampleNumber
+from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO, ar_out_dir
 from mr_reduction.web_report import Report, process_collection
@@ -60,7 +60,7 @@ class ReductionProcess:
         q_step=-0.02,
         const_q_cutoff=0.02,
         update_peak_range=False,
-        sample_number=None,
+        peak_number: Optional[int] = None,
         use_roi=True,
         force_peak_roi=False,
         peak_roi=[0, 0],
@@ -97,8 +97,8 @@ class ReductionProcess:
             (Unused)
         update_peak_range: bool
             Fine tune the peak ROI by fitting a peak within the ROI, and updating the ROI afterwards
-        sample_number: Optional[Union[int, str]]
-            Sample number when the run contains more than one sample. Numbers start at 1 (not 0)
+        peak_number
+            Peak number when the run contains more than one peak. Numbers start at 1 (not 0)
         use_roi: bool
 
         use_roi_bck
@@ -124,7 +124,7 @@ class ReductionProcess:
             self.run_number = None
             self.file_path = data_run
         self.data_ws = data_ws
-        self.sample_number: Optional[int] = None if sample_number is None else int(sample_number)
+        self.peak_number = None if peak_number is None else int(peak_number)
         self.ipts = None
         self.output_dir = output_dir
         self.const_q_binning = const_q_binning
@@ -285,9 +285,9 @@ class ReductionProcess:
         # Generate stitched plot
         ref_plot = None
         try:
-            run_sample_number = str(RunSampleNumber(self.run_number, self.sample_number))
+            run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
             matched_runs, scaling_factors, outputs = combined_curves(
-                run=run_sample_number, ipts=self.ipts, output_dir=self.output_dir
+                run=run_peak_number, ipts=self.ipts, output_dir=self.output_dir
             )
             if not self.live:
                 self.json_info = combined_catalog_info(
@@ -295,7 +295,7 @@ class ReductionProcess:
                     self.ipts,
                     outputs,
                     output_dir=self.output_dir,
-                    run_sample_number=str(RunSampleNumber(self.run_number, self.sample_number)),
+                    run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
                 )
             self.log("Matched runs: %s" % str(matched_runs))
             # plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container
@@ -340,15 +340,15 @@ class ReductionProcess:
         entry = ws.getRun().getProperty("cross_section_id").value
         self.ipts = ws.getRun().getProperty("experiment_identifier").value
 
-        # combine run and sample number when the run contains more than one sample
-        runsample = RunSampleNumber(self.run_number, self.sample_number)
+        # combine run and peak number when the run contains more than one peak
+        runpeak = RunPeakNumber(self.run_number, self.peak_number)
         logger.notice(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runsample, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
         )
         self.log(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runsample, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
         )
 
         if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
@@ -383,23 +383,23 @@ class ReductionProcess:
             SpecularPixel=data_info.peak_position,
             ConstantQBinning=self.const_q_binning,
             ConstQTrim=0.1,
-            OutputWorkspace=f"r_{runsample}",
+            OutputWorkspace=f"r_{runpeak}",
         )
 
-        # Save sample number in the logs of the reduced workspaces
-        if runsample.sample_number:
-            runsample.log_sample_number(f"r_{runsample}")
+        # Save peak number in the logs of the reduced workspaces
+        if runpeak.peak_number:
+            runpeak.log_peak_number(f"r_{runpeak}")
 
         # Generate partial python script
-        self.log("Workspace r_%s: %s" % (runsample, type(mtd["r_%s" % runsample])))
-        write_partial_script(mtd["r_%s" % runsample], output_dir=self.output_dir)
+        self.log("Workspace r_%s: %s" % (runpeak, type(mtd["r_%s" % runpeak])))
+        write_partial_script(mtd["r_%s" % runpeak], output_dir=self.output_dir)
 
         report_list = []
         for ws in xs_list:
             try:
                 if str(ws).endswith("unfiltered"):
                     continue
-                self.log(f"\n--- Run {runsample} {str(ws)} ---\n")
+                self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
                 entry = ws.getRun().getProperty("cross_section_id").value
                 reflectivity = mtd["%s__reflectivity" % str(ws)]
                 report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
@@ -409,12 +409,12 @@ class ReductionProcess:
                 self.log("  - ready to write: %s" % self.output_dir)
                 write_reflectivity(
                     [reflectivity],
-                    os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.dat" % (runsample, entry)),
+                    os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.dat" % (runpeak, entry)),
                     data_info.cross_section_label,
                 )
                 SaveNexus(
                     InputWorkspace=reflectivity,
-                    Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runsample, entry)),
+                    Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),
                 )
                 self.log("  - done writing")
                 # Write partial output script

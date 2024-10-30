@@ -49,27 +49,27 @@ Notice how the report shows the superposition of reflectivity curves for runs 41
 will happen if reduced files for runs 41446 and 41447 are found either in the output directory `/tmp/test_webform`
 or the canonical output directory for autoreduction of runs corresponding to run 41445 which in this
 case is `/SNS/REF_M/IPTS-21391/shared/autoreduce/`. Runs 41445, 41446, and 41447 correspond to experiments
-taken on the same sample but with a different incidence angle.
+taken on the same peak but with a different incidence angle.
 
-The webapp supports reduction of up to three samples for the scenarios when the run contains more than one sample.
-In the following screenshot we selected `Sample Count=2`, causing reduction taking into account options
-from `Sample #1` and `Sample #2`.
+The webapp supports reduction of up to three peaks for the scenarios when the run contains more than one peak.
+In the following screenshot we selected `Peak Count=2`, causing reduction taking into account options
+from `Peak #1` and `Peak #2`.
 
-.. figure:: ./media/manual_reduction_two_samples.GIF
-   :alt: Reduction of two samples.
+.. figure:: ./media/manual_reduction_two_peaks.GIF
+   :alt: Reduction of two peaks.
    :align: center
    :width: 900
 
-   Reduction of two samples.
+   Reduction of two peaks.
 
-The below excerpt from the corresponding report show the reflectivity curves for the two samples (41445_1 and 41445_2).
+The below excerpt from the corresponding report show the reflectivity curves for the two peaks (41445_1 and 41445_2).
 
-.. figure:: ./media/manual_reduction_two_samples_report.GIF
-   :alt: Report for two samples.
+.. figure:: ./media/manual_reduction_two_peaks_report.GIF
+   :alt: Report for two peaks.
    :align: center
    :width: 700
 
-   Report for two samples.
+   Report for two peaks.
 
 
 Automated Reduction
