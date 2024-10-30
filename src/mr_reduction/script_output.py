@@ -8,7 +8,7 @@ import mantid.simpleapi as api
 
 # mr_reduction imports
 from mr_reduction.reflectivity_output import quicknxs_scaling_factor
-from mr_reduction.runsample import RunSampleNumber
+from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.settings import ar_out_dir
 
 
@@ -19,7 +19,7 @@ def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None,
     Parameters
     ----------
     matched_runs : List[str]
-        Data runs (or RunSampleNumber's) ordered by increasing Q, to be stitched together
+        Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
         e.g ['1234', '1235'], ['1234_2', '1235_2']
     scaling_factors : List[float]
         Numbers by which to multiply each matched reflectivity curve, when stitching
@@ -48,12 +48,12 @@ def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None,
     if ar_out_dir(ipts) not in search_dirs:
         search_dirs.append(ar_out_dir(ipts))
 
-    for i, runsample in enumerate(matched_runs):
+    for i, runpeak in enumerate(matched_runs):
         for search_dir in search_dirs:
-            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runsample)
+            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runpeak)
             if os.path.isfile(file_path):
                 with open(file_path, "r") as _fd:
-                    script += "# Run:%s\n" % runsample
+                    script += "# Run:%s\n" % runpeak
                     script += "scaling_factor = %s\n" % scaling_factors[i]
                     script += _fd.read() + "\n"
                 break  # no need to search in the other search directory
@@ -72,7 +72,7 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_d
     Parameters
     ----------
     matched_runs : List[str]
-        Data runs (or RunSampleNumber's) ordered by increasing Q, to be stitched together
+        Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
         e.g ['1234', '1235'], ['1234_2', '1235_2']
     scaling_factors : List[float]
         Numbers by which to multiply each matched reflectivity curve, when stitching
@@ -105,16 +105,16 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_d
 
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
-    for i, runsample in enumerate(matched_runs):
+    for i, runpeak in enumerate(matched_runs):
         for search_dir in search_dirs:
-            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runsample)
+            file_path = os.path.join(search_dir, "REF_M_%s_partial.py" % runpeak)
             if os.path.isfile(file_path):
-                script += "\n# Run:%s\n" % runsample
-                script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runsample, runsample, scaling_factors[i])
-                _script = generate_split_script(runsample, file_path)
+                script += "\n# Run:%s\n" % runpeak
+                script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runpeak, runpeak, scaling_factors[i])
+                _script = generate_split_script(runpeak, file_path)
                 script += _script + "\n"
-                reduce_call += "    reduce_%s()\n" % runsample
-                prepare_call += "    prepare_%s()\n" % runsample
+                reduce_call += "    reduce_%s()\n" % runpeak
+                prepare_call += "    prepare_%s()\n" % runpeak
                 break  # no need to search in the other search directory
 
     script += prepare_call
@@ -153,11 +153,11 @@ def write_partial_script(ws_grp, output_dir=None):
     script = generate_script_from_ws(_ws_list, group_name=str(ws_grp))
     ipts = _ws.getRun().getProperty("experiment_identifier").value
     run_number = _ws.getRunNumber()
-    sample_number = RunSampleNumber.sample_number_log(_ws)
-    runsample = RunSampleNumber(run_number, sample_number)
+    peak_number = RunPeakNumber.peak_number_log(_ws)
+    runpeak = RunPeakNumber(run_number, peak_number)
     if output_dir is None:
         output_dir = ar_out_dir(ipts)
-    with open(os.path.join(output_dir, f"REF_M_{runsample}_partial.py"), "w") as fd:
+    with open(os.path.join(output_dir, f"REF_M_{runpeak}_partial.py"), "w") as fd:
         fd.write(script)
 
 
@@ -209,7 +209,7 @@ def generate_script_from_ws(ws_grp, group_name):
     return script
 
 
-def generate_split_script(run_sample_number, partial_script_path) -> str:
+def generate_split_script(run_peak_number, partial_script_path) -> str:
     r"""Split a reduction script into two parts: one to set up the parameters and one to execute the reduction.
 
     This script is the same as input `partial_script_path` except that the call to Mantid algorithm
@@ -219,8 +219,8 @@ def generate_split_script(run_sample_number, partial_script_path) -> str:
 
     Parameters
     ----------
-    run_sample_number: str
-        run number (e.g. '12345') or RunSampleNumber (e.g. '12345_2')
+    run_peak_number: str
+        run number (e.g. '12345') or RunPeakNumber (e.g. '12345_2')
     partial_script_path: str
         File path to the reduction script for one data run (e.g. '/tmp/REF_M_12345_2_partial.py' for run `12345_2`)
 
@@ -229,7 +229,7 @@ def generate_split_script(run_sample_number, partial_script_path) -> str:
     str
         Contents of the reduction script
     """
-    red_script = "def prepare_%s():\n" % run_sample_number
+    red_script = "def prepare_%s():\n" % run_peak_number
     scale_script = ""
 
     with open(partial_script_path, "r") as fd:
@@ -252,19 +252,19 @@ def generate_split_script(run_sample_number, partial_script_path) -> str:
                     _script_started = False
             elif _scale_started:
                 scale_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_sample_number, run_sample_number)
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
                 )
             else:
                 red_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_sample_number, run_sample_number)
+                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
                 )
 
-    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_sample_number)
-    red_script = red_script.replace("wsg", "wsg_%s" % run_sample_number)
-    red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_sample_number, run_sample_number)
+    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_peak_number)
+    red_script = red_script.replace("wsg", "wsg_%s" % run_peak_number)
+    red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_peak_number, run_peak_number)
 
-    red_script += "\ndef reduce_%s():\n" % run_sample_number
-    red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_sample_number
+    red_script += "\ndef reduce_%s():\n" % run_peak_number
+    red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_peak_number
     red_script += scale_script
 
     return red_script

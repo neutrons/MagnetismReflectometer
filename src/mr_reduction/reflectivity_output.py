@@ -11,7 +11,7 @@ import time
 import mantid
 
 # mr_reduction imports
-from mr_reduction.runsample import RunSampleNumber
+from mr_reduction.runpeak import RunPeakNumber
 
 
 def write_reflectivity(ws_list, output_path, cross_section):
@@ -59,9 +59,9 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write("# Autoreduced\n")
     fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
     fd.write("# Type: Specular\n")
-    sample_number = RunSampleNumber.sample_number_log(ws_list[0])
-    runsample_list = [str(RunSampleNumber(str(ws.getRunNumber()), sample_number)) for ws in ws_list]
-    fd.write(f"# Input file indices: {','.join(runsample_list)}\n")
+    peak_number = RunPeakNumber.peak_number_log(ws_list[0])
+    runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
+    fd.write(f"# Input file indices: {','.join(runpeak_list)}\n")
     fd.write("# Extracted states: %s\n" % cross_section)
     fd.write("#\n")
     fd.write("# [Direct Beam Runs]\n")

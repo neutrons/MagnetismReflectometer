@@ -26,18 +26,18 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         shutil.copy(source_file, mock_filesystem.tempdir)
 
     #
-    # Options to reduce the two samples of run 41447
+    # Options to reduce the two peaks of run 41447
     #
-    common = {  # options for all samples
+    common = {  # options for all peaks
         "plot_in_2D": True,
         "use_const_q": False,
         "q_step": -0.022,
         "use_sangle": False,
         "fit_peak_in_roi": False,
-        "sample_count": 2,  # run 41447 has two samples
+        "peak_count": 2,  # run 41447 has two peaks
     }
-    # Options for first sample
-    sample1 = {
+    # Options for first peak
+    peak1 = {
         "force_peak": True,
         "peak_min": 169,
         "peak_max": 192,
@@ -48,8 +48,8 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         "use_side_bck": False,
         "bck_width": 10,
     }
-    # Options for second sample
-    sample2 = {
+    # Options for second peak
+    peak2 = {
         "force_peak_s2": True,
         "peak_min_s2": 207,
         "peak_max_s2": 220,
@@ -60,8 +60,8 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         "use_side_bck_s2": False,
         "bck_width_s2": 11,
     }
-    # Options for third sample (will be ignored because `sample_count` is 2)
-    sample3 = {
+    # Options for third peak (will be ignored because `peak_count` is 2)
+    peak3 = {
         "force_peak_s3": True,
         "peak_min_s3": 180,
         "peak_max_s3": 190,
@@ -72,7 +72,7 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         "use_side_bck_s3": False,
         "bck_width_s3": 12,
     }
-    values = {**common, **sample1, **sample2, **sample3}  # all options into one dictionary
+    values = {**common, **peak1, **peak2, **peak3}  # all options into one dictionary
     values["events_file"] = data_server.path_to("REF_M_42537.nxs.h5")
     values["outdir"] = mock_filesystem.tempdir
 
@@ -89,7 +89,7 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
     assert os.path.isfile(os.path.join(mock_filesystem.tempdir, f"REF_M_{run_number(values['events_file'])}.html"))
 
     # assert reduction files have been produced for run 42537
-    for sn in (1, 2):  # sample number
+    for sn in (1, 2):  # peak number
         for suffix in [
             "_Off_Off_autoreduce.dat",
             "_Off_Off_autoreduce.nxs.h5",

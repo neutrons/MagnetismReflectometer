@@ -26,7 +26,8 @@ def upload_html_report(html_report, publish=True, run_number=None, report_file=N
     ----------
     html_report: str, List[str]
         one or more compendium of <div> and <table> elements. Has all the information from reducing a run,
-        possibly including reports from more than one sample when the run contains many samples.
+        possibly including reports from more than one peak when the run contains many peaks. This could happen
+        if the experiment contained more than one sample, each reflecting at a different angle.
     publish: bool
         Upload the report to the livedata server
     run_number: str
