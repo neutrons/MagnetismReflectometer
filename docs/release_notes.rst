@@ -10,6 +10,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the User**:
 
+- PR #18 Ability to save simple autoreduced data to ORSO format
 - PR #9 Add the capability to autoreduce two peaks from the same run
 
 **Of interest to the Developer:**
