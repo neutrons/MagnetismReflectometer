@@ -16,6 +16,9 @@ import plotly.offline as py
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 from requests import Response
 
+# mr_reduction imports
+from mr_reduction.data_info import DataType
+
 
 def upload_html_report(html_report, publish=True, run_number=None, report_file=None) -> Optional[Response]:
     r"""Upload html report to the livedata server
@@ -183,7 +186,7 @@ class Report:
         :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
         :param bool plot_2d: if True, 2D plots will be part of the report
         """
-        logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type, str(reflectivity_ws)))
+        logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type.name, str(reflectivity_ws)))
         self.data_info = data_info
         self.direct_info = direct_info
         self.logfile = logfile
@@ -199,7 +202,7 @@ class Report:
         self.script = ""
         self.report = ""
         self.cross_section_info = ""
-        if force_plot or self.data_info.data_type >= 0:
+        if force_plot or (self.data_info.data_type != DataType.UNKNOWN and self.data_info.low_neutron_count is False):
             self.log("  - writing script [%s %s %s]" % (self.cross_section, self.number_events, self.has_reflectivity))
             self.script: str = self.generate_script(reflectivity_ws)
             self.report: str = self.generate_web_report(reflectivity_ws)
@@ -210,7 +213,7 @@ class Report:
                 self.log("Could not generate plots: %s" % sys.exc_info()[0])
                 logger.error("Could not generate plots: %s" % sys.exc_info()[0])
         else:
-            logger.error("Invalid data type for report: %s" % self.data_info.data_type)
+            logger.error("Invalid data type for report: %s" % self.data_info.data_type.name)
 
         self.log("  - report: %s %s" % (len(self.report), len(self.plots)))
 

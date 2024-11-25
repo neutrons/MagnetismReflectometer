@@ -1,9 +1,20 @@
-# standard imports
-import os
+"""
+This module contains integration tests for the simple reduction of a REF_M run.
 
-import pytest
+The main test, `test_reduction_simple`, verifies the reduction process for 28142 by:
+1. Setting up the data server to provide the necessary data file.
+2. Extracting workspaces for each cross-section using `MRFilterCrossSections`.
+3. Extracting data information for the cross-section with the highest counts.
+4. Reduce using `mantid.simpleapi.MagnetismReflectometryReduction` with the extracted data information.
+5. Asserting the successful completion of the reduction process.
+
+The test relies on the `data_server` fixture.
+"""
+
+# standard imports
 
 # third party packages
+import pytest
 from mantid.api import WorkspaceGroup
 from mantid.simpleapi import MagnetismReflectometryReduction, MRFilterCrossSections
 
@@ -27,14 +38,7 @@ def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
 
 @pytest.mark.datarepo()
 def test_reduction_simple(data_server):
-    # Directory containing test data for the MR upgrade
-    # data_dir = "/SNS/REF_M/shared/ADARA.Test.Data.2018/"
-
-    # file_path = data_dir + 'REF_M_25647.nxs.h5' # single xs
-    # file_path =  data_dir + 'REF_M_25631.nxs.h5' # four xs
-    # file_path = os.path.join(data_dir, "REF_M_28142.nxs.h5")  # 3 xs
-    file_path = data_server.path_to("REF_M_28142.nxs.h5")
-    # file_path = "/SNS/REF_M/IPTS-16469/0/25631/NeXus/REF_M_25631_event.nxs"
+    file_path = data_server.path_to("REF_M_28142.nxs.h5")  # three cross-sections
 
     # Extract a workspace for each cross-section
     wsg = MRFilterCrossSections(Filename=file_path)

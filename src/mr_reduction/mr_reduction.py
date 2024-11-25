@@ -7,7 +7,7 @@ Reduction for MR
 import os
 import sys
 import time
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 # third-party imports
 # from .settings import MANTID_PATH
@@ -20,18 +20,20 @@ from mantid.simpleapi import (
     MagnetismReflectometryReduction,
     MRFilterCrossSections,
     SaveNexus,
+    UnGroupWorkspace,
     logger,
     mtd,
 )
 
 # mr_reduction imports
-from mr_reduction.data_info import DataInfo
+from mr_reduction.data_info import DataInfo, DataType
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO, ar_out_dir
+from mr_reduction.types import CrossSectionEventWorkspaces
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
@@ -164,10 +166,28 @@ class ReductionProcess:
             self.logfile.write(msg + "\n")
         logger.notice(msg)
 
-    def _extract_data_info(self, xs_list):
+    def _extract_data_info(
+        self, xs_list: CrossSectionEventWorkspaces
+    ) -> Tuple[DataInfo, DataInfo, bool, Optional[int]]:
         """
-        Extract data info for the cross-section with the most events
-        :param list xs_list: workspace group
+        Extract data information from a list of cross-section workspaces.
+
+        This method identifies the cross-section with the most events, extracts relevant data information,
+        and determines if normalization is needed by finding the appropriate direct beam run.
+
+        Parameters
+        ----------
+        xs_list : CrossSectionEventWorkspaces
+            List of EvenWorkspace objects representing different cross-sections (Off_Off, Off_on, ...).
+
+        Returns
+        -------
+        Tuple[DataInfo, DataInfo, bool, Optional[int]]
+            A tuple containing:
+            - data_info: DataInfo object for the cross-section with the most events.
+            - direct_info: DataInfo object for the direct beam.
+            - apply_norm: Boolean indicating if normalization should be applied.
+            - norm_run: Optional integer representing the normalization run number.
         """
         # Find the cross-section with the most events
         n_max_events = 0
@@ -273,16 +293,19 @@ class ReductionProcess:
             for ws in _xs_list:
                 if "cross_section_id" not in ws.getRun():
                     ws.getRun()["cross_section_id"] = "Off_Off"
-        xs_list = [
-            ws
-            for ws in _xs_list
-            if not ws.getRun()["cross_section_id"].value == "unfiltered" and ws.getNumberEvents() > 0
-        ]
 
-        # Reduce each cross-section
+        # extricate the workspace containing events that could not be assigned to a (polarizer, analyzer)
+        # state combination. Also extricate any workspace with no events (for instance, all scattered neutrons
+        # have spin "up" but the downstream analyzer only lets "down" neutrons through)
+        xs_list = []
+        for ws in _xs_list:
+            if ws.getRun()["cross_section_id"].value != "unfiltered" and ws.getNumberEvents() > 0:
+                xs_list.append(ws)
+
+        # Reduce each cross-section and save to file
         report_list = self.reduce_workspace_group(xs_list)
 
-        # Generate stitched plot
+        # Generate stitched plot and save to file
         ref_plot = None
         try:
             run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
@@ -325,7 +348,26 @@ class ReductionProcess:
             self.logfile.close()
         return html_report
 
-    def reduce_workspace_group(self, xs_list):
+    def reduce_workspace_group(self, xs_list: CrossSectionEventWorkspaces) -> List[Report]:
+        """
+        Reduce a list of workspaces representing different cross-sections (Off_Off, Off_on, ...).
+
+        This method performs the following steps:
+        1. Extracts data information for the cross-section with the most events.
+        2. Determines the name of the direct beam workspace if normalization is needed.
+        3. Reduces each cross-section workspace.
+        4. Generates and saves reflectivity data and reports.
+
+        Parameters
+        ----------
+        xs_list
+            List of EvenWorkspace objects representing different cross-sections (Off_Off, Off_on, ...)..
+
+        Returns
+        -------
+        list
+            List of mr_reduction.web_reportReport objects for each cross-section.
+        """
         # Extract data info (find peaks, etc...)
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
@@ -342,23 +384,41 @@ class ReductionProcess:
 
         # combine run and peak number when the run contains more than one peak
         runpeak = RunPeakNumber(self.run_number, self.peak_number)
+
         logger.notice(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
         )
         self.log(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
         )
 
-        if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
+        if data_info.data_type != DataType.REFLECTED_BEAM or data_info.low_neutron_count:
             self.log(
                 "  - skipping: data type=%s; events: %s [cutoff: %s]"
-                % (data_info.data_type, ws.getNumberEvents(), self.min_number_events)
+                % (data_info.data_type.name, ws.getNumberEvents(), self.min_number_events)
             )
-            return [Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)]
+            return [
+                Report(
+                    ws,
+                    data_info,
+                    data_info,
+                    reflectivity_ws=None,
+                    force_plot=True,
+                    logfile=self.logfile,
+                    plot_2d=self.plot_2d,
+                )
+            ]
 
-        wsg = GroupWorkspaces(InputWorkspaces=xs_list)
+        # create a temporary WorkspaceGroup because algorithm MagnetismReflectometryReduction expects
+        # the cross-section EventWorkspace objects to be arranged in a WorkspaceGroup
+        wsg = GroupWorkspaces(InputWorkspaces=xs_list, OutputWorkspace=mtd.unique_hidden_name())
+
+        # For each cross-section EventWorkspace, generate a reduced Workspace2D.
+        # If the name of the EventWorkspace is '28142_Off_Off',
+        # then the name of the Workspace2D will be '28142_Off_Off__reflectivity'.
+        # It also creates WorkspaceGroup 'r_28142' containing all the reduced Workspace2D objects.
         MagnetismReflectometryReduction(
             InputWorkspace=wsg,
             NormalizationWorkspace=ws_norm,
@@ -385,6 +445,7 @@ class ReductionProcess:
             ConstQTrim=0.1,
             OutputWorkspace=f"r_{runpeak}",
         )
+        UnGroupWorkspace(wsg)  # delete the temporary WorkspaceGroup. Its constituents are not deleted
 
         # Save peak number in the logs of the reduced workspaces
         if runpeak.peak_number:
@@ -401,19 +462,21 @@ class ReductionProcess:
                     continue
                 self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
                 entry = ws.getRun().getProperty("cross_section_id").value
-                reflectivity = mtd["%s__reflectivity" % str(ws)]
-                report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
+                reflectivity_workspace = mtd["%s__reflectivity" % str(ws)]
+                report = Report(
+                    ws, data_info, direct_info, reflectivity_workspace, logfile=self.logfile, plot_2d=self.plot_2d
+                )
                 report_list.append(report)
 
                 # Write output file
                 self.log("  - ready to write: %s" % self.output_dir)
                 write_reflectivity(
-                    [reflectivity],
+                    [reflectivity_workspace],
                     os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.dat" % (runpeak, entry)),
                     data_info.cross_section_label,
                 )
                 SaveNexus(
-                    InputWorkspace=reflectivity,
+                    InputWorkspace=reflectivity_workspace,
                     Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),
                 )
                 self.log("  - done writing")

@@ -1,6 +1,13 @@
 # pylint: disable=too-many-locals, too-many-branches, invalid-name
 """
-Write reflectivity output file
+This module provides functions to write reflectivity output files for reflectometry data.
+It includes functions to generate and write reflectivity data to files in a format compatible
+with QuickNXS and Mantid. The module handles both direct beam and scattering data, and ensures
+the output files contain all necessary metadata and data points for further analysis.
+
+Functions:
+- write_reflectivity: Writes reflectivity data to an output file.
+- quicknxs_scaling_factor: Computes a scaling factor for compatibility with QuickNXS.
 """
 
 # standard imports
@@ -11,6 +18,7 @@ import time
 import mantid
 
 # mr_reduction imports
+import mr_reduction
 from mr_reduction.runpeak import RunPeakNumber
 
 
@@ -54,7 +62,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
     ]
 
     fd = open(output_path, "w")
-    fd.write("# Datafile created by QuickNXS 2.0.0\n")
+    fd.write(f"# Datafile created by mr_reduction QuickNXS {mr_reduction.__version__}\n")
     fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
     fd.write("# Autoreduced\n")
     fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))

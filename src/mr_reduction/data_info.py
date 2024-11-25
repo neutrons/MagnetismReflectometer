@@ -3,18 +3,26 @@
 Meta-data information for MR reduction
 """
 
-from __future__ import absolute_import, division, print_function
+# standard library imports
+import warnings
+from enum import Enum
 
+# third party imports
 import mantid.simpleapi as api
 import numpy as np
 import scipy.optimize as opt
-import scipy.signal
 from scipy import ndimage
-import warnings
 from scipy.optimize import OptimizeWarning
+
+# mr_reduction imports
+from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
+
 warnings.simplefilter("ignore", OptimizeWarning)
 
-from .peak_finding import find_peaks, peak_prominences, peak_widths
+"""
+Number of events under which we can't consider a direct beam file
+"""
+EVENT_COUNT_CUTOFF = 2000
 
 
 def get_cross_section_label(ws, cross_section):
@@ -54,14 +62,53 @@ def get_cross_section_label(ws, cross_section):
         return "%s%s" % (pol_label, ana_label)
 
 
+class DataType(Enum):
+    """
+    Enum to represent the typical types of data in magnetic reflectometry
+
+    Attributes:
+        UNKNOWN (int): Represents unknown data TYPE.
+        DIRECT_BEAM (int): Represents direct beam data.
+        REFLECTED_BEAM (int): Represents reflected beam data.
+    """
+
+    UNKNOWN = -1
+    REFLECTED_BEAM = 0
+    DIRECT_BEAM = 1
+
+    @classmethod
+    def from_workspace(cls, input_workspace):
+        ws = api.mtd[str(input_workspace)]
+        run_object = ws.getRun()
+        try:
+            value = cls.DIRECT_BEAM if (run_object.getProperty("data_type").value[0] == 1) else cls.REFLECTED_BEAM
+        except Exception:  # noqa E722
+            value = cls.REFLECTED_BEAM  # no entry "data_type", assume it's a reflected beam
+        return value
+
+    @classmethod
+    def from_value(cls, value):
+        """
+        Returns the DataType enum from a given value
+        """
+        if value == 1:
+            return cls.DIRECT_BEAM
+        elif value == -1:
+            return cls.UNKNOWN
+        else:
+            return cls.REFLECTED_BEAM  # same behavior as from_workspace
+
+    def __str__(self):
+        return self.name
+
+
 class DataInfo:
     """
     Class to provide a convenient interface to the meta-data extracted
     by MRInspectData.
     """
 
-    # Number of events under which we can't consider a direct beam file
-    n_events_cutoff = 2000
+    n_events_cutoff = EVENT_COUNT_CUTOFF
 
     def __init__(
         self,
@@ -94,17 +141,9 @@ class DataInfo:
         self.cross_section = cross_section
         self.run_number = ws.getRunNumber()
         self.workspace_name = str(ws)
-
-        run_object = ws.getRun()
-        try:
-            self.is_direct_beam = run_object.getProperty("data_type").value[0] == 1
-            self.data_type = 0 if self.is_direct_beam else 1
-        except:  # noqa E722
-            self.is_direct_beam = False
-            self.data_type = 1
-
-        if ws.getNumberEvents() < self.n_events_cutoff:
-            self.data_type = -1
+        self.data_type = DataType.from_workspace(ws)
+        self.is_direct_beam = self.data_type == DataType.DIRECT_BEAM
+        self.low_neutron_count = ws.getNumberEvents() < self.n_events_cutoff
 
         # Determine proper cross-section label
         self.cross_section_label = get_cross_section_label(ws, cross_section)
@@ -114,6 +153,7 @@ class DataInfo:
         self.use_roi = use_roi
         self.use_roi_actual = self.use_roi and not update_peak_range
 
+        run_object = ws.getRun()
         self.calculated_scattering_angle = run_object.getProperty("calculated_scatt_angle").value
 
         tof_min = run_object.getProperty("tof_range_min").value

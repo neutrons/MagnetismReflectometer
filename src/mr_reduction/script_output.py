@@ -1,3 +1,10 @@
+"""
+This module provides functions to generate and write reduction scripts for reflectometry data.
+It includes functions to create combined reduction scripts from multiple runs, as well as partial
+scripts for individual runs. The scripts are used to process and analyze reflectometry data using
+the Mantid framework.
+"""
+
 # standard imports
 import os
 import time
@@ -42,7 +49,7 @@ def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None,
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
 
-    search_dirs = list()
+    search_dirs = []
     if extra_search_dir is not None and os.path.isdir(extra_search_dir):
         search_dirs.append(extra_search_dir)
     if ar_out_dir(ipts) not in search_dirs:
@@ -97,7 +104,7 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_d
     script += "workspaces =  dict()\n"
     script += "parameters = dict()\n\n"
 
-    search_dirs = list()
+    search_dirs = []
     if extra_search_dir is not None and os.path.isdir(extra_search_dir):
         search_dirs.append(extra_search_dir)
     if ar_out_dir(ipts) not in search_dirs:
