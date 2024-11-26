@@ -13,36 +13,140 @@ Functions:
 # standard imports
 import math
 import time
+from dataclasses import asdict, dataclass
+from typing import List, Optional
 
 # third party imports
 import mantid
+from mantid.simpleapi import mtd
 
 # mr_reduction imports
 import mr_reduction
 from mr_reduction.runpeak import RunPeakNumber
+from mr_reduction.types import MantidWorkspace
 
 
-def write_reflectivity(ws_list, output_path, cross_section):
-    r"""Write out reflectivity output (usually from autoreduction, as file REF_M_*_autoreduce.dat)"""
+@dataclass
+class DirectBeamOptions:
+    DB_ID: int
+    P0: int
+    PN: int
+    x_pos: float  # peak center
+    x_width: float  # peak width
+    y_pos: float  # average background value
+    y_width: float  # error in the background noise
+    bg_pos: float
+    bg_width: float
+    dpix: float  # sample log entry "normalization_dirpix"
+    tth: int
+    number: int  # run number
+    File: str  # normalization run in the re-processed and legacy-compatible, readable by QuickNXS
+
+    @staticmethod
+    def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=0) -> Optional["DirectBeamOptions"]:
+        """Create an instance of DirectBeamOptions from a workspace."""
+        run_object = mtd[str(input_workspace)].getRun()
+
+        normalization_run = run_object.getProperty("normalization_run").value
+        if normalization_run == "None":
+            return None
+
+        peak_min = run_object.getProperty("norm_peak_min").value
+        peak_max = run_object.getProperty("norm_peak_max").value
+        bg_min = run_object.getProperty("norm_bg_min").value
+        bg_max = run_object.getProperty("norm_bg_max").value
+        low_res_min = run_object.getProperty("norm_low_res_min").value
+        low_res_max = run_object.getProperty("norm_low_res_max").value
+        dpix = run_object.getProperty("normalization_dirpix").value
+        filename = run_object.getProperty("normalization_file_path").value
+        # In order to make the file loadable by QuickNXS, we have to change the
+        # file name to the re-processed and legacy-compatible files.
+        # The new QuickNXS can load both.
+        if filename.endswith("nxs.h5"):
+            filename = filename.replace("nexus", "data")
+            filename = filename.replace(".nxs.h5", "_histo.nxs")
+
+        return DirectBeamOptions(
+            DB_ID=direct_beam_counter,
+            P0=0,
+            PN=0,
+            x_pos=(peak_min + peak_max) / 2.0,
+            x_width=peak_max - peak_min + 1,
+            y_pos=(low_res_max + low_res_min) / 2.0,
+            y_width=low_res_max - low_res_min + 1,
+            bg_pos=(bg_min + bg_max) / 2.0,
+            bg_width=bg_max - bg_min + 1,
+            dpix=dpix,
+            tth=0,
+            number=normalization_run,
+            File=filename,
+        )
+
+    @classmethod
+    def dat_header(cls) -> str:
+        """Header for the direct beam options in the *_autoreduced.dat file"""
+        return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % field for field in cls.__dataclass_fields__])
+
+    @property
+    def options(self) -> List[str]:
+        """List of option names"""
+        return self.__dataclass_fields__
+
+    @property
+    def as_dat(self):
+        """ "Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
+        par_list = ["{%s}" % p for p in self.options]
+        template = "# %s\n" % "  ".join(par_list)
+        _clean_dict = {}
+        for option in self.options:
+            value = getattr(self, option)
+            if isinstance(value, (bool, str)):
+                _clean_dict[option] = "%8s" % value
+            else:
+                _clean_dict[option] = "%8g" % value
+        return template.format(**_clean_dict)
+
+
+def write_reflectivity(ws_list, output_path, cross_section) -> None:
+    r"""Write out reflectivity output (usually from autoreduction, as file REF_M_*_autoreduce.dat)
+
+    This function generates and writes reflectivity data to an output file, typically used in autoreduction processes.
+    The output file is usually named in the format `REF_M_*_autoreduce.dat`.
+
+    Parameters:
+    ws_list (list): A list of workspace objects containing reflectivity data.
+    output_path (str): The path where the output file will be written.
+    cross_section (str): The cross-section information to be included in the output file.
+    """
     # Sanity check
     if not ws_list:
         return
 
-    direct_beam_options = [
-        "DB_ID",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "dpix",
-        "tth",
-        "number",
-        "File",
-    ]
+    fd = open(output_path, "w")
+
+    fd.write(f"# Datafile created by mr_reduction QuickNXS {mr_reduction.__version__}\n")
+    fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
+    fd.write("# Autoreduced\n")
+    fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
+    fd.write("# Type: Specular\n")
+
+    peak_number = RunPeakNumber.peak_number_log(ws_list[0])
+    runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
+    fd.write(f"# Input file indices: {','.join(runpeak_list)}\n")
+
+    fd.write("# Extracted states: %s\n" % cross_section)
+    fd.write("#\n")
+
+    # Direct beam section
+    fd.write(DirectBeamOptions.dat_header())
+    i_direct_beam = 0
+    for ws in ws_list:
+        i_direct_beam += 1
+        direct_beam_options = DirectBeamOptions.from_workspace(ws, i_direct_beam)
+        if direct_beam_options is not None:
+            fd.write(direct_beam_options.as_dat)
+
+    # Scattering data
     dataset_options = [
         "scale",
         "P0",
@@ -61,71 +165,6 @@ def write_reflectivity(ws_list, output_path, cross_section):
         "File",
     ]
 
-    fd = open(output_path, "w")
-    fd.write(f"# Datafile created by mr_reduction QuickNXS {mr_reduction.__version__}\n")
-    fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
-    fd.write("# Autoreduced\n")
-    fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    fd.write("# Type: Specular\n")
-    peak_number = RunPeakNumber.peak_number_log(ws_list[0])
-    runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
-    fd.write(f"# Input file indices: {','.join(runpeak_list)}\n")
-    fd.write("# Extracted states: %s\n" % cross_section)
-    fd.write("#\n")
-    fd.write("# [Direct Beam Runs]\n")
-    toks = ["%8s" % item for item in direct_beam_options]
-    fd.write("# %s\n" % "  ".join(toks))
-
-    # Direct beam section
-    i_direct_beam = 0
-    for ws in ws_list:
-        i_direct_beam += 1
-        run_object = ws.getRun()
-        normalization_run = run_object.getProperty("normalization_run").value
-        if normalization_run == "None":
-            continue
-        peak_min = run_object.getProperty("norm_peak_min").value
-        peak_max = run_object.getProperty("norm_peak_max").value
-        bg_min = run_object.getProperty("norm_bg_min").value
-        bg_max = run_object.getProperty("norm_bg_max").value
-        low_res_min = run_object.getProperty("norm_low_res_min").value
-        low_res_max = run_object.getProperty("norm_low_res_max").value
-        dpix = run_object.getProperty("normalization_dirpix").value
-        filename = run_object.getProperty("normalization_file_path").value
-        # In order to make the file loadable by QuickNXS, we have to change the
-        # file name to the re-processed and legacy-compatible files.
-        # The new QuickNXS can load both.
-        if filename.endswith("nxs.h5"):
-            filename = filename.replace("nexus", "data")
-            filename = filename.replace(".nxs.h5", "_histo.nxs")
-
-        item = dict(
-            DB_ID=i_direct_beam,
-            tth=0,
-            P0=0,
-            PN=0,
-            x_pos=(peak_min + peak_max) / 2.0,
-            x_width=peak_max - peak_min + 1,
-            y_pos=(low_res_max + low_res_min) / 2.0,
-            y_width=low_res_max - low_res_min + 1,
-            bg_pos=(bg_min + bg_max) / 2.0,
-            bg_width=bg_max - bg_min + 1,
-            dpix=dpix,
-            number=normalization_run,
-            File=filename,
-        )
-
-        par_list = ["{%s}" % p for p in direct_beam_options]
-        template = "# %s\n" % "  ".join(par_list)
-        _clean_dict = {}
-        for key in item:
-            if isinstance(item[key], (bool, str)):
-                _clean_dict[key] = "%8s" % item[key]
-            else:
-                _clean_dict[key] = "%8g" % item[key]
-        fd.write(template.format(**_clean_dict))
-
-    # Scattering data
     fd.write("#\n")
     fd.write("# [Data Runs]\n")
     toks = ["%8s" % item for item in dataset_options]

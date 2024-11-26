@@ -25,7 +25,7 @@ Number of events under which we can't consider a direct beam file
 EVENT_COUNT_CUTOFF = 2000
 
 
-def get_cross_section_label(ws, cross_section):
+def get_cross_section_label(ws, cross_section) -> str:
     """
     Return the proper cross-section label.
     """
@@ -146,7 +146,7 @@ class DataInfo:
         self.low_neutron_count = ws.getNumberEvents() < self.n_events_cutoff
 
         # Determine proper cross-section label
-        self.cross_section_label = get_cross_section_label(ws, cross_section)
+        self.cross_section_label: str = get_cross_section_label(ws, cross_section)
 
         # Processing options
         # Use the ROI rather than finding the ranges
