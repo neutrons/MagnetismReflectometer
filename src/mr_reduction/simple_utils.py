@@ -76,6 +76,9 @@ class SampleLogs:
     def __init__(self, input_workspace: MantidWorkspace):
         self._run = workspace_handle(input_workspace).getRun()
 
+    def __contains__(self, property_name):
+        return self._run.hasProperty(property_name)
+
     def __getitem__(self, property_name):
         if self._run.hasProperty(property_name):
             p = self._run.getProperty(property_name)

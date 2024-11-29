@@ -138,7 +138,9 @@ class ReflectedBeamOptions:
     @classmethod
     def dat_header(cls) -> str:
         """Header for the direct beam options in the *_autoreduced.dat file"""
-        return "# [Data Runs]\n# %s\n" % "  ".join(["%8s" % field for field in cls.__dataclass_fields__])
+        options = cls.__dataclass_fields__
+        del options["tth_offset"]
+        return "# [Data Runs]\n# %s\n" % "  ".join(["%8s" % option for option in options])
 
     @staticmethod
     def filename(input_workspace: MantidWorkspace) -> str:
@@ -150,7 +152,7 @@ class ReflectedBeamOptions:
         with QuickNXS by replacing 'nexus' with 'data' and changing the extension to '_histo.nxs'.
         If the workspace is live data and does not have a filename, it returns 'live data'.
         """
-        sample_logs = workspace_handle(input_workspace).getRun()
+        sample_logs = SampleLogs(input_workspace)
         if "Filename" in sample_logs:
             filename = sample_logs["Filename"]
             if filename.endswith("nxs.h5"):
@@ -168,7 +170,7 @@ class ReflectedBeamOptions:
         It seems to be because that same offset is applied later in the QuickNXS calculation.
         """
         ws = workspace_handle(input_workspace)
-        sample_logs = ws.getRun()
+        sample_logs = SampleLogs(input_workspace)
         scatt_pos = sample_logs["specular_pixel"]
         det_distance = sample_logs.mean("SampleDetDis")
         # Check units
@@ -194,8 +196,7 @@ class ReflectedBeamOptions:
         direct_beam_counter : int, optional
             The counter for the direct beam associated to this reflected beam, by default 1.
         """
-        ws = workspace_handle(input_workspace)
-        sample_logs = ws.getRun()
+        sample_logs = SampleLogs(input_workspace)
 
         peak_min = sample_logs["scatt_peak_min"]
         peak_max = sample_logs["scatt_peak_max"]
@@ -203,10 +204,7 @@ class ReflectedBeamOptions:
         bg_max = sample_logs["scatt_bg_max"]
         low_res_min = sample_logs["scatt_low_res_min"]
         low_res_max = sample_logs["scatt_low_res_max"]
-        dpix = sample_logs.mean("DIRPIX")
-        tth = sample_logs["two_theta"]
         filename = cls.filename(input_workspace)
-        constant_q_binning = sample_logs["constant_q_binning"]
         scatt_pos = sample_logs["specular_pixel"]
 
         options = ReflectedBeamOptions(
@@ -219,10 +217,10 @@ class ReflectedBeamOptions:
             y_width=low_res_max - low_res_min + 1,
             bg_pos=(bg_min + bg_max) / 2.0,
             bg_width=bg_max - bg_min + 1,
-            fan=constant_q_binning,
-            dpix=dpix,
-            tth=tth,
-            number=str(ws.getRunNumber()),
+            fan=sample_logs["constant_q_binning"],
+            dpix=sample_logs.mean("DIRPIX"),
+            tth=sample_logs["two_theta"],
+            number=sample_logs["run_number"],
             DB_ID=direct_beam_counter,
             File=filename,
         )
@@ -234,12 +232,12 @@ class ReflectedBeamOptions:
 
     @property
     def options(self) -> List[str]:
-        """List of option names"""
+        """List of option names, excluding the two-theta offset"""
         return self.__dataclass_fields__
 
     @property
     def as_dat(self) -> str:
-        """ "Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
+        """Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
         clean_dict = {}
         for option in self.options:
             value = getattr(self, option)
@@ -329,45 +327,34 @@ def write_reflectivity(ws_list, output_path, cross_section) -> None:
                 theta,
             )
 
-    fd.write(
-        """
-#
+    fd.write("""#
 # [Global Options]
 # name           value
 # sample_length  10
 #
-"""
-    )
+""")
 
     #
     # Write sequence information from the last workspace in the list
     #
+    fd.write("# [Sequence]\n")
     sample_logs = SampleLogs(ws_list[-1])  # use the last workspace for the sequence information
-    sequence_id = sample_logs["sequence_id"]
-    sequence_number = sample_logs["sequence_number"]
-    sequence_total = sample_logs["sequence_total"]
-    fd.write(
-        f"""
-# [Sequence]
-# sequence_id {sequence_id}
-# sequence_number {sequence_number}
-# sequence_total {sequence_total}
-"""
-    )
+    line_template = "# {0} {1}\n"
+    for entry in ["sequence_id", "sequence_number", "sequence_total"]:
+        if entry in sample_logs:
+            fd.write(line_template.format(entry, sample_logs[entry]))
 
     #
     # Write scattering data
     #
-    header = "  ".join([f"{item:12s}" for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]])
-    fd.write(
-        f"""
-#
+    tokens = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
+    header = "# %s" % "  ".join(tokens)
+    fd.write(f"""#
 # [Data]
-# {header}
+{header}
 #
 {data_block}
-"""
-    )
+""")
 
     fd.close()
 
