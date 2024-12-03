@@ -413,7 +413,7 @@ class ReductionProcess:
 
         # create a temporary WorkspaceGroup because algorithm MagnetismReflectometryReduction expects
         # the cross-section EventWorkspace objects to be arranged in a WorkspaceGroup
-        wsg = GroupWorkspaces(InputWorkspaces=xs_list, OutputWorkspace=mtd.unique_hidden_name())
+        wsg = GroupWorkspaces(InputWorkspaces=xs_list)
 
         # For each cross-section EventWorkspace, generate a reduced Workspace2D.
         # If the name of the EventWorkspace is '28142_Off_Off',
@@ -445,7 +445,6 @@ class ReductionProcess:
             ConstQTrim=0.1,
             OutputWorkspace=f"r_{runpeak}",
         )
-        UnGroupWorkspace(wsg)  # delete the temporary WorkspaceGroup. Its constituents are not deleted
 
         # Save peak number in the logs of the reduced workspaces
         if runpeak.peak_number:
