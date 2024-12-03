@@ -10,11 +10,11 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the User**:
 
-- PR #18 Ability to save simple autoreduced data to ORSO format
 - PR #9 Add the capability to autoreduce two peaks from the same run
 
 **Of interest to the Developer:**
 
+- PR #18 new classes DirectBeamOptions and ReflectedBeamOptions to collect metadata info
 - PR #16 transition from pip to conda when installing dependency finddata
 - PR #15 increase gunicorn timeout for workers to prevent them being killed before finishing the reduction
 - PR #12 switch from mantid to mantidworkbench conda package
