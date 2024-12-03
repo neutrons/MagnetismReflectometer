@@ -15,7 +15,6 @@ jobs:
         shell: bash -l {0}
     steps:
       - uses: actions/checkout@v3
-
       - uses: conda-incubator/setup-miniconda@v2
         name: Setup Conda
         with:
@@ -31,15 +30,11 @@ jobs:
           echo "running unit tests"
           python -m pytest -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
           mv .coverage .coverage.unit
+      - name: fetch data repository
+        run: |
+          git submodule update --init
       - name: run integration tests
         run: |
-          echo "fetching the data repository"
-          git submodule update --init
-          cd tests/mr_reduction-data/
-          git checkout main
-          git lfs pull
-          cd ../../
-          echo "running integration tests"
           python -m pytest -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
           mv .coverage .coverage.integration
       - name: combine coverage reports

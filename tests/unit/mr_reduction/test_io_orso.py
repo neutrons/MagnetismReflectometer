@@ -16,6 +16,7 @@ def test_write_orso_output_file_extension():
         write_orso([], "output_file", "cross_section")
 
 
+@pytest.mark.datarepo()
 def test_write_orso(mock_filesystem, data_server):
     reflectivity_workspace = LoadNexus(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
