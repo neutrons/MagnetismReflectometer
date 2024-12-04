@@ -81,7 +81,7 @@ class TestReduction:
             "REF_M_28142_partial.py",
             "REF_M_28142_tunable_combined.py",
         ]:
-            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file))
+            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
