@@ -55,6 +55,21 @@ class TestReduction:
         processor.ana_veto = ""
         processor.reduce()
         # assert reduction files have been produced
+
+        # DEBUG:
+        # PRESENT
+        # REF_M_28142_Off_Off_autoreduce.dat
+        # REF_M_28142_On_Off_autoreduce.dat
+        # REF_M_28142_On_On_autoreduce.dat
+        # REF_M_28142_partial.py
+        #
+        # MISSING
+        # REF_M_28142_Off_Off_combined.dat
+        # REF_M_28142_On_Off_combined.dat
+        # REF_M_28142_On_On_combined.dat
+        # REF_M_28142_combined.py
+        # REF_M_28142_tunable_combined.py
+
         for file in [
             "REF_M_28142_Off_Off_autoreduce.dat",
             "REF_M_28142_Off_Off_combined.dat",
@@ -114,7 +129,7 @@ class TestReduction:
             "REF_M_41445_Off_Off_combined.dat",
             "REF_M_41445_tunable_combined.py",
         ]:
-            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), "File {file} doesn't exist"
+            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
 
     @pytest.mark.datarepo()
     def test_reduce_multiple_peaks(self, mock_filesystem, data_server):
