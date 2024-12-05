@@ -7,9 +7,25 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def add_to_sys_path(path):
-    r""" "Temporarily dd `path` to the PYTHONPATH"""
+def add_to_sys_path(path, clean_module_reduce_REF_M=True):
+    r"""Temporarily add `path` to the PYTHONPATH.
+
+    Parameters
+    ----------
+    path : str
+        The path to be added to the PYTHONPATH.
+    clean_module_reduce_REF_M : bool, optional
+        If True, remove the "reduce_REF_M" module from sys.modules if it exists,
+        so it can be re-imported. Default is True.
+
+    Examples
+    --------
+    with add_to_sys_path(tempdir):
+        from reduce_REF_M import reduction_user_options
+    """
     sys.path.insert(0, path)
+    if clean_module_reduce_REF_M and ("reduce_REF_M" in sys.modules):
+        del sys.modules["reduce_REF_M"]  # need to re-import
     try:
         yield
     finally:

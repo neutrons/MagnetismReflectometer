@@ -23,4 +23,3 @@ updated, or an explanation is provided as to why release notes are unnecessary
     + [ ] code comments explaining the intent of code blocks
 - [ ] All the tests are passing
 - [ ] The documentation is up to date
-- [ ] code comments added when explaining intent

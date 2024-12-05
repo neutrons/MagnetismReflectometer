@@ -68,7 +68,7 @@ def test_template(data_server, tempdir):
 
         opts = reduction_user_options()
         # assert common options
-        assert opts.peak_count == common["peak_count"]
+        assert opts.peak_count == common["peak_count"], "peak_count differs"
         for a, b in [  # template and reduction keys don't have the same name
             ("plot_2d", "plot_in_2D"),
             ("const_q_binning", "use_const_q"),
@@ -76,7 +76,7 @@ def test_template(data_server, tempdir):
             ("use_sangle", "use_sangle"),
             ("update_peak_range", "fit_peak_in_roi"),
         ]:
-            assert opts.common[a] == common[b]
+            assert opts.common[a] == common[b], f"{a} differs"
         # assert peak1 options
         for a, b in [
             ("force_peak_roi", "force_peak"),
@@ -84,9 +84,9 @@ def test_template(data_server, tempdir):
             ("use_tight_bck", "use_side_bck"),
             ("bck_offset", "bck_width"),
         ]:
-            assert opts.peak1[a] == peak1[b]
-        assert opts.peak1["peak_roi"] == [peak1["peak_min"], peak1["peak_max"]]
-        assert opts.peak1["bck_roi"] == [peak1["bck_min"], peak1["bck_max"]]
+            assert opts.peak1[a] == peak1[b], f"{a} differs for peak 1"
+        assert opts.peak1["peak_roi"] == [peak1["peak_min"], peak1["peak_max"]], "peak_roi differs for peak 1"
+        assert opts.peak1["bck_roi"] == [peak1["bck_min"], peak1["bck_max"]], "bck_roi differs for peak 1"
         # assert peak2 options
         for a, b in [
             ("force_peak_roi", "force_peak_s2"),
@@ -94,9 +94,9 @@ def test_template(data_server, tempdir):
             ("use_tight_bck", "use_side_bck_s2"),
             ("bck_offset", "bck_width_s2"),
         ]:
-            assert opts.peak2[a] == peak2[b]
-        assert opts.peak2["peak_roi"] == [peak2["peak_min_s2"], peak2["peak_max_s2"]]
-        assert opts.peak2["bck_roi"] == [peak2["bck_min_s2"], peak2["bck_max_s2"]]
+            assert opts.peak2[a] == peak2[b], f"{a} differs for peak 2"
+        assert opts.peak2["peak_roi"] == [peak2["peak_min_s2"], peak2["peak_max_s2"]], "peak_roi differs for peak 2"
+        assert opts.peak2["bck_roi"] == [peak2["bck_min_s2"], peak2["bck_max_s2"]], "bck_roi differs for peak 2"
         # assert peak3 options
         for a, b in [
             ("force_peak_roi", "force_peak_s3"),
@@ -104,9 +104,9 @@ def test_template(data_server, tempdir):
             ("use_tight_bck", "use_side_bck_s3"),
             ("bck_offset", "bck_width_s3"),
         ]:
-            assert opts.peak3[a] == peak3[b]
-        assert opts.peak3["peak_roi"] == [peak3["peak_min_s3"], peak3["peak_max_s3"]]
-        assert opts.peak3["bck_roi"] == [peak3["bck_min_s3"], peak3["bck_max_s3"]]
+            assert opts.peak3[a] == peak3[b], f"{a} differs for peak 3"
+        assert opts.peak3["peak_roi"] == [peak3["peak_min_s3"], peak3["peak_max_s3"]], "peak_roi differs for peak 3"
+        assert opts.peak3["bck_roi"] == [peak3["bck_min_s3"], peak3["bck_max_s3"]], "bck_roi differs for peak 3"
 
 
 if __name__ == "__main__":
