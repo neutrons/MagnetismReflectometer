@@ -14,7 +14,7 @@ from mantid.simpleapi import config
 this_module_path = sys.modules[__name__].__file__
 
 
-@pytest.fixture()
+@pytest.fixture()  # scope="function"
 def tempdir(tmpdir):
     r"""Get the path of pytest fixture tmpdir as a string"""
     return str(tmpdir)
@@ -73,7 +73,7 @@ def data_server():
         config[key] = val
 
 
-@pytest.fixture()
+@pytest.fixture()  # scope="function"
 def mock_filesystem(tempdir, data_server):
     r"""
     A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
