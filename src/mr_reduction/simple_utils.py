@@ -96,10 +96,11 @@ class SampleLogs:
 
     def __getitem__(self, property_name):
         if self._run.hasProperty(property_name):
-            p = self._run.getProperty(property_name)
-            if hasattr(p, "firstValue"):
-                return p.firstValue()
-            return p.value
+            value = self._run.getProperty(property_name).value
+            if isinstance(value, (int, float, str)):  # scalar sample logs can only be one of these three types
+                return value
+            else:
+                return value[0]  # return the first value
 
     def property(self, property_name: str):
         """property object for the given property name"""

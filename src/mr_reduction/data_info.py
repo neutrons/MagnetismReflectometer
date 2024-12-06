@@ -15,6 +15,7 @@ from scipy.optimize import OptimizeWarning
 
 # mr_reduction imports
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
+from mr_reduction.simple_utils import SampleLogs
 
 warnings.simplefilter("ignore", OptimizeWarning)
 
@@ -36,8 +37,9 @@ def get_cross_section_label(ws, cross_section) -> str:
     ana_label = ""
 
     # Look for log that define whether OFF or ON is +
-    if "PolarizerLabel" in ws.getRun():
-        pol_id = ws.getRun().getProperty("PolarizerLabel").value
+    sample_logs = SampleLogs(ws)
+    if "PolarizerLabel" in sample_logs:
+        pol_id = sample_logs["PolarizerLabel"]
         if isinstance(pol_id, np.ndarray):
             pol_id = int(pol_id[0])
         if pol_id == 1:
@@ -45,8 +47,8 @@ def get_cross_section_label(ws, cross_section) -> str:
         elif pol_id == 0:
             pol_label = "-" if pol_is_on else "+"
 
-    if "AnalyzerLabel" in ws.getRun():
-        ana_id = ws.getRun().getProperty("AnalyzerLabel").value
+    if "AnalyzerLabel" in sample_logs:
+        ana_id = sample_logs["AnalyzerLabel"]
         if isinstance(ana_id, np.ndarray):
             ana_id = int(ana_id[0])
         if ana_id == 1:
@@ -84,10 +86,9 @@ class DataType(IntEnum):
         extracts the 'data_type' property, and returns the corresponding
         DataType enum value.
         """
-        ws = api.mtd[str(input_workspace)]
-        run_object = ws.getRun()
+        sample_logs = SampleLogs(input_workspace)
         try:
-            value = cls.DIRECT_BEAM if (int(run_object.getProperty("data_type").value[0]) == 1) else cls.REFLECTED_BEAM
+            value = cls.DIRECT_BEAM if (int(sample_logs["data_type"]) == 1) else cls.REFLECTED_BEAM
         except Exception:  # noqa E722
             value = cls.REFLECTED_BEAM  # no entry "data_type", assume it's a reflected beam
         return value
@@ -162,16 +163,13 @@ class DataInfo:
         # Use the ROI rather than finding the ranges
         self.use_roi = use_roi
         self.use_roi_actual = self.use_roi and not update_peak_range
-        run_object = ws.getRun()
-        self.calculated_scattering_angle = run_object.getProperty("calculated_scatt_angle").value
-
-        tof_min = run_object.getProperty("tof_range_min").value
-        tof_max = run_object.getProperty("tof_range_max").value
-        self.tof_range = [tof_min, tof_max]
+        sample_logs = SampleLogs(ws)
+        self.calculated_scattering_angle = sample_logs["calculated_scatt_angle"]
+        self.tof_range = [sample_logs["tof_range_min"], sample_logs["tof_range_max"]]
 
         # Region of interest information
-        roi_peak_min = run_object.getProperty("roi_peak_min").value
-        roi_peak_max = run_object.getProperty("roi_peak_max").value
+        roi_peak_min = sample_logs["roi_peak_min"]
+        roi_peak_max = sample_logs["roi_peak_max"]
         self.roi_peak = [roi_peak_min, roi_peak_max]
 
         improved_peaks = True
@@ -185,16 +183,16 @@ class DataInfo:
                 peak_min = peak_min - 2
                 peak_max = peak_max + 2
             if np.abs(low_res_min - low_res_max) <= 50:
-                low_res_min = run_object.getProperty("low_res_min").value
-                low_res_max = run_object.getProperty("low_res_max").value
+                low_res_min = sample_logs["low_res_min"]
+                low_res_max = sample_logs["low_res_max"]
                 low_res_min = max(fitter.DEAD_PIXELS, low_res_min)
                 low_res_max = min(fitter.n_y - fitter.DEAD_PIXELS, low_res_max)
         else:
-            peak_min = run_object.getProperty("peak_min").value
-            peak_max = run_object.getProperty("peak_max").value
-            low_res_min = run_object.getProperty("low_res_min").value
-            low_res_max = run_object.getProperty("low_res_max").value
-            self.use_roi_actual = run_object.getProperty("use_roi_actual").value.lower() == "true"
+            peak_min = sample_logs["peak_min"]
+            peak_max = sample_logs["peak_max"]
+            low_res_min = sample_logs["low_res_min"]
+            low_res_max = sample_logs["low_res_max"]
+            self.use_roi_actual = sample_logs["use_roi_actual"].lower() == "true"
 
         if self.use_roi and not update_peak_range:
             if force_peak_roi:
@@ -208,27 +206,22 @@ class DataInfo:
 
         self.low_res_range = [low_res_min, low_res_max]
 
-        background_min = max(1, run_object.getProperty("background_min").value)
-        background_max = max(background_min, run_object.getProperty("background_max").value)
+        background_min = max(1, sample_logs["background_min"])
+        background_max = max(background_min, sample_logs["background_max"])
         self.background = [background_min, background_max]
         if use_tight_bck:
             bck_min = max(0, peak_min - bck_offset)
             bck_max = min(303, peak_max + bck_offset)
             self.background = [bck_min, bck_max]
 
-        roi_low_res_min = run_object.getProperty("roi_low_res_min").value
-        roi_low_res_max = run_object.getProperty("roi_low_res_max").value
-        self.roi_low_res = [roi_low_res_min, roi_low_res_max]
-
-        roi_background_min = run_object.getProperty("roi_background_min").value
-        roi_background_max = run_object.getProperty("roi_background_max").value
-        self.roi_background = [roi_background_min, roi_background_max]
+        self.roi_low_res = [sample_logs["roi_low_res_min"], sample_logs["roi_low_res_max"]]
+        self.roi_background = [sample_logs["roi_background_min"], sample_logs["roi_background_max"]]
 
         # Get sequence info if available
         try:
-            self.sequence_id = run_object.getProperty("sequence_id").value[0]
-            self.sequence_number = run_object.getProperty("sequence_number").value[0]
-            self.sequence_total = run_object.getProperty("sequence_total").value[0]
+            self.sequence_id = sample_logs["sequence_id"]
+            self.sequence_number = sample_logs["sequence_number"]
+            self.sequence_total = sample_logs["sequence_total"]
         except:  # noqa E722
             self.sequence_id = "N/A"
             self.sequence_number = "N/A"
