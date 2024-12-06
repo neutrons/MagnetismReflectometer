@@ -108,7 +108,7 @@ class DataInfo:
     """
 
     # Number of events under which we can't consider a direct beam file
-    n_events_cutoff = 2000
+    n_events_cutoff = EVENT_COUNT_CUTOFF
 
     def __init__(
         self,
@@ -146,15 +146,18 @@ class DataInfo:
         try:
             self.is_direct_beam = run_object.getProperty("data_type").value[0] == 1
             self.data_type = 0 if self.is_direct_beam else 1
+            self.data_type_new = DataType.DIRECT_BEAM if self.is_direct_beam else DataType.REFLECTED_BEAM
         except:  # noqa E722
             self.is_direct_beam = False
             self.data_type = 1
+            self.data_type_new = DataType.REFLECTED_BEAM
 
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = -1
+            self.data_type_new = DataType.UNKNOWN
 
         # Determine proper cross-section label
-        self.cross_section_label = get_cross_section_label(ws, cross_section)
+        self.cross_section_label: str = get_cross_section_label(ws, cross_section)
 
         # Processing options
         # Use the ROI rather than finding the ranges

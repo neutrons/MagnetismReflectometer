@@ -3,17 +3,19 @@
 Find a suitable direct beam file for a data set.
 """
 
-from __future__ import absolute_import, division, print_function
-
+# standard library imports
 import json
 import logging
 import math
+import os
 import sys
 
-from mantid.simpleapi import *
+# third party imports
+from mantid.simpleapi import LoadEventNexus, MRGetTheta
 
-from .data_info import DataInfo
-from .settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
+# mr_reduction imports
+from mr_reduction.data_info import DataInfo, DataType
+from mr_reduction.settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
 
 
 class DirectBeamFinder:
