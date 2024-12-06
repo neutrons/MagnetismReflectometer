@@ -66,9 +66,9 @@ class DataType(IntEnum):
     Enum to represent the typical types of data in magnetic reflectometry
 
     Attributes:
-        UNKNOWN (int): Represents unknown data TYPE.
-        DIRECT_BEAM (int): Represents direct beam data.
+        UNKNOWN (int): Represents unknown data TYPE, usually because of low neutron count in the associated run.
         REFLECTED_BEAM (int): Represents reflected beam data.
+        DIRECT_BEAM (int): Represents direct beam data.
     """
 
     UNKNOWN = -1
@@ -77,10 +77,17 @@ class DataType(IntEnum):
 
     @classmethod
     def from_workspace(cls, input_workspace):
+        """
+        Determine the data type from the given workspace.
+
+        This method retrieves the workspace from the Mantid data service,
+        extracts the 'data_type' property, and returns the corresponding
+        DataType enum value.
+        """
         ws = api.mtd[str(input_workspace)]
         run_object = ws.getRun()
         try:
-            value = cls.DIRECT_BEAM if (run_object.getProperty("data_type").value[0] == 1) else cls.REFLECTED_BEAM
+            value = cls.DIRECT_BEAM if (int(run_object.getProperty("data_type").value[0]) == 1) else cls.REFLECTED_BEAM
         except Exception:  # noqa E722
             value = cls.REFLECTED_BEAM  # no entry "data_type", assume it's a reflected beam
         return value
@@ -142,19 +149,11 @@ class DataInfo:
         self.run_number = ws.getRunNumber()
         self.workspace_name = str(ws)
 
-        run_object = ws.getRun()
-        try:
-            self.is_direct_beam = run_object.getProperty("data_type").value[0] == 1
-            self.data_type = 0 if self.is_direct_beam else 1
-            self.data_type_new = DataType.DIRECT_BEAM if self.is_direct_beam else DataType.REFLECTED_BEAM
-        except:  # noqa E722
-            self.is_direct_beam = False
-            self.data_type = 1
-            self.data_type_new = DataType.REFLECTED_BEAM
+        self.data_type = DataType.from_workspace(ws)
+        self.is_direct_beam = self.data_type == DataType.DIRECT_BEAM
 
         if ws.getNumberEvents() < self.n_events_cutoff:
-            self.data_type = -1
-            self.data_type_new = DataType.UNKNOWN
+            self.data_type = DataType.UNKNOWN
 
         # Determine proper cross-section label
         self.cross_section_label: str = get_cross_section_label(ws, cross_section)
@@ -163,7 +162,7 @@ class DataInfo:
         # Use the ROI rather than finding the ranges
         self.use_roi = use_roi
         self.use_roi_actual = self.use_roi and not update_peak_range
-
+        run_object = ws.getRun()
         self.calculated_scattering_angle = run_object.getProperty("calculated_scatt_angle").value
 
         tof_min = run_object.getProperty("tof_range_min").value

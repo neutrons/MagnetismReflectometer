@@ -1,4 +1,5 @@
 # pylint: disable=bare-except, dangerous-default-value, wrong-import-position, wrong-import-order, too-many-arguments, too-many-instance-attributes
+# pylint: disable=bare-except, dangerous-default-value, wrong-import-position, wrong-import-order, too-many-arguments, too-many-instance-attributes
 """
 Reduction for MR
 """
@@ -25,7 +26,7 @@ from mantid.simpleapi import (
 )
 
 # mr_reduction imports
-from mr_reduction.data_info import DataInfo
+from mr_reduction.data_info import DataInfo, DataType
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
@@ -344,17 +345,16 @@ class ReductionProcess:
         runpeak = RunPeakNumber(self.run_number, self.peak_number)
         logger.notice(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
         )
         self.log(
             "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type, data_info.cross_section, ws.getNumberEvents())
+            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
         )
-
-        if data_info.data_type < 1 or ws.getNumberEvents() < self.min_number_events:
+        if (data_info.data_type != DataType.REFLECTED_BEAM) or (ws.getNumberEvents() < self.min_number_events):
             self.log(
                 "  - skipping: data type=%s; events: %s [cutoff: %s]"
-                % (data_info.data_type, ws.getNumberEvents(), self.min_number_events)
+                % (data_info.data_type.name, ws.getNumberEvents(), self.min_number_events)
             )
             return [Report(ws, data_info, data_info, None, logfile=self.logfile, plot_2d=self.plot_2d)]
 
