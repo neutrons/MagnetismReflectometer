@@ -1,3 +1,15 @@
+"""
+This module contains integration tests for the reduction of a REF_M run containing two peaks.
+The main test, `test_reduce_REF_M_run`, verifies the reduction process for run 41447 by:
+1. Setting up mock filesystem and data server.
+2. Gathering necessary auxiliary files for the reduction.
+3. Defining reduction options for multiple peaks.
+4. Adding the path to the reduction script to the system path.
+5. Running the reduction script as a module.
+6. Asserting the creation of the HTML report and reduction files.
+7. Asserting the creation of stitched files from multiple runs.
+"""
+
 # standard imports
 import itertools
 import os

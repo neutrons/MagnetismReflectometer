@@ -12,7 +12,7 @@ import pytest
 
 class TestReduction:
     @pytest.mark.datarepo()
-    def test_reduce(self, mock_filesystem, data_server):
+    def test_reduce_second_peak(self, mock_filesystem, data_server):
         # direct beam for data run 29137
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 29137
         processor = mr.ReductionProcess(
@@ -39,8 +39,41 @@ class TestReduction:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file))
 
     @pytest.mark.datarepo()
-    def test_reduce_nany_cross_sections(self, mock_filesystem, data_server):
-        r"""This run number has events for three different cross sections"""
+    def test_reduce_many_cross_sections_1(self, data_server, mock_filesystem):
+        r"""
+        This run number has events for cross sections Off_Off, On_Off, and On_On.
+        There are no other previous numbers in the runs sequence, hence files REF_M_28142_*_autoreduce.dat
+        and REF_M_28142_*_combined.dat are basically one and the same
+        """
+        # mock_filesystem.DirectBeamFinder.return_value.search.return_value = None
+        processor = mr.ReductionProcess(
+            data_run=data_server.path_to("REF_M_28142.nxs.h5"), output_dir=mock_filesystem.tempdir
+        )
+        processor.pol_state = "SF1"
+        processor.ana_state = "SF2"
+        processor.pol_veto = ""
+        processor.ana_veto = ""
+        processor.reduce()
+        # assert reduction files have been produced
+        for file in [
+            "REF_M_28142_Off_Off_autoreduce.dat",
+            "REF_M_28142_Off_Off_combined.dat",
+            "REF_M_28142_On_Off_autoreduce.dat",
+            "REF_M_28142_On_Off_combined.dat",
+            "REF_M_28142_On_On_autoreduce.dat",
+            "REF_M_28142_On_On_combined.dat",
+            "REF_M_28142_combined.py",
+            "REF_M_28142_partial.py",
+            "REF_M_28142_tunable_combined.py",
+        ]:
+            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
+
+    @pytest.mark.datarepo()
+    def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
+        r"""This run number has events for cross sections Off_Off, On_Off, and On_On
+        Previous run numbers 41445 and 41446 are part of the sequence, hence files REF_M_41445_*_combined.dat
+        are the result of stiching the autoreduced files from those runs to the profile from 41447
+        """
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 41434
 
         processor = mr.ReductionProcess(
@@ -81,7 +114,7 @@ class TestReduction:
             "REF_M_41445_Off_Off_combined.dat",
             "REF_M_41445_tunable_combined.py",
         ]:
-            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), "File {file} doesn't exist"
+            assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
 
     @pytest.mark.datarepo()
     def test_reduce_multiple_peaks(self, mock_filesystem, data_server):
