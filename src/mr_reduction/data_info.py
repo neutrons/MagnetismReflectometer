@@ -1,23 +1,30 @@
-# pylint: disable=dangerous-default-value, too-many-instance-attributes, bare-except, too-many-arguments, attribute-defined-outside-init, too-many-locals, too-few-public-methods
 """
 Meta-data information for MR reduction
 """
 
-from __future__ import absolute_import, division, print_function
+# standard library imports
+import warnings
+from enum import IntEnum
 
+# third party imports
 import mantid.simpleapi as api
 import numpy as np
 import scipy.optimize as opt
-import scipy.signal
 from scipy import ndimage
-import warnings
 from scipy.optimize import OptimizeWarning
+
+# mr_reduction imports
+from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
+
 warnings.simplefilter("ignore", OptimizeWarning)
 
-from .peak_finding import find_peaks, peak_prominences, peak_widths
+"""
+Number of events under which we can't consider a direct beam file
+"""
+EVENT_COUNT_CUTOFF = 2000
 
 
-def get_cross_section_label(ws, cross_section):
+def get_cross_section_label(ws, cross_section) -> str:
     """
     Return the proper cross-section label.
     """
@@ -52,6 +59,46 @@ def get_cross_section_label(ws, cross_section):
         return cross_section
     else:
         return "%s%s" % (pol_label, ana_label)
+
+
+class DataType(IntEnum):
+    """
+    Enum to represent the typical types of data in magnetic reflectometry
+
+    Attributes:
+        UNKNOWN (int): Represents unknown data TYPE.
+        DIRECT_BEAM (int): Represents direct beam data.
+        REFLECTED_BEAM (int): Represents reflected beam data.
+    """
+
+    UNKNOWN = -1
+    REFLECTED_BEAM = 0
+    DIRECT_BEAM = 1
+
+    @classmethod
+    def from_workspace(cls, input_workspace):
+        ws = api.mtd[str(input_workspace)]
+        run_object = ws.getRun()
+        try:
+            value = cls.DIRECT_BEAM if (run_object.getProperty("data_type").value[0] == 1) else cls.REFLECTED_BEAM
+        except Exception:  # noqa E722
+            value = cls.REFLECTED_BEAM  # no entry "data_type", assume it's a reflected beam
+        return value
+
+    @classmethod
+    def from_value(cls, value):
+        """
+        Returns the DataType enum from a given value
+        """
+        if value == 1:
+            return cls.DIRECT_BEAM
+        elif value == -1:
+            return cls.UNKNOWN
+        else:
+            return cls.REFLECTED_BEAM  # same behavior as from_workspace
+
+    def __str__(self):
+        return self.name
 
 
 class DataInfo:
