@@ -55,21 +55,6 @@ class TestReduction:
         processor.ana_veto = ""
         processor.reduce()
         # assert reduction files have been produced
-
-        # DEBUG:
-        # PRESENT
-        # REF_M_28142_Off_Off_autoreduce.dat
-        # REF_M_28142_On_Off_autoreduce.dat
-        # REF_M_28142_On_On_autoreduce.dat
-        # REF_M_28142_partial.py
-        #
-        # MISSING
-        # REF_M_28142_Off_Off_combined.dat
-        # REF_M_28142_On_Off_combined.dat
-        # REF_M_28142_On_On_combined.dat
-        # REF_M_28142_combined.py
-        # REF_M_28142_tunable_combined.py
-
         for file in [
             "REF_M_28142_Off_Off_autoreduce.dat",
             "REF_M_28142_Off_Off_combined.dat",
