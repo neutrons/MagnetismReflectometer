@@ -268,7 +268,7 @@ class Fitter:
         # Prepare data to fit
         self.n_x = int(self.workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
         self.n_y = int(self.workspace.getInstrument().getNumberParameter("number-of-y-pixels")[0])
-        self.dirpix = self.workspace.getRun()["DIRPIX"].value[0]
+        self.dirpix = SampleLogs(self.workspace)["DIRPIX"]
 
         _integrated = api.Integration(InputWorkspace=self.workspace)
         signal = _integrated.extractY()

@@ -2,10 +2,15 @@
 Polarization testing code, originally from Tim C.
 """
 
+# standard imports
 import sys
 
+# third party imports
 import mantid
 import mantid.simpleapi as api
+
+# mr_reduction imports
+from mr_reduction.simple_utils import SampleLogs
 
 
 def filter_GetDI(ws):
@@ -121,7 +126,7 @@ def extract_roi(workspace, step="0.01", roi=[162, 175, 112, 145]):
     :param list roi: [x_min, x_max, y_min, y_max] pixels
     """
     _workspace = str(workspace)
-    if mantid.mtd[_workspace].getRun()["gd_prtn_chrg"].value > 0:
+    if SampleLogs(workspace)["gd_prtn_chrg"] > 0:
         api.NormaliseByCurrent(InputWorkspace=_workspace, OutputWorkspace=_workspace)
     api.ConvertUnits(InputWorkspace=_workspace, Target="Wavelength", OutputWorkspace=_workspace)
     api.Rebin(InputWorkspace=_workspace, Params=step, OutputWorkspace=_workspace)
