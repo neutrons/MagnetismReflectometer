@@ -1,5 +1,4 @@
 # third party imports
-import mantid
 import pytest
 from mantid.simpleapi import CreateWorkspace, DeleteWorkspace, mtd
 
