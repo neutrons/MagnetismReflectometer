@@ -18,6 +18,7 @@ from requests import Response
 
 # mr_reduction imports
 from mr_reduction.data_info import DataType
+from mr_reduction.simple_utils import SampleLogs
 
 
 def upload_html_report(html_report, publish=True, run_number=None, report_file=None) -> Optional[Response]:
@@ -191,7 +192,7 @@ class Report:
         self.direct_info = direct_info
         self.logfile = logfile
         try:
-            self.cross_section = workspace.getRun().getProperty("cross_section_id").value
+            self.cross_section = SampleLogs(workspace)["cross_section_id"]
             self.number_events = workspace.getNumberEvents()
         except:  # noqa E722
             self.number_events = 0
@@ -241,8 +242,7 @@ class Report:
         meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
 
         if workspace:
-            run_object = workspace.getRun()
-            p_charge = run_object["gd_prtn_chrg"].value
+            p_charge = SampleLogs(workspace)["gd_prtn_chrg"]
             meta += "<tr><td>p-charge [uAh]:</td><td>%6.4g</td></tr>" % p_charge
         meta += "</table>\n<p>\n"
         return meta
@@ -302,21 +302,20 @@ class Report:
             meta += "</table>\n<p>\n"
             return meta
 
-        run_object = workspace.getRun()
-        constant_q_binning = run_object["constant_q_binning"].value
-        sangle = run_object["SANGLE"].getStatistics().mean
-        dangle = run_object["DANGLE"].getStatistics().mean
-        lambda_min = run_object["lambda_min"].value
-        lambda_max = run_object["lambda_max"].value
-        theta = run_object["two_theta"].value / 2
-        direct_beam = run_object["normalization_run"].value
-
-        dangle0 = run_object["DANGLE0"].getStatistics().mean
-        dirpix = run_object["DIRPIX"].getStatistics().mean
+        sample_logs = SampleLogs(workspace)
+        constant_q_binning = sample_logs["constant_q_binning"]
+        sangle = sample_logs.mean("SANGLE")
+        dangle = sample_logs.mean("DANGLE")
+        lambda_min = sample_logs["lambda_min"]
+        lambda_max = sample_logs["lambda_max"]
+        theta = sample_logs["two_theta"] / 2
+        direct_beam = sample_logs["normalization_run"]
+        dangle0 = sample_logs.mean("DANGLE0")
+        dirpix = sample_logs.mean("DIRPIX")
 
         meta = "<table style='width:80%'>"
         meta += "<tr><td>Run:</td><td><b>%s</b> </td></td><td><b>Direct beam: %s</b></td></tr>" % (
-            int(run_object["run_number"].value),
+            int(sample_logs["run_number"]),
             direct_beam,
         )
         meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
@@ -399,7 +398,7 @@ class Report:
         """
         if workspace is None:
             return ""
-        cross_section = workspace.getRun().getProperty("cross_section_id").value
+        cross_section = SampleLogs(workspace)["cross_section_id"]
         script = "# Run:%s    Cross-section: %s\n" % (self.data_info.run_number, cross_section)
         if workspace is not None:
             script_text = GeneratePythonScript(workspace)
@@ -414,7 +413,7 @@ class Report:
         Generate diagnostics plots
         """
         self.log("  - generating plots [%s]" % self.number_events)
-        cross_section = workspace.getRun().getProperty("cross_section_id").value
+        cross_section = SampleLogs(workspace)["cross_section_id"]
         if self.number_events < 10:
             logger.notice("No events for workspace %s" % str(workspace))
             return []

@@ -45,7 +45,7 @@ class TestReduction:
         There are no other previous numbers in the runs sequence, hence files REF_M_28142_*_autoreduce.dat
         and REF_M_28142_*_combined.dat are basically one and the same
         """
-        # mock_filesystem.DirectBeamFinder.return_value.search.return_value = None
+        mock_filesystem.DirectBeamFinder.return_value.search.return_value = None
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_28142.nxs.h5"), output_dir=mock_filesystem.tempdir
         )

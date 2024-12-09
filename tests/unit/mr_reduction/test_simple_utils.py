@@ -32,7 +32,7 @@ class TestSampleLogs:
         DeleteWorkspace(cls.workspace)
 
     def test_initialization(self):
-        return SampleLogs(self.workspace)
+        assert SampleLogs(self.workspace)
 
     def test_contains_property(self):
         sample_logs = SampleLogs(self.workspace)
