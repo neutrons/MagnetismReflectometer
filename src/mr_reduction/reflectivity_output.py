@@ -21,6 +21,10 @@ from mr_reduction.types import MantidWorkspace
 
 @dataclass
 class DirectBeamOptions:
+    """
+    Dataclass storing information about the direct beam run, later to be saved to file.
+    """
+
     DB_ID: int
     P0: int
     PN: int
