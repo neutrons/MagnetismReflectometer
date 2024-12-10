@@ -20,6 +20,7 @@ import pandas
 import pytz
 
 # mr_reduction iports
+import mr_reduction
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script, write_tunable_reduction_script
 from mr_reduction.settings import ar_out_dir, nexus_data_dir
@@ -513,7 +514,7 @@ def write_reflectivity_cross_section(
         output_dir = ar_out_dir(ipts)
     file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runpeak, cross_section))
     with open(file_path, "w") as fd:
-        fd.write("# Datafile created by QuickNXS 1.0.32\n")
+        fd.write(f"# Datafile created by mr_reduction {mr_reduction.__version__}\n")
         fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
         fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
         fd.write("# Type: Specular\n")

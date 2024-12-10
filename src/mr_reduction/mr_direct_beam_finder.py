@@ -3,17 +3,19 @@
 Find a suitable direct beam file for a data set.
 """
 
-from __future__ import absolute_import, division, print_function
-
+# standard library imports
 import json
 import logging
 import math
+import os
 import sys
 
-from mantid.simpleapi import *
+# third party imports
+from mantid.simpleapi import LoadEventNexus, MRGetTheta
 
-from .data_info import DataInfo
-from .settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
+# mr_reduction imports
+from mr_reduction.data_info import DataInfo, DataType
+from mr_reduction.settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
 
 
 class DirectBeamFinder:
@@ -125,16 +127,16 @@ class DirectBeamFinder:
                             peak_pos = direct_beam_pix
 
                         theta_d = MRGetTheta(ws, SpecularPixel=peak_pos, UseSANGLE=False) * 180.0 / math.pi
-                        data_type = -1
+                        data_type = DataType.UNKNOWN
                         try:
-                            data_type = int(ws.getRun().getProperty("data_type").value[0])
-                            if data_type == 1:
-                                theta_d = 0
+                            data_type = DataType.from_workspace(ws)
+                            if data_type == DataType.DIRECT_BEAM:
+                                theta_d = 0  # scattering angle two-theta is zero for direct beam
                         except:  # noqa E722
-                            logging.info("Not data type information")
+                            logging.info("No data type information in the Sample logs")
 
                         meta_data = dict(
-                            data_type=data_type,
+                            data_type=data_type.value,
                             theta_d=theta_d,
                             run=run_number,
                             wl=wl,
@@ -147,7 +149,7 @@ class DirectBeamFinder:
                         fd = open(summary_path, "w")
                         fd.write(json.dumps(meta_data))
                         fd.close()
-                        if data_info is not None and data_info.data_type == 0:
+                        if (data_info is not None) and (data_info.data_type == DataType.DIRECT_BEAM):
                             standard_path = os.path.join(self.db_dir, item + ".json")
                             fd = open(standard_path, "w")
                             fd.write(json.dumps(meta_data))
@@ -175,9 +177,9 @@ class DirectBeamFinder:
             if not self.allow_later_runs and run_number > self.run:
                 continue
 
-            data_type = meta_data["data_type"] if "data_type" in meta_data else -1
+            data_type = DataType.from_value(meta_data["data_type"]) if "data_type" in meta_data else DataType.UNKNOWN
             # Data type = 1 is for direct beams
-            if run_number == self.run or not data_type == 1:
+            if (run_number == self.run) or (data_type != DataType.DIRECT_BEAM):
                 continue
 
             wl = meta_data["wl"]
