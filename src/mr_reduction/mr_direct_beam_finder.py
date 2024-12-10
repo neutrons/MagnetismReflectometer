@@ -16,6 +16,7 @@ from mantid.simpleapi import LoadEventNexus, MRGetTheta
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
 from mr_reduction.settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
+from mr_reduction.simple_utils import SampleLogs
 
 
 class DirectBeamFinder:
@@ -36,15 +37,16 @@ class DirectBeamFinder:
         self.tolerance = tolerance
         self.skip_slits = skip_slits
         self.allow_later_runs = allow_later_runs
-        self.wl = scatt_ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-        if "BL4A:Mot:S1:X:Gap" in scatt_ws.getRun():
-            self.s1 = scatt_ws.getRun()["BL4A:Mot:S1:X:Gap"].getStatistics().mean
-            self.s2 = scatt_ws.getRun()["BL4A:Mot:S2:X:Gap"].getStatistics().mean
-            self.s3 = scatt_ws.getRun()["BL4A:Mot:S3:X:Gap"].getStatistics().mean
+        sample_logs = SampleLogs(scatt_ws)
+        self.wl = sample_logs.mean("LambdaRequest")
+        if "BL4A:Mot:S1:X:Gap" in sample_logs:
+            self.s1 = sample_logs.mean("BL4A:Mot:S1:X:Gap")
+            self.s2 = sample_logs.mean("BL4A:Mot:S2:X:Gap")
+            self.s3 = sample_logs.mean("BL4A:Mot:S3:X:Gap")
         else:
-            self.s1 = scatt_ws.getRun()["S1HWidth"].getStatistics().mean
-            self.s2 = scatt_ws.getRun()["S2HWidth"].getStatistics().mean
-            self.s3 = scatt_ws.getRun()["S3HWidth"].getStatistics().mean
+            self.s1 = sample_logs.mean("S1HWidth")
+            self.s2 = sample_logs.mean("S2HWidth")
+            self.s3 = sample_logs.mean("S3HWidth")
         self.run = int(scatt_ws.getRunNumber())
 
     def search(self, skip_slits=False, allow_later_runs=False):
@@ -104,19 +106,20 @@ class DirectBeamFinder:
 
                     try:
                         run_number = int(ws.getRunNumber())
-                        sangle = ws.getRun().getProperty("SANGLE").getStatistics().mean
-                        dangle = ws.getRun().getProperty("DANGLE").getStatistics().mean
-                        direct_beam_pix = ws.getRun().getProperty("DIRPIX").getStatistics().mean
+                        sample_logs = SampleLogs(ws)
+                        sangle = sample_logs.mean("SANGLE")
+                        dangle = sample_logs.mean("DANGLE")
+                        direct_beam_pix = sample_logs.mean("DIRPIX")
 
-                        wl = ws.getRun().getProperty("LambdaRequest").getStatistics().mean
-                        if "BL4A:Mot:S1:X:Gap" in ws.getRun():
-                            s1 = ws.getRun()["BL4A:Mot:S1:X:Gap"].getStatistics().mean
-                            s2 = ws.getRun()["BL4A:Mot:S2:X:Gap"].getStatistics().mean
-                            s3 = ws.getRun()["BL4A:Mot:S3:X:Gap"].getStatistics().mean
+                        wl = sample_logs.mean("LambdaRequest")
+                        if "BL4A:Mot:S1:X:Gap" in sample_logs:
+                            s1 = sample_logs.mean("BL4A:Mot:S1:X:Gap")
+                            s2 = sample_logs.mean("BL4A:Mot:S2:X:Gap")
+                            s3 = sample_logs.mean("BL4A:Mot:S3:X:Gap")
                         else:
-                            s1 = ws.getRun()["S1HWidth"].getStatistics().mean
-                            s2 = ws.getRun()["S2HWidth"].getStatistics().mean
-                            s3 = ws.getRun()["S3HWidth"].getStatistics().mean
+                            s1 = sample_logs.mean("S1HWidth")
+                            s2 = sample_logs.mean("S2HWidth")
+                            s3 = sample_logs.mean("S3HWidth")
                         try:
                             data_info = DataInfo(ws, entry)
                             peak_pos = (

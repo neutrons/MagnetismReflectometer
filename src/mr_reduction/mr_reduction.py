@@ -33,6 +33,7 @@ from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO, ar_out_dir
+from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
@@ -178,9 +179,9 @@ class ReductionProcess:
             if n_events > n_max_events:
                 n_max_events = n_events
                 i_main = i
-
-        self.ipts = xs_list[i_main].getRun().getProperty("experiment_identifier").value
-        entry = xs_list[i_main].getRun().getProperty("cross_section_id").value
+        sample_logs = SampleLogs(xs_list[i_main])
+        self.ipts = sample_logs["experiment_identifier"]
+        entry = sample_logs["cross_section_id"]
         data_info = DataInfo(
             xs_list[i_main],
             entry,
@@ -238,7 +239,7 @@ class ReductionProcess:
                     LogBoundary="Left",
                     OutputWorkspace="%s_%s" % (ws.getRunNumber(), pol_state),
                 )
-                _ws.getRun()["cross_section_id"] = pol_state
+                _ws.getRun()["cross_section_id"] = pol_state  # add new entry or assign to entry
                 if _ws.getNumberEvents() > 0:
                     cross_sections.append(_ws)
             except:  # noqa E722
@@ -273,11 +274,11 @@ class ReductionProcess:
             # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
             for ws in _xs_list:
                 if "cross_section_id" not in ws.getRun():
-                    ws.getRun()["cross_section_id"] = "Off_Off"
+                    ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
         xs_list = [
             ws
             for ws in _xs_list
-            if not ws.getRun()["cross_section_id"].value == "unfiltered" and ws.getNumberEvents() > 0
+            if not SampleLogs(ws)["cross_section_id"] == "unfiltered" and ws.getNumberEvents() > 0
         ]
 
         # Reduce each cross-section
@@ -338,8 +339,9 @@ class ReductionProcess:
 
         # Find reflectivity peak of scattering run
         ws = xs_list[0]
-        entry = ws.getRun().getProperty("cross_section_id").value
-        self.ipts = ws.getRun().getProperty("experiment_identifier").value
+        sample_logs = SampleLogs(ws)
+        entry = sample_logs["cross_section_id"]
+        self.ipts = sample_logs["experiment_identifier"]
 
         # combine run and peak number when the run contains more than one peak
         runpeak = RunPeakNumber(self.run_number, self.peak_number)
@@ -400,7 +402,7 @@ class ReductionProcess:
                 if str(ws).endswith("unfiltered"):
                     continue
                 self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
-                entry = ws.getRun().getProperty("cross_section_id").value
+                entry = SampleLogs(ws)["cross_section_id"]
                 reflectivity = mtd["%s__reflectivity" % str(ws)]
                 report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
                 report_list.append(report)
@@ -433,7 +435,7 @@ class ReductionProcess:
         :param workspace scatt_ws: scattering workspace we are trying to match
         """
         run_number = scatt_ws.getRunNumber()
-        entry = scatt_ws.getRun().getProperty("cross_section_id").value
+        entry = SampleLogs(scatt_ws)["cross_section_id"]
         db_finder = DirectBeamFinder(scatt_ws, skip_slits=False, tolerance=self.tolerance, experiment=self.ipts)
         norm_run = db_finder.search()
         if norm_run is None:

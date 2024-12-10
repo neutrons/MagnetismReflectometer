@@ -12,6 +12,7 @@ import mantid
 
 # mr_reduction imports
 from mr_reduction.runpeak import RunPeakNumber
+from mr_reduction.simple_utils import SampleLogs
 
 
 def write_reflectivity(ws_list, output_path, cross_section):
@@ -72,18 +73,18 @@ def write_reflectivity(ws_list, output_path, cross_section):
     i_direct_beam = 0
     for ws in ws_list:
         i_direct_beam += 1
-        run_object = ws.getRun()
-        normalization_run = run_object.getProperty("normalization_run").value
+        sample_logs = SampleLogs(ws)
+        normalization_run = sample_logs["normalization_run"]
         if normalization_run == "None":
             continue
-        peak_min = run_object.getProperty("norm_peak_min").value
-        peak_max = run_object.getProperty("norm_peak_max").value
-        bg_min = run_object.getProperty("norm_bg_min").value
-        bg_max = run_object.getProperty("norm_bg_max").value
-        low_res_min = run_object.getProperty("norm_low_res_min").value
-        low_res_max = run_object.getProperty("norm_low_res_max").value
-        dpix = run_object.getProperty("normalization_dirpix").value
-        filename = run_object.getProperty("normalization_file_path").value
+        peak_min = sample_logs["norm_peak_min"]
+        peak_max = sample_logs["norm_peak_max"]
+        bg_min = sample_logs["norm_bg_min"]
+        bg_max = sample_logs["norm_bg_max"]
+        low_res_min = sample_logs["norm_low_res_min"]
+        low_res_max = sample_logs["norm_low_res_max"]
+        dpix = sample_logs["normalization_dirpix"]
+        filename = sample_logs["normalization_file_path"]
         # In order to make the file loadable by QuickNXS, we have to change the
         # file name to the re-processed and legacy-compatible files.
         # The new QuickNXS can load both.
@@ -128,17 +129,17 @@ def write_reflectivity(ws_list, output_path, cross_section):
     for ws in ws_list:
         i_direct_beam += 1
 
-        run_object = ws.getRun()
-        peak_min = run_object.getProperty("scatt_peak_min").value
-        peak_max = run_object.getProperty("scatt_peak_max").value
-        bg_min = run_object.getProperty("scatt_bg_min").value
-        bg_max = run_object.getProperty("scatt_bg_max").value
-        low_res_min = run_object.getProperty("scatt_low_res_min").value
-        low_res_max = run_object.getProperty("scatt_low_res_max").value
-        dpix = run_object.getProperty("DIRPIX").getStatistics().mean
+        sample_logs = SampleLogs(ws)
+        peak_min = sample_logs["scatt_peak_min"]
+        peak_max = sample_logs["scatt_peak_max"]
+        bg_min = sample_logs["scatt_bg_min"]
+        bg_max = sample_logs["scatt_bg_max"]
+        low_res_min = sample_logs["scatt_low_res_min"]
+        low_res_max = sample_logs["scatt_low_res_max"]
+        dpix = sample_logs.mean("DIRPIX")
         # For live data, we might not have a file name
-        if "Filename" in run_object:
-            filename = run_object.getProperty("Filename").value
+        if "Filename" in sample_logs:
+            filename = sample_logs["Filename"]
             # In order to make the file loadable by QuickNXS, we have to change the
             # file name to the re-processed and legacy-compatible files.
             # The new QuickNXS can load both.
@@ -147,22 +148,18 @@ def write_reflectivity(ws_list, output_path, cross_section):
                 filename = filename.replace(".nxs.h5", "_histo.nxs")
         else:
             filename = "live data"
-        constant_q_binning = run_object.getProperty("constant_q_binning").value
-        scatt_pos = run_object.getProperty("specular_pixel").value
-        # norm_x_min = run_object.getProperty("norm_peak_min").value
-        # norm_x_max = run_object.getProperty("norm_peak_max").value
-        # norm_y_min = run_object.getProperty("norm_low_res_min").value
-        # norm_y_max = run_object.getProperty("norm_low_res_max").value
+        constant_q_binning = sample_logs["constant_q_binning"]
+        scatt_pos = sample_logs["specular_pixel"]
 
         # For some reason, the tth value that QuickNXS expects is offset.
         # It seems to be because that same offset is applied later in the QuickNXS calculation.
         # Correct tth here so that it can load properly in QuickNXS and produce the same result.
-        tth = run_object.getProperty("two_theta").value
-        det_distance = run_object["SampleDetDis"].getStatistics().mean
+        tth = sample_logs["two_theta"]
+        det_distance = sample_logs.mean("SampleDetDis")
         # Check units
-        if run_object["SampleDetDis"].units not in ["m", "meter"]:
+        if sample_logs.property("SampleDetDis").units not in ["m", "meter"]:
             det_distance /= 1000.0
-        direct_beam_pix = run_object["DIRPIX"].getStatistics().mean
+        direct_beam_pix = sample_logs.mean("DIRPIX")
 
         # Get pixel size from instrument properties
         if ws.getInstrument().hasParameter("pixel-width"):
@@ -203,7 +200,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
         y = ws.readY(0)
         dy = ws.readE(0)
         dx = ws.readDx(0)
-        tth = ws.getRun().getProperty("two_theta").value * math.pi / 360.0
+        tth = sample_logs["two_theta"] * math.pi / 360.0
         quicknxs_scale = quicknxs_scaling_factor(ws)
         for i in range(len(x)):
             data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
@@ -221,12 +218,13 @@ def write_reflectivity(ws_list, output_path, cross_section):
     fd.write("# sample_length  10\n")
     fd.write("#\n")
     fd.write("# [Sequence]\n")
-    if run_object.hasProperty("sequence_id"):
-        fd.write("# sequence_id %s\n" % run_object.getProperty("sequence_id").value[0])
-    if run_object.hasProperty("sequence_number"):
-        fd.write("# sequence_number %s\n" % run_object.getProperty("sequence_number").value[0])
-    if run_object.hasProperty("sequence_total"):
-        fd.write("# sequence_total %s\n" % run_object.getProperty("sequence_total").value[0])
+    sample_logs = SampleLogs(ws_list[-1])  # sample logs of the last workspace
+    if "sequence_id" in sample_logs:
+        fd.write("# sequence_id %s\n" % sample_logs["sequence_id"])
+    if "sequence_number" in sample_logs:
+        fd.write("# sequence_number %s\n" % sample_logs["sequence_number"])
+    if "sequence_total" in sample_logs:
+        fd.write("# sequence_total %s\n" % sample_logs["sequence_total"])
     fd.write("#\n")
     fd.write("# [Data]\n")
     toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
@@ -238,16 +236,16 @@ def write_reflectivity(ws_list, output_path, cross_section):
 
 def quicknxs_scaling_factor(ws) -> float:
     """FOR COMPATIBILITY WITH QUICKNXS"""
-    run_object = ws.getRun()
-    peak_min = run_object.getProperty("scatt_peak_min").value
-    peak_max = run_object.getProperty("scatt_peak_max").value + 1.0
-    low_res_min = run_object.getProperty("scatt_low_res_min").value
-    low_res_max = run_object.getProperty("scatt_low_res_max").value + 1.0
-    norm_x_min = run_object.getProperty("norm_peak_min").value
-    norm_x_max = run_object.getProperty("norm_peak_max").value + 1.0
-    norm_y_min = run_object.getProperty("norm_low_res_min").value
-    norm_y_max = run_object.getProperty("norm_low_res_max").value + 1.0
-    tth = run_object.getProperty("two_theta").value * math.pi / 360.0
+    sample_logs = SampleLogs(ws)
+    peak_min = sample_logs["scatt_peak_min"]
+    peak_max = sample_logs["scatt_peak_max"] + 1.0
+    low_res_min = sample_logs["scatt_low_res_min"]
+    low_res_max = sample_logs["scatt_low_res_max"] + 1.0
+    norm_x_min = sample_logs["norm_peak_min"]
+    norm_x_max = sample_logs["norm_peak_max"] + 1.0
+    norm_y_min = sample_logs["norm_low_res_min"]
+    norm_y_max = sample_logs["norm_low_res_max"] + 1.0
+    tth = sample_logs["two_theta"] * math.pi / 360.0
     quicknxs_scale = (float(norm_x_max) - float(norm_x_min)) * (float(norm_y_max) - float(norm_y_min))
     quicknxs_scale /= (float(peak_max) - float(peak_min)) * (float(low_res_max) - float(low_res_min))
     _scale = 0.005 / math.sin(tth) if tth > 0.0002 else 1.0
