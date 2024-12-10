@@ -13,6 +13,7 @@ from typing import List, Optional
 import mantid
 
 # mr_reduction imports
+import mr_reduction
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.types import MantidWorkspace
@@ -113,21 +114,33 @@ def write_reflectivity(ws_list, output_path, cross_section):
     if not ws_list:
         return
 
-    direct_beam_options = [
-        "DB_ID",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "dpix",
-        "tth",
-        "number",
-        "File",
-    ]
+    fd = open(output_path, "w")
+
+    #
+    # Write header
+    #
+    peak_number = RunPeakNumber.peak_number_log(ws_list[0])
+    runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
+    fd.write(f"""# Datafile created by mr_reduction {mr_reduction.__version__}
+# Datafile created by Mantid {mantid.__version__}
+# Autoreduced
+# Date: {time.strftime("%Y-%m-%d %H:%M:%S")}
+# Type: Specular
+# Input file indices: {','.join(runpeak_list)}
+# Extracted states: {cross_section}
+#
+""")
+
+    #
+    # Write direct beam options
+    #
+    fd.write(DirectBeamOptions.dat_header())
+    for i_direct_beam, ws in enumerate(ws_list, start=1):
+        direct_beam_options = DirectBeamOptions.from_workspace(ws, i_direct_beam)
+        if direct_beam_options is not None:
+            fd.write(direct_beam_options.as_dat)
+
+    # Scattering data
     dataset_options = [
         "scale",
         "P0",
@@ -146,71 +159,6 @@ def write_reflectivity(ws_list, output_path, cross_section):
         "File",
     ]
 
-    fd = open(output_path, "w")
-    fd.write("# Datafile created by QuickNXS 2.0.0\n")
-    fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
-    fd.write("# Autoreduced\n")
-    fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-    fd.write("# Type: Specular\n")
-    peak_number = RunPeakNumber.peak_number_log(ws_list[0])
-    runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
-    fd.write(f"# Input file indices: {','.join(runpeak_list)}\n")
-    fd.write("# Extracted states: %s\n" % cross_section)
-    fd.write("#\n")
-    fd.write("# [Direct Beam Runs]\n")
-    toks = ["%8s" % item for item in direct_beam_options]
-    fd.write("# %s\n" % "  ".join(toks))
-
-    # Direct beam section
-    i_direct_beam = 0
-    for ws in ws_list:
-        i_direct_beam += 1
-        sample_logs = SampleLogs(ws)
-        normalization_run = sample_logs["normalization_run"]
-        if normalization_run == "None":
-            continue
-        peak_min = sample_logs["norm_peak_min"]
-        peak_max = sample_logs["norm_peak_max"]
-        bg_min = sample_logs["norm_bg_min"]
-        bg_max = sample_logs["norm_bg_max"]
-        low_res_min = sample_logs["norm_low_res_min"]
-        low_res_max = sample_logs["norm_low_res_max"]
-        dpix = sample_logs["normalization_dirpix"]
-        filename = sample_logs["normalization_file_path"]
-        # In order to make the file loadable by QuickNXS, we have to change the
-        # file name to the re-processed and legacy-compatible files.
-        # The new QuickNXS can load both.
-        if filename.endswith("nxs.h5"):
-            filename = filename.replace("nexus", "data")
-            filename = filename.replace(".nxs.h5", "_histo.nxs")
-
-        item = dict(
-            DB_ID=i_direct_beam,
-            tth=0,
-            P0=0,
-            PN=0,
-            x_pos=(peak_min + peak_max) / 2.0,
-            x_width=peak_max - peak_min + 1,
-            y_pos=(low_res_max + low_res_min) / 2.0,
-            y_width=low_res_max - low_res_min + 1,
-            bg_pos=(bg_min + bg_max) / 2.0,
-            bg_width=bg_max - bg_min + 1,
-            dpix=dpix,
-            number=normalization_run,
-            File=filename,
-        )
-
-        par_list = ["{%s}" % p for p in direct_beam_options]
-        template = "# %s\n" % "  ".join(par_list)
-        _clean_dict = {}
-        for key in item:
-            if isinstance(item[key], (bool, str)):
-                _clean_dict[key] = "%8s" % item[key]
-            else:
-                _clean_dict[key] = "%8g" % item[key]
-        fd.write(template.format(**_clean_dict))
-
-    # Scattering data
     fd.write("#\n")
     fd.write("# [Data Runs]\n")
     toks = ["%8s" % item for item in dataset_options]
