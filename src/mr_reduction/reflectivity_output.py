@@ -6,6 +6,8 @@ Write reflectivity output file
 # standard imports
 import math
 import time
+from dataclasses import dataclass
+from typing import List, Optional
 
 # third party imports
 import mantid
@@ -13,6 +15,96 @@ import mantid
 # mr_reduction imports
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.types import MantidWorkspace
+
+
+@dataclass
+class DirectBeamOptions:
+    DB_ID: int
+    P0: int
+    PN: int
+    x_pos: float  # peak center
+    x_width: float  # peak width
+    y_pos: float
+    y_width: float
+    bg_pos: float
+    bg_width: float
+    dpix: float  # sample log entry "normalization_dirpix"
+    tth: float  # scattered angle two-theta
+    number: int  # run number
+    File: str  # normalization run in the re-processed and legacy-compatible, readable by QuickNXS
+
+    @staticmethod
+    def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> Optional["DirectBeamOptions"]:
+        """Create an instance of DirectBeamOptions from a workspace.
+
+        Parameters
+        ----------
+        input_workspace : MantidWorkspace
+            The Mantid workspace from which to create the DirectBeamOptions instance.
+        direct_beam_counter : int, optional
+            The counter for the direct beam, by default 1.
+        """
+        sample_logs = SampleLogs(input_workspace)
+
+        normalization_run = sample_logs["normalization_run"]
+        if normalization_run == "None":
+            return None
+
+        peak_min = sample_logs["norm_peak_min"]
+        peak_max = sample_logs["norm_peak_max"]
+        bg_min = sample_logs["norm_bg_min"]
+        bg_max = sample_logs["norm_bg_max"]
+        low_res_min = sample_logs["norm_low_res_min"]
+        low_res_max = sample_logs["norm_low_res_max"]
+        dpix = sample_logs["normalization_dirpix"]
+        filename = sample_logs["normalization_file_path"]
+        # In order to make the file loadable by QuickNXS, we have to change the
+        # file name to the re-processed and legacy-compatible files.
+        # The new QuickNXS can load both.
+        if filename.endswith("nxs.h5"):
+            filename = filename.replace("nexus", "data")
+            filename = filename.replace(".nxs.h5", "_histo.nxs")
+
+        return DirectBeamOptions(
+            DB_ID=direct_beam_counter,
+            P0=0,
+            PN=0,
+            x_pos=(peak_min + peak_max) / 2.0,
+            x_width=peak_max - peak_min + 1,
+            y_pos=(low_res_max + low_res_min) / 2.0,
+            y_width=low_res_max - low_res_min + 1,
+            bg_pos=(bg_min + bg_max) / 2.0,
+            bg_width=bg_max - bg_min + 1,
+            dpix=dpix,
+            tth=0,
+            number=normalization_run,
+            File=filename,
+        )
+
+    @classmethod
+    def dat_header(cls) -> str:
+        """Header for the direct beam options in the *_autoreduced.dat file"""
+        return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % field for field in cls.__dataclass_fields__])
+
+    @property
+    def options(self) -> List[str]:
+        """List of option names"""
+        return self.__dataclass_fields__
+
+    @property
+    def as_dat(self) -> str:
+        """ "Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
+        clean_dict = {}
+        for option in self.options:
+            value = getattr(self, option)
+            if isinstance(value, (bool, str)):
+                clean_dict[option] = "%8s" % value
+            else:
+                clean_dict[option] = "%8g" % value
+
+        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.options])
+        return template.format(**clean_dict)
 
 
 def write_reflectivity(ws_list, output_path, cross_section):
