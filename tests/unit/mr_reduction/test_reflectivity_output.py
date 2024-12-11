@@ -28,7 +28,7 @@ import pytest
 from mantid.simpleapi import AddSampleLog, CreateWorkspace, DeleteWorkspace, LoadNexus, mtd
 
 # mr_reduction imports
-from mr_reduction.reflectivity_output import DirectBeamOptions, write_reflectivity
+from mr_reduction.reflectivity_output import DirectBeamOptions, ReflectedBeamOptions, write_reflectivity
 
 
 @pytest.fixture(scope="module")
@@ -46,6 +46,18 @@ def mock_normalization_workspace():
         ("norm_low_res_max", 2, "Number"),
         ("normalization_dirpix", 0.5, "Number"),
         ("normalization_file_path", "path/to/nexus_file.nxs.h5", "String"),
+    ]:
+        AddSampleLog(workspace, LogName=name, LogText=str(value), LogType=logType)
+    yield workspace
+    DeleteWorkspace(workspace)  # teardown steps after all tests in this module have run
+
+
+@pytest.fixture(scope="module")
+def mock_reflected_workspace():
+    workspace = mtd.unique_hidden_name()
+    CreateWorkspace(DataX=[0, 1], DataY=[0, 10], OutputWorkspace=workspace)
+    for name, value, logType in [
+        ("Filename", "path/to/nexus_file.nxs.h5", "String"),
     ]:
         AddSampleLog(workspace, LogName=name, LogText=str(value), LogType=logType)
     yield workspace
@@ -70,6 +82,30 @@ class TestDirectBeamOptions:
             options.as_dat == "#        1         0         0        15        11       1.5         2        10"
             "        11       0.5         0     12345  path/to/data_file_histo.nxs\n"
         )
+
+
+class TestReflectedBeamOptions:
+    def test_dat_header(self):
+        header = ReflectedBeamOptions.dat_header()
+        assert header.startswith("# [Data Runs]\n")
+
+    def test_filename(self, mock_reflected_workspace):
+        assert ReflectedBeamOptions.filename(mock_reflected_workspace) == "path/to/data_file_histo.nxs"
+        ws = CreateWorkspace(DataX=[0, 1], DataY=[0, 10], OutputWorkspace=mtd.unique_hidden_name())
+        assert ReflectedBeamOptions.filename(ws) == "live data"
+        DeleteWorkspace(ws)
+
+    def test_two_theta_offset(self, mock_reflected_workspace):
+        pass
+
+    def test_from_workspace(self):
+        pass
+
+    def test_options(self):
+        pass
+
+    def test_as_dat(self):
+        pass
 
 
 @pytest.mark.datarepo()
