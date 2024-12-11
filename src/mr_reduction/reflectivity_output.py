@@ -40,6 +40,25 @@ class DirectBeamOptions:
     File: str  # normalization run in the re-processed and legacy-compatible, readable by QuickNXS
 
     @staticmethod
+    def option_names() -> List[str]:
+        """List of option names in the order expected for a QuickNXS output file"""
+        return [
+            "DB_ID",
+            "P0",
+            "PN",
+            "x_pos",
+            "x_width",
+            "y_pos",
+            "y_width",
+            "bg_pos",
+            "bg_width",
+            "dpix",
+            "tth",
+            "number",
+            "File",
+        ]
+
+    @staticmethod
     def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> Optional["DirectBeamOptions"]:
         """Create an instance of DirectBeamOptions from a workspace.
 
@@ -93,22 +112,17 @@ class DirectBeamOptions:
         return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % field for field in cls.__dataclass_fields__])
 
     @property
-    def options(self) -> List[str]:
-        """List of option names"""
-        return self.__dataclass_fields__
-
-    @property
     def as_dat(self) -> str:
         """ "Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
         clean_dict = {}
-        for option in self.options:
-            value = getattr(self, option)
+        for name in self.option_names():
+            value = getattr(self, name)
             if isinstance(value, (bool, str)):
-                clean_dict[option] = "%8s" % value
+                clean_dict[name] = "%8s" % value
             else:
-                clean_dict[option] = "%8g" % value
+                clean_dict[name] = "%8g" % value
 
-        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.options])
+        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.option_names()])
         return template.format(**clean_dict)
 
 
@@ -131,6 +145,27 @@ class ReflectedBeamOptions:
     File: str
     """two-theta offset to be applied when saving the options to a file later to be read by QuickNXS"""
     tth_offset: float = field(repr=False, default=0.0)
+
+    @staticmethod
+    def option_names() -> List[str]:
+        """List of option names, excluding the two-theta offset, in the order expected for a QuickNXS output file"""
+        return [
+            "scale",
+            "P0",
+            "PN",
+            "x_pos",
+            "x_width",
+            "y_pos",
+            "y_width",
+            "bg_pos",
+            "bg_width",
+            "fan",
+            "dpix",
+            "tth",
+            "number",
+            "DB_ID",
+            "File",
+        ]
 
     @classmethod
     def dat_header(cls) -> str:
@@ -228,24 +263,19 @@ class ReflectedBeamOptions:
         return options
 
     @property
-    def options(self) -> List[str]:
-        """List of option names, excluding the two-theta offset"""
-        return self.__dataclass_fields__
-
-    @property
     def as_dat(self) -> str:
-        """Formatted string representation of the DirectBeamOptions suitable for an *_autoreduced.dat file"""
+        """Formatted string representation of the ReflectedBeamOptions suitable for an *_autoreduced.dat file"""
         clean_dict = {}
-        for option in self.options:
-            value = getattr(self, option)
-            if option == "tth":
+        for name in self.option_names():
+            value = getattr(self, name)
+            if name == "tth":
                 value += self.tth_offset
             if isinstance(value, str):
-                clean_dict[option] = "%8s" % value
+                clean_dict[name] = "%8s" % value
             else:
-                clean_dict[option] = "%8g" % value
+                clean_dict[name] = "%8g" % value
 
-        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.options])
+        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.option_names()])
         return template.format(**clean_dict)
 
 
