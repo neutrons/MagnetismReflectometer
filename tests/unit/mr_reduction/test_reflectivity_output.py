@@ -29,6 +29,7 @@ from mantid.simpleapi import AddSampleLog, CreateWorkspace, DeleteWorkspace, Loa
 
 # mr_reduction imports
 from mr_reduction.reflectivity_output import DirectBeamOptions, ReflectedBeamOptions, write_reflectivity
+from numpy.testing import assert_almost_equal
 
 
 @pytest.fixture(scope="module")
@@ -57,9 +58,22 @@ def mock_reflected_workspace():
     workspace = mtd.unique_hidden_name()
     CreateWorkspace(DataX=[0, 1], DataY=[0, 10], OutputWorkspace=workspace)
     for name, value, logType in [
-        ("Filename", "path/to/nexus_file.nxs.h5", "String"),
+        ("Filename", "REF_M_29160.nxs.h5", "String"),
+        ("specular_pixel", 183.5, "Number"),
+        ("DIRPIX", 227.0, "Number"),
+        ("scatt_peak_min", 158, "Number"),
+        ("scatt_peak_max", 209, "Number"),
+        ("scatt_bg_min", 118, "Number"),
+        ("scatt_bg_max", 223, "Number"),
+        ("scatt_low_res_min", 51, "Number"),
+        ("scatt_low_res_max", 179, "Number"),
+        ("scatt_dirpix", 0.5, "Number"),
+        ("constant_q_binning", "False", "String"),
+        ("two_theta", 1.6903, "Number"),
+        ("run_number", 29160, "String"),
     ]:
         AddSampleLog(workspace, LogName=name, LogText=str(value), LogType=logType)
+    AddSampleLog(workspace, LogName="SampleDetDis", LogText=str(2297.0), LogType="Number", LogUnit="mm")
     yield workspace
     DeleteWorkspace(workspace)  # teardown steps after all tests in this module have run
 
@@ -90,22 +104,31 @@ class TestReflectedBeamOptions:
         assert header.startswith("# [Data Runs]\n")
 
     def test_filename(self, mock_reflected_workspace):
-        assert ReflectedBeamOptions.filename(mock_reflected_workspace) == "path/to/data_file_histo.nxs"
+        assert ReflectedBeamOptions.filename(mock_reflected_workspace) == "REF_M_29160_histo.nxs"
         ws = CreateWorkspace(DataX=[0, 1], DataY=[0, 10], OutputWorkspace=mtd.unique_hidden_name())
         assert ReflectedBeamOptions.filename(ws) == "live data"
         DeleteWorkspace(ws)
 
     def test_two_theta_offset(self, mock_reflected_workspace):
-        pass
+        assert_almost_equal(ReflectedBeamOptions.two_theta_offset(mock_reflected_workspace), -0.76, decimal=2)
 
-    def test_from_workspace(self):
-        pass
+    def test_from_workspace(self, mock_reflected_workspace):
+        options = ReflectedBeamOptions.from_workspace(mock_reflected_workspace)
+        assert options.x_width == 209 - 158 + 1
+        assert options.y_pos == (179 + 51) / 2.0
+        assert options.y_width == 179 - 51 + 1
+        assert options.bg_width == 223 - 118 + 1
+        assert options.bg_pos == (223 + 118) / 2.0
+        assert_almost_equal(options.tth_offset, -0.76, decimal=2)
+        assert options.File == "REF_M_29160_histo.nxs"
 
-    def test_options(self):
-        pass
-
-    def test_as_dat(self):
-        pass
+    def test_as_dat(self, mock_reflected_workspace):
+        options = ReflectedBeamOptions.from_workspace(mock_reflected_workspace)
+        as_dat = options.as_dat
+        assert as_dat == (
+            "#        1         0         0     183.5        52       115       129     170.5"
+            "       106     False       227  0.930763     29160         1  REF_M_29160_histo.nxs\n"
+        )
 
 
 @pytest.mark.datarepo()
