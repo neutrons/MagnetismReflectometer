@@ -14,6 +14,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the Developer:**
 
+- PR #23 Class DirectBeamOptions to reuse when saving to diferent file formats
 - PR #22 SampleLogs class to reduce boilerplate code and make the code more pythonic
 - PR #21 Enum DataType substitutes expressions involving integer values to improved understanding of the source
 - PR #16 transition from pip to conda when installing dependency finddata
