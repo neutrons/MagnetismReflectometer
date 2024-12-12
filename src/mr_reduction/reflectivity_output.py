@@ -58,6 +58,11 @@ class DirectBeamOptions:
             "File",
         ]
 
+    @classmethod
+    def dat_header(cls) -> str:
+        """Header for the direct beam options in the *_autoreduced.dat file"""
+        return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % name for name in cls.option_names()])
+
     @staticmethod
     def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> Optional["DirectBeamOptions"]:
         """Create an instance of DirectBeamOptions from a workspace.
@@ -105,11 +110,6 @@ class DirectBeamOptions:
             number=normalization_run,
             File=filename,
         )
-
-    @classmethod
-    def dat_header(cls) -> str:
-        """Header for the direct beam options in the *_autoreduced.dat file"""
-        return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % field for field in cls.__dataclass_fields__])
 
     @property
     def as_dat(self) -> str:
@@ -170,9 +170,7 @@ class ReflectedBeamOptions:
     @classmethod
     def dat_header(cls) -> str:
         """Header for the direct beam options in the *_autoreduced.dat file"""
-        options = cls.__dataclass_fields__
-        del options["tth_offset"]
-        return "# [Data Runs]\n# %s\n" % "  ".join(["%8s" % option for option in options])
+        return "# [Data Runs]\n# %s\n" % "  ".join(["%8s" % name for name in cls.option_names()])
 
     @staticmethod
     def filename(input_workspace: MantidWorkspace) -> str:
@@ -311,136 +309,50 @@ def write_reflectivity(ws_list, output_path, cross_section):
         if direct_beam_options is not None:
             fd.write(direct_beam_options.as_dat)
 
-    # Scattering data
-    dataset_options = [
-        "scale",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "fan",
-        "dpix",
-        "tth",
-        "number",
-        "DB_ID",
-        "File",
-    ]
-
+    #
+    # Write scattering options and collect scatting data for later
+    #
     fd.write("#\n")
-    fd.write("# [Data Runs]\n")
-    toks = ["%8s" % item for item in dataset_options]
-    fd.write("# %s\n" % "  ".join(toks))
-    i_direct_beam = 0
-
-    data_block = ""
-    for ws in ws_list:
-        i_direct_beam += 1
-
-        sample_logs = SampleLogs(ws)
-        peak_min = sample_logs["scatt_peak_min"]
-        peak_max = sample_logs["scatt_peak_max"]
-        bg_min = sample_logs["scatt_bg_min"]
-        bg_max = sample_logs["scatt_bg_max"]
-        low_res_min = sample_logs["scatt_low_res_min"]
-        low_res_max = sample_logs["scatt_low_res_max"]
-        dpix = sample_logs.mean("DIRPIX")
-        # For live data, we might not have a file name
-        if "Filename" in sample_logs:
-            filename = sample_logs["Filename"]
-            # In order to make the file loadable by QuickNXS, we have to change the
-            # file name to the re-processed and legacy-compatible files.
-            # The new QuickNXS can load both.
-            if filename.endswith("nxs.h5"):
-                filename = filename.replace("nexus", "data")
-                filename = filename.replace(".nxs.h5", "_histo.nxs")
-        else:
-            filename = "live data"
-        constant_q_binning = sample_logs["constant_q_binning"]
-        scatt_pos = sample_logs["specular_pixel"]
-
-        # For some reason, the tth value that QuickNXS expects is offset.
-        # It seems to be because that same offset is applied later in the QuickNXS calculation.
-        # Correct tth here so that it can load properly in QuickNXS and produce the same result.
-        tth = sample_logs["two_theta"]
-        det_distance = sample_logs.mean("SampleDetDis")
-        # Check units
-        if sample_logs.property("SampleDetDis").units not in ["m", "meter"]:
-            det_distance /= 1000.0
-        direct_beam_pix = sample_logs.mean("DIRPIX")
-
-        # Get pixel size from instrument properties
-        if ws.getInstrument().hasParameter("pixel-width"):
-            pixel_width = float(ws.getInstrument().getNumberParameter("pixel-width")[0]) / 1000.0
-        else:
-            pixel_width = 0.0007
-        tth -= ((direct_beam_pix - scatt_pos) * pixel_width) / det_distance * 180.0 / math.pi
-
-        item = dict(
-            scale=1,
-            DB_ID=i_direct_beam,
-            P0=0,
-            PN=0,
-            tth=tth,
-            fan=constant_q_binning,
-            x_pos=scatt_pos,
-            x_width=peak_max - peak_min + 1,
-            y_pos=(low_res_max + low_res_min) / 2.0,
-            y_width=low_res_max - low_res_min + 1,
-            bg_pos=(bg_min + bg_max) / 2.0,
-            bg_width=bg_max - bg_min + 1,
-            dpix=dpix,
-            number=str(ws.getRunNumber()),
-            File=filename,
-        )
-
-        par_list = ["{%s}" % p for p in dataset_options]
-        template = "# %s\n" % "  ".join(par_list)
-        _clean_dict = {}
-        for key in item:
-            if isinstance(item[key], str):
-                _clean_dict[key] = "%8s" % item[key]
-            else:
-                _clean_dict[key] = "%8g" % item[key]
-        fd.write(template.format(**_clean_dict))
-
-        x = ws.readX(0)
-        y = ws.readY(0)
-        dy = ws.readE(0)
-        dx = ws.readDx(0)
-        tth = sample_logs["two_theta"] * math.pi / 360.0
-        quicknxs_scale = quicknxs_scaling_factor(ws)
+    fd.write(ReflectedBeamOptions.dat_header())
+    data_block = ""  # collect the data for later
+    for i_direct_beam, ws in enumerate(ws_list, start=1):
+        reflected_beam_options = ReflectedBeamOptions.from_workspace(ws, i_direct_beam)
+        fd.write(reflected_beam_options.as_dat)
+        # collect the numerical data into `data_block`
+        x, y, dy, dx = ws.readX(0), ws.readY(0), ws.readE(0), ws.readDx(0)
+        theta = reflected_beam_options.tth * math.pi / 360.0
+        sf = quicknxs_scaling_factor(ws)
         for i in range(len(x)):
-            data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
-                x[i],
-                y[i] * quicknxs_scale,
-                dy[i] * quicknxs_scale,
-                dx[i],
-                tth,
-            )
+            data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i], y[i] * sf, dy[i] * sf, dx[i], theta)
 
-    fd.write("#\n")
-    fd.write("# [Global Options]\n")
-    fd.write("# name           value\n")
-    # TODO: set the sample dimension as an option
-    fd.write("# sample_length  10\n")
-    fd.write("#\n")
+    fd.write("""#
+# [Global Options]
+# name           value
+# sample_length  10
+#
+""")
+
+    #
+    # Write sequence information from the last workspace in the list
+    #
     fd.write("# [Sequence]\n")
-    sample_logs = SampleLogs(ws_list[-1])  # sample logs of the last workspace
-    if "sequence_id" in sample_logs:
-        fd.write("# sequence_id %s\n" % sample_logs["sequence_id"])
-    if "sequence_number" in sample_logs:
-        fd.write("# sequence_number %s\n" % sample_logs["sequence_number"])
-    if "sequence_total" in sample_logs:
-        fd.write("# sequence_total %s\n" % sample_logs["sequence_total"])
-    fd.write("#\n")
-    fd.write("# [Data]\n")
-    toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
-    fd.write("# %s\n" % "  ".join(toks))
-    fd.write("#\n%s\n" % data_block)
+    sample_logs = SampleLogs(ws_list[-1])  # use the last workspace for the sequence information
+    line_template = "# {0} {1}\n"
+    for entry in ["sequence_id", "sequence_number", "sequence_total"]:
+        if entry in sample_logs:
+            fd.write(line_template.format(entry, sample_logs[entry]))
+
+    #
+    # Write scattering data
+    #
+    tokens = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
+    header = "# %s" % "  ".join(tokens)
+    fd.write(f"""#
+# [Data]
+{header}
+#
+{data_block}
+""")
 
     fd.close()
 

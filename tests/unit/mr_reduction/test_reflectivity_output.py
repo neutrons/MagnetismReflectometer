@@ -140,7 +140,12 @@ def test_write_reflectivity(mock_filesystem, data_server):
     obtained = open(output_file).readlines()[4:]
     expected = open(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")).readlines()[4:]
     for obtained_line, expected_line in zip(obtained, expected):
-        assert obtained_line == expected_line
+        if ("REF_M_29137_histo.nxs" in obtained_line) or ("REF_M_29160_histo.nxs" in obtained_line):
+            obtained_items = obtained_line.split()[:-1]  # remove the last item which is the absolute file path
+            expected_items = expected_line.split()[:-1]
+            assert obtained_items == expected_items
+        else:
+            assert obtained_line == expected_line
 
 
 if __name__ == "__main__":
