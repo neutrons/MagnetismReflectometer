@@ -17,7 +17,7 @@ from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
 
 def test_write_orso_output_file_extension():
     with pytest.raises(ValueError, match="Output file must have .ort extension"):
-        write_orso([], "output_file", "cross_section")
+        write_orso([], "output_file")
 
 
 @pytest.mark.datarepo()
