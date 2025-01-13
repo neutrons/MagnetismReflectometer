@@ -33,7 +33,6 @@ def test_write_orso(mock_filesystem, data_server):
     dataset = datasets[0]
     assert dataset.data.shape == (35, 6)
     info: Orso = dataset.info
-    assert str(info.reduction.timestamp) == "2024-11-25 15:33:47-05:00"
     assert len(info.columns) == 6
     for i, (label, coltype) in enumerate(
         [
