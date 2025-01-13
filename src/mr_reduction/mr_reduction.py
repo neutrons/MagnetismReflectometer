@@ -407,17 +407,20 @@ class ReductionProcess:
                 report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
                 report_list.append(report)
 
-                # Write output file
+                # Write output file in QuickNXS format
                 self.log("  - ready to write: %s" % self.output_dir)
                 write_reflectivity(
                     [reflectivity],
                     os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.dat" % (runpeak, entry)),
                     data_info.cross_section_label,
                 )
+
+                # Write output file in NeXus format
                 SaveNexus(
                     InputWorkspace=reflectivity,
                     Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),
                 )
+
                 self.log("  - done writing")
                 # Write partial output script
             except:  # noqa E722

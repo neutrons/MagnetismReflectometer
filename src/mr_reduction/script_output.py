@@ -168,7 +168,7 @@ def write_partial_script(ws_grp, output_dir=None):
         fd.write(script)
 
 
-def generate_script_from_ws(ws_grp, group_name):
+def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
     r"""Generate a partial reduction script from a set of workspaces.
 
     This function needs to be compatible with the case of a single workspace.
@@ -189,6 +189,8 @@ def generate_script_from_ws(ws_grp, group_name):
         Mantid workspace(s), or workspace group
     group_name: str
         name of the group the workspace belongs to
+    quicknxs_mode: bool
+        If True, the script will include a scaling factor correction for compatibility with QuickNXS
 
     Returns
     -------
@@ -201,17 +203,19 @@ def generate_script_from_ws(ws_grp, group_name):
     script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
 
     script_text = api.GeneratePythonScript(ws_grp[0])
+
     # Skip the header
     lines = script_text.split("\n")
     script_text = "\n".join(lines[4:])
     script += script_text.replace(", ", ",\n                                ")
     script += "\n"
-    qnxs_scale = quicknxs_scaling_factor(ws_grp[0])
-    # Scale correction for QuickNXS compatibility
-    script += "scaling_factor *= %s\n" % qnxs_scale
-    for item in xs_list:
-        script += "Scale(InputWorkspace='%s', Operation='Multiply',\n" % str(item)
-        script += "      Factor=scaling_factor, OutputWorkspace='%s')\n\n" % str(item)
+
+    if quicknxs_mode is True:
+        qnxs_scale = quicknxs_scaling_factor(ws_grp[0])
+        script += "scaling_factor *= %s\n" % qnxs_scale
+        for item in xs_list:
+            script += "Scale(InputWorkspace='%s', Operation='Multiply',\n" % str(item)
+            script += "      Factor=scaling_factor, OutputWorkspace='%s')\n\n" % str(item)
 
     return script
 
