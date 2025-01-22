@@ -130,7 +130,7 @@ def main():
     file_path = args.report_file
     if file_path and os.path.basename(file_path) == file_path:
         file_path = os.path.join(args.outdir, file_path)
-    run_number = re.search(r'REF_M_\d+', args.events_file).group(0)
+    run_number = re.search(r'REF_M_(\d+)', args.events_file).group(1)
     upload_html_report(reports, publish=(not args.no_publish), run_number=run_number, report_file=file_path)
 
     # Check if the auto-reduce data has been saved to the canonical IPTS-XXXXX/shared/autoreduce directory
