@@ -1,4 +1,4 @@
-# pylint: disable=bare-except
+# standard imports
 import json
 import os
 import sys
@@ -11,7 +11,9 @@ from mantid import simpleapi as api
 from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d, _plot2d
 
-AR_DIR = "/SNS/REF_M/shared/autoreduce"
+# autoreduce_2020-2024/ contains legacy mr_reduction module.
+# To be used when CONDA_ENV = "mantid-dev"
+AR_DIR = "/SNS/REF_M/shared/autoreduce/autoreduce_2020-2024"
 if AR_DIR not in sys.path:
     sys.path.append(AR_DIR)
 LIVE_DIR = "/SNS/REF_M/shared/livereduce"
@@ -27,7 +29,7 @@ if DEBUG:
 pol_info = ""
 try:
     import polarization_analysis
-except:  # noqa E722
+except (ImportError, ModuleNotFoundError):
     pol_info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 
@@ -51,7 +53,7 @@ def read_configuration():
     if len(_json_data) > 0:
         try:
             return json.loads(_json_data)
-        except:  # noqa E722
+        except json.JSONDecodeError:
             if DEBUG:
                 logfile.write("Could not parse reduction options from the reduction script\n")
     return None
@@ -112,7 +114,7 @@ def call_reduction(ws, options=None):
         )
 
 
-def generate_plots(run_number, workspace, options=None):  # noqa ARG001
+def generate_plots(run_number, workspace):
     """
     Generate diagnostics plots
     """
@@ -175,12 +177,12 @@ options = read_configuration()
 
 try:
     run_number = input.getRunNumber()
-except:  # noqa E722
+except Exception:  # noqa BLE001
     run_number = 0
 
 try:
     plots = generate_plots(run_number, input)
-except:  # noqa E722
+except RuntimeError:
     if DEBUG:
         logfile.write("%s\n" % sys.exc_info()[1])
     plots = []
@@ -195,7 +197,7 @@ try:
     info = "<div>Events: %s</div>\n" % n_evts
     info += "<div>Sequence: %s of %s</div>\n" % (seq_number, seq_total)
     info += "<div>Report time: %s</div>\n" % time.ctime()
-except:  # noqa E722
+except RuntimeError:
     info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 pol_info += "<table style='width:100%'>\n"
@@ -259,7 +261,7 @@ try:
         div_r1 = api.SavePlot1D(InputWorkspace=ratio1, OutputType="plotly")
         pol_info += "<td>%s</td>\n" % div_r1
         pol_info += "</tr>\n"
-except:  # noqa E722
+except RuntimeError:
     pol_info += "<div>Error: %s</div>\n" % sys.exc_info()[1]
 pol_info += "</table>\n"
 
@@ -275,7 +277,7 @@ if run_number > 0 and ws is not None:
         red.ana_veto = "SF2_Veto"
         red.use_slow_flipper_log = True
         reduction_info = red.reduce()
-    except:  # noqa E722
+    except RuntimeError:
         reduction_info += "<div>Could not reduce the data</div>\n"
         reduction_info += "<div>%s</div>\n" % sys.exc_info()[0]
         if DEBUG:
@@ -300,16 +302,15 @@ if DEBUG:
     # logfile.write(plot_html)
 try:
     mantid.logger.information("Posting plot of run %s" % run_number)
-    try:  # version on mr_autoreduce
+    try:  # version on autoreduce
         from postprocessing.publish_plot import publish_plot
     except ImportError:  # version on instrument computers
         from finddata import publish_plot
     request = publish_plot("REF_M", run_number, files={"file": plot_html})
-except:  # noqa E722
-    exc_type, exc_value, exc_traceback = sys.exc_info()
+except Exception as e:  # noqa: BLE001
     if DEBUG:
-        logfile.write("\n" + exc_value + "\n")
-        for line in traceback.format_exception(exc_type, exc_value, exc_traceback):
+        logfile.write("\n" + str(e) + "\n")
+        for line in traceback.format_exception(type(e), e, e.__traceback__):
             logfile.write(line)
 if DEBUG:
     logfile.write("DONE\n")
