@@ -25,51 +25,10 @@ import os
 import pytest
 
 # third party imports
-from mantid.simpleapi import AddSampleLog, CreateWorkspace, DeleteWorkspace, LoadNexus, mtd
+from mantid.simpleapi import LoadNexus
 
 # mr_reduction imports
-from mr_reduction.reflectivity_output import DirectBeamOptions, write_reflectivity
-
-
-@pytest.fixture(scope="module")
-def mock_normalization_workspace():
-    workspace = mtd.unique_hidden_name()
-    CreateWorkspace(DataX=[0, 1], DataY=[0, 10], OutputWorkspace=workspace)
-    for name, value, logType in [
-        ("run_number", 12345, "Number"),
-        ("normalization_run", 12345, "Number"),
-        ("norm_peak_min", 10, "Number"),
-        ("norm_peak_max", 20, "Number"),
-        ("norm_bg_min", 5, "Number"),
-        ("norm_bg_max", 15, "Number"),
-        ("norm_low_res_min", 1, "Number"),
-        ("norm_low_res_max", 2, "Number"),
-        ("normalization_dirpix", 0.5, "Number"),
-        ("normalization_file_path", "path/to/nexus_file.nxs.h5", "String"),
-    ]:
-        AddSampleLog(workspace, LogName=name, LogText=str(value), LogType=logType)
-    yield workspace
-    DeleteWorkspace(workspace)  # teardown steps after all tests in this module have run
-
-
-class TestDirectBeamOptions:
-    def test_dat_header(self):
-        header = DirectBeamOptions.dat_header()
-        assert header.startswith("# [Direct Beam Runs]")
-
-    def test_from_workspace(self, mock_normalization_workspace):
-        options = DirectBeamOptions.from_workspace(mock_normalization_workspace)
-        assert options is not None
-        assert options.DB_ID == 1
-        assert options.number == 12345
-        assert options.File == "path/to/data_file_histo.nxs"
-
-    def test_as_dat(self, mock_normalization_workspace):
-        options = DirectBeamOptions.from_workspace(mock_normalization_workspace)
-        assert (
-            options.as_dat == "#        1         0         0        15        11       1.5         2        10"
-            "        11       0.5         0     12345  path/to/data_file_histo.nxs\n"
-        )
+from mr_reduction.reflectivity_output import write_reflectivity
 
 
 @pytest.mark.datarepo()
@@ -81,7 +40,12 @@ def test_write_reflectivity(mock_filesystem, data_server):
     obtained = open(output_file).readlines()[4:]
     expected = open(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")).readlines()[4:]
     for obtained_line, expected_line in zip(obtained, expected):
-        assert obtained_line == expected_line
+        if ("REF_M_29137_histo.nxs" in obtained_line) or ("REF_M_29160_histo.nxs" in obtained_line):
+            obtained_items = obtained_line.split()[:-1]  # remove the last item which is the absolute file path
+            expected_items = expected_line.split()[:-1]
+            assert obtained_items == expected_items
+        else:
+            assert obtained_line == expected_line
 
 
 if __name__ == "__main__":

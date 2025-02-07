@@ -17,3 +17,4 @@ CrossSectionEventWorkspaces: TypeAlias = List[mantid.dataobjects.EventWorkspace]
 
 """Any type of Mantid workspace"""
 MantidWorkspace: TypeAlias = Union[str, mantid.api.Workspace]
+MantidAlgorithmHistory: TypeAlias = mantid.api.AlgorithmHistory

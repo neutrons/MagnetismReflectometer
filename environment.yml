@@ -5,27 +5,28 @@ channels:
   - oncat
 dependencies:
   - python>=3.10
-  - versioningit
-  - mantid=6.10
-  - pandas
-  - plotly
-  - pyoncat
+  - argcomplete
   - flask
   - gunicorn
+  - mantid=6.10
   - neutrons::finddata=0.10
+  - pandas
   - pip
+  - plotly
+  - pyoncat
+  - versioningit
   # -- Development dependencies
-  - pre-commit
-  - sphinx
-  - sphinx-rtd-theme
-  - libmamba
-  - libarchive
-  - setuptools
   - anaconda-client
   - boa
   - conda-build < 4  # conda-build 24.x has a bug, missing update_index from conda_build.index
   - conda-verify
-  - python-build
+  - libarchive
+  - libmamba
+  - pre-commit
   - pytest
   - pytest-cov
   - pytest-xdist
+  - python-build
+  - setuptools
+  - sphinx
+  - sphinx-rtd-theme

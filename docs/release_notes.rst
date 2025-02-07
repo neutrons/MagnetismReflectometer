@@ -11,10 +11,12 @@ Notes for major and minor releases. Notes for patch releases are referred.
 **Of interest to the User**:
 
 - PR #26 Fix extracting the run number in the autoreduction template
+- PR #25 Converter from Nexus to ORSO.ort for autoreduced files
 - PR #9 Add the capability to autoreduce two peaks from the same run
 
 **Of interest to the Developer:**
 
+- PR #24 Class ReflectedBeamOptions to reuse when saving to diferent file formats
 - PR #23 Class DirectBeamOptions to reuse when saving to diferent file formats
 - PR #22 SampleLogs class to reduce boilerplate code and make the code more pythonic
 - PR #21 Enum DataType substitutes expressions involving integer values to improved understanding of the source
