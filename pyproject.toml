@@ -61,7 +61,7 @@ pythonpath = [
   ".", "src", "scripts"
 ]
 testpaths = ["tests"]
-python_files = ["test*.py"]
+python_files = ["test_*.py"]
 norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__", "*dataset*", "*data_set*"]
 markers = [
     "datarepo: using repository mr_reduction-data",

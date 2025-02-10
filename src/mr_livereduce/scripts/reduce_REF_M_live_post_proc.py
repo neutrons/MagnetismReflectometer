@@ -5,20 +5,18 @@ import sys
 import time
 import traceback
 
+# third party imports
 import mantid
 import numpy as np
-from mantid import simpleapi as api
+from mantid import simpleapi as mantid_api
+
+# mr imports
 from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d, _plot2d
 
-# autoreduce_2020-2024/ contains legacy mr_reduction module.
-# To be used when CONDA_ENV = "mantid-dev"
-AR_DIR = "/SNS/REF_M/shared/autoreduce/autoreduce_2020-2024"
+AR_DIR = "/SNS/REF_M/shared/autoreduce"
 if AR_DIR not in sys.path:
     sys.path.append(AR_DIR)
-LIVE_DIR = "/SNS/REF_M/shared/livereduce"
-if LIVE_DIR not in sys.path:
-    sys.path.append(LIVE_DIR)
 
 
 DEBUG = True
@@ -28,7 +26,7 @@ if DEBUG:
 
 pol_info = ""
 try:
-    import polarization_analysis
+    from mr_livereduce import polarization_analysis
 except (ImportError, ModuleNotFoundError):
     pol_info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
@@ -124,9 +122,9 @@ def generate_plots(run_number, workspace):
     # X-TOF plot
     tof_min = workspace.getTofMin()
     tof_max = workspace.getTofMax()
-    workspace = api.Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
+    workspace = mantid_api.Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
 
-    direct_summed = api.RefRoi(
+    direct_summed = mantid_api.RefRoi(
         InputWorkspace=workspace,
         IntegrateY=True,
         NXPixel=n_x,
@@ -149,20 +147,20 @@ def generate_plots(run_number, workspace):
     )
 
     # X-Y plot
-    _workspace = api.Integration(workspace)
+    _workspace = mantid_api.Integration(workspace)
     signal = np.log10(_workspace.extractY())
     z = np.reshape(signal, (n_x, n_y))
     xy_plot = _plot2d(z=z.T, x=np.arange(n_x), y=np.arange(n_y), title="r%s" % run_number)
 
     # Count per X pixel
-    integrated = api.Integration(direct_summed)
-    integrated = api.Transpose(integrated)
+    integrated = mantid_api.Integration(direct_summed)
+    integrated = mantid_api.Transpose(integrated)
     signal_y = integrated.readY(0)
     signal_x = np.arange(len(signal_y))
     peak_pixels = _plot1d(signal_x, signal_y, x_label="X pixel", y_label="Counts", title="r%s" % run_number)
 
     # TOF distribution
-    workspace = api.SumSpectra(workspace)
+    workspace = mantid_api.SumSpectra(workspace)
     signal_x = workspace.readX(0) / 1000.0
     signal_y = workspace.readY(0)
     tof_dist = _plot1d(
@@ -205,7 +203,7 @@ ws = None
 try:
     tof_min = input.getTofMin()
     tof_max = input.getTofMax()
-    ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
+    ws = mantid_api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
     ws_list, ratio1, ratio2, asym1, labels = polarization_analysis.calculate_ratios(
         ws, delta_wl=0.05, slow_filter=True
     )  # , roi=[60,110,80,140])
@@ -258,7 +256,7 @@ try:
             pol_info += "</tr>\n"
     else:
         pol_info += "<tr>\n"
-        div_r1 = api.SavePlot1D(InputWorkspace=ratio1, OutputType="plotly")
+        div_r1 = mantid_api.SavePlot1D(InputWorkspace=ratio1, OutputType="plotly")
         pol_info += "<td>%s</td>\n" % div_r1
         pol_info += "</tr>\n"
 except RuntimeError:
@@ -269,7 +267,7 @@ pol_info += "</table>\n"
 reduction_info = ""
 if run_number > 0 and ws is not None:
     try:
-        ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
+        ws = mantid_api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
         red = call_reduction(ws, options=options)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
