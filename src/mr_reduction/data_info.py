@@ -5,6 +5,7 @@ Meta-data information for MR reduction
 # standard library imports
 import warnings
 from enum import IntEnum
+from typing import List, Optional
 
 # third party imports
 import mantid.simpleapi as api
@@ -16,6 +17,7 @@ from scipy.optimize import OptimizeWarning
 # mr_reduction imports
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
 from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.types import MantidWorkspace
 
 warnings.simplefilter("ignore", OptimizeWarning)
 
@@ -111,8 +113,9 @@ class DataType(IntEnum):
 
 class DataInfo:
     """
-    Class to provide a convenient interface to the meta-data extracted
-    by MRInspectData.
+    Class to provide a convenient interface to the meta-data extracted by Mantid algorithm MRInspectData.
+
+    The ROI is further refined.
     """
 
     # Number of events under which we can't consider a direct beam file
@@ -120,19 +123,57 @@ class DataInfo:
 
     def __init__(
         self,
-        ws,
+        ws: MantidWorkspace,
         cross_section,
-        use_roi=True,
-        update_peak_range=False,
-        use_roi_bck=False,
-        use_tight_bck=False,
-        bck_offset=3,
-        force_peak_roi=False,
+        use_roi: bool = True,
+        update_peak_range: bool = False,
+        use_roi_bck: bool = False,
+        use_tight_bck: bool = False,
+        bck_offset: int = 3,
+        force_peak_roi: bool = False,
         peak_roi=[0, 0],
-        force_bck_roi=False,
-        bck_roi=[0, 0],
+        force_bck_roi: bool = False,
+        bck_roi: List[int] = [0, 0],
+        low_res_roi: List[int] = None,
+        force_low_res_roi: bool = False,
     ):
-        # inspect Workspace `ws` and populate its logs with the reflectivity peak position, the pixel range, and more
+        """
+        Inspect the Processing Variables (PV's) of the input workspace with Mantid algorithm MRInspectData.
+
+        The PV's inspected by MRInspectData are ROI1StartX, ROI1SizeX, ROI1StartY, ROI1SizeY,
+        ROI2StartX, ROI2SizeX, ROI2StartY, and ROI2SizeY.
+
+        The low-resolution range after inspection is further refined by the Fitter2 class.
+
+        Parameters
+        ----------
+        ws
+            The workspace to inspect and populate with logs.
+        cross_section : str
+            The cross-section label.
+        use_roi
+            Whether to use the region of interest (ROI). Default is True.
+        update_peak_range
+            Whether to update the peak range. Default is False.
+        use_roi_bck
+            Whether to use the ROI for background. Default is False.
+        use_tight_bck
+            Whether to use a tight background. Default is False.
+        bck_offset
+            The background offset. Default is 3.
+        force_peak_roi
+            Whether to force the peak ROI. Default is False.
+        peak_roi
+            The peak ROI range. Default is [0, 0].
+        force_bck_roi
+            Whether to force the background ROI. Default is False.
+        bck_roi
+            The background ROI range. Default is [0, 0].
+        low_res_roi
+            The Y-Pixel-Axis, vertical, or low-resolution range Pass a two-item list [y_min, y_max]
+        force_low_res_roi
+            Override the low-resolution range stracted by MRInspectData
+        """
         api.MRInspectData(
             Workspace=ws,
             UpdatePeakRange=update_peak_range,
@@ -145,8 +186,8 @@ class DataInfo:
             UseTightBck=use_tight_bck,
             BckWidth=bck_offset,
             # Y-Pixel Range
-            LowResPeakROI=[0, 0],
-            ForceLowResPeakROI=False,
+            LowResPeakROI=[0, 0] if low_res_roi is None else low_res_roi,
+            ForceLowResPeakROI=force_low_res_roi,
         )
 
         self.cross_section = cross_section
