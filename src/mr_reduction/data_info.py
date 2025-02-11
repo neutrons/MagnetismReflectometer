@@ -144,6 +144,9 @@ class DataInfo:
             BckROI=bck_roi,
             UseTightBck=use_tight_bck,
             BckWidth=bck_offset,
+            # Y-Pixel Range
+            LowResPeakROI=[0, 0],
+            ForceLowResPeakROI=False,
         )
 
         self.cross_section = cross_section

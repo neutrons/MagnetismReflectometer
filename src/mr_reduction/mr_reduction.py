@@ -34,6 +34,7 @@ from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO, ar_out_dir
 from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.types import MantidWorkspace
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
@@ -166,7 +167,7 @@ class ReductionProcess:
             self.logfile.write(msg + "\n")
         logger.notice(msg)
 
-    def _extract_data_info(self, xs_list):
+    def _extract_data_info(self, xs_list: List[MantidWorkspace]):
         """
         Extract data info for the cross-section with the most events
         :param list xs_list: workspace group
@@ -327,7 +328,7 @@ class ReductionProcess:
             self.logfile.close()
         return html_report
 
-    def reduce_workspace_group(self, xs_list):
+    def reduce_workspace_group(self, xs_list: List[MantidWorkspace]):
         # Extract data info (find peaks, etc...)
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
