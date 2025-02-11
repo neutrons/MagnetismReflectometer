@@ -170,9 +170,9 @@ class DataInfo:
         bck_roi
             The background ROI range. Default is [0, 0].
         low_res_roi
-            The Y-Pixel-Axis, vertical, or low-resolution range Pass a two-item list [y_min, y_max]
+            The Y-Pixel-Axis, vertical, or low-resolution range. Pass a two-item list [y_min, y_max]
         force_low_res_roi
-            Override the low-resolution range stracted by MRInspectData
+            Override the low-resolution range extracted by MRInspectData
         """
         api.MRInspectData(
             Workspace=ws,
@@ -185,7 +185,6 @@ class DataInfo:
             BckROI=bck_roi,
             UseTightBck=use_tight_bck,
             BckWidth=bck_offset,
-            # Y-Pixel Range
             LowResPeakROI=[0, 0] if low_res_roi is None else low_res_roi,
             ForceLowResPeakROI=force_low_res_roi,
         )

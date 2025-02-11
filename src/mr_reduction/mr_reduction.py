@@ -70,6 +70,8 @@ class ReductionProcess:
         use_roi_bck=False,
         force_bck_roi=False,
         bck_roi=[0, 0],
+        low_res_roi: List[int] = None,
+        force_low_res: bool = False,
         use_tight_bck=False,
         bck_offset=3,
         plot_2d=False,
@@ -111,6 +113,10 @@ class ReductionProcess:
         peak_roi
         force_bck_roi
         bck_roi
+        low_res_roi
+            The Y-Pixel-Axis, vertical, or low-resolution range .Pass a two-item list [y_min, y_max]
+        force_low_res
+            If `True`, use `low_res_roi` to override the low-resolution range the can be computed from the sample logs
         plot_2d: bool
             Create 2D plot of the detector pixel intensities
         publish: bool
@@ -148,6 +154,8 @@ class ReductionProcess:
         self.forced_peak_roi = peak_roi
         self.force_bck_roi = force_bck_roi
         self.forced_bck_roi = bck_roi
+        self.force_low_res_roi = force_low_res
+        self.forced_low_res_roi = low_res_roi
 
         self.use_slow_flipper_log = False
         self.publish = publish
@@ -195,6 +203,8 @@ class ReductionProcess:
             peak_roi=self.forced_peak_roi,
             force_bck_roi=self.force_bck_roi,
             bck_roi=self.forced_bck_roi,
+            low_res_roi=self.forced_low_res_roi,
+            force_low_res=self.force_low_res_roi,
         )
         # Find direct beam information
         norm_run = None
