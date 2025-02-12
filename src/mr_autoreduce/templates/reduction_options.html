@@ -107,7 +107,18 @@ if you want to use the region on each side of the peak to estimate your backgrou
                     <input type="checkbox" id="use_side_bck"> Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width"></label>
+
+                <label title="Override the low resolution (Y-Pixel) range in the sample logs with your own range.
+Check the following box if you want to define your own range and
+use it for peak selection."><input type="checkbox" id="force_low_res" checked> Force Low Res ROI</label>
+
+                <label>Pixel min <input type="number" id="low_res_min" style="width: 50px;" value="175"></label>
+
+                <label>Pixel max <input type="number" id="low_res_max" style="width: 50px;" value="50"></label>
             </div>
+
+
+
 
             <div class="form-section peak" id="peak2">
                 <h2 title="Peak 2 options ignored if Peak count is 1">Peak #2</h2>
@@ -139,6 +150,15 @@ if you want to use the region on each side of the peak to estimate your backgrou
                     <input type="checkbox" id="use_side_bck_s2"> Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s2"></label>
+
+                <label title="Override the low resolution (Y-Pixel) range in the sample logs with your own range.
+Check the following box if you want to define your own range and
+use it for peak selection."><input type="checkbox" id="force_low_res_s2" checked> Force Low Res ROI</label>
+
+                <label>Pixel min <input type="number" id="low_res_min_s2" style="width: 50px;" value="175"></label>
+
+                <label>Pixel max <input type="number" id="low_res_max_s2" style="width: 50px;" value="50"></label>
+
             </div>
 
             <div class="form-section peak" id="peak3">
@@ -171,6 +191,15 @@ if you want to use the region on each side of the peak to estimate your backgrou
                     <input type="checkbox" id="use_side_bck_s3"> Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s3"></label>
+
+                <label title="Override the low resolution (Y-Pixel) range in the sample logs with your own range.
+Check the following box if you want to define your own range and
+use it for peak selection."><input type="checkbox" id="force_low_res_s3" checked> Force Low Res ROI</label>
+
+                <label>Pixel min <input type="number" id="low_res_min_s3" style="width: 50px;" value="175"></label>
+
+                <label>Pixel max <input type="number" id="low_res_max_s3" style="width: 50px;" value="50"></label>
+
             </div>
         </div>
 

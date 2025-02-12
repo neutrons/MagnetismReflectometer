@@ -204,7 +204,7 @@ class ReductionProcess:
             force_bck_roi=self.force_bck_roi,
             bck_roi=self.forced_bck_roi,
             low_res_roi=self.forced_low_res_roi,
-            force_low_res=self.force_low_res_roi,
+            force_low_res_roi=self.force_low_res_roi,
         )
         # Find direct beam information
         norm_run = None
