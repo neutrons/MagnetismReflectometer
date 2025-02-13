@@ -51,7 +51,16 @@ or the canonical output directory for autoreduction of runs corresponding to run
 case is `/SNS/REF_M/IPTS-21391/shared/autoreduce/`. Runs 41445, 41446, and 41447 correspond to experiments
 taken on the same peak but with a different incidence angle.
 
+
+Reduction of a Samples with Two Peaks
++++++++++++++++++++++++++++++++++++++
 The webapp supports reduction of up to three peaks for the scenarios when the run contains more than one peak.
+This typically arise when the sample has two or layers with slightly different orientations with respect
+to the incoming beam. Thus, the two layers will reflect neutrons at slightly different angles. This
+results in two distinct intensity regions in the detector panel.
+
+
+
 In the following screenshot we selected `Peak Count=2`, causing reduction taking into account options
 from `Peak #1` and `Peak #2`.
 
