@@ -3,10 +3,6 @@
 Developer Documentation
 =======================
 
-.. contents::
-   :local:
-   :depth: 1
-
 Directory Tree
 --------------
  - Code under `mr_reduction/` is common reduction code.

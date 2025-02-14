@@ -15,6 +15,7 @@ usually the result of running mantid algorithm MRFilterCrossSections on an input
 """
 CrossSectionEventWorkspaces: TypeAlias = List[mantid.dataobjects.EventWorkspace]
 
-"""Any type of Mantid workspace"""
+"""Any type of Mantid workspace, including its name"""
 MantidWorkspace: TypeAlias = Union[str, mantid.api.Workspace]
+
 MantidAlgorithmHistory: TypeAlias = mantid.api.AlgorithmHistory
