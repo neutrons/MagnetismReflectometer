@@ -6,7 +6,6 @@ from mantid.simpleapi import LoadEventNexus, mtd
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 
 
-@pytest.mark.datarepo()
 @pytest.fixture(scope="module")
 def ws(data_server):
     workspace = mtd.unique_hidden_name()
@@ -26,6 +25,7 @@ class TestDirectBeamFinder:
         finder.db_dir = tempdir
         finder.search()
 
+    @pytest.mark.datarepo()
     def test_search_dir_json_decode_error(self, tmpdir, ws):
         # Create a temporary directory containing a malformed JSON file
         db_dir = tmpdir.mkdir("test_search_dir_json_decode_error")
