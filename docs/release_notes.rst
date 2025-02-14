@@ -16,6 +16,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the Developer:**
 
+- PR #29 Documentation for troubleshooting autoreduction
 - PR #24 Class ReflectedBeamOptions to reuse when saving to diferent file formats
 - PR #23 Class DirectBeamOptions to reuse when saving to diferent file formats
 - PR #22 SampleLogs class to reduce boilerplate code and make the code more pythonic
