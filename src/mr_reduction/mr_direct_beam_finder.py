@@ -9,6 +9,7 @@ import logging
 import math
 import os
 import sys
+from json.decoder import JSONDecodeError
 
 # third party imports
 from mantid.simpleapi import LoadEventNexus, MRGetTheta
@@ -16,20 +17,23 @@ from mantid.simpleapi import LoadEventNexus, MRGetTheta
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
 from mr_reduction.settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
-from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.simple_utils import SampleLogs, workspace_handle
+from mr_reduction.types import MantidWorkspace
 
 
 class DirectBeamFinder:
     """ """
 
-    def __init__(self, scatt_ws, skip_slits=False, allow_later_runs=False, tolerance=0.2, experiment=""):
+    def __init__(
+        self, scatt_ws: MantidWorkspace, skip_slits=False, allow_later_runs=False, tolerance=0.2, experiment=""
+    ):
         """
         Extract information from the given workspace
 
         Parameters
         ----------
-        scatt_ws: mantid.api.Workspace
-            Workspace to find a direct beam for
+        scatt_ws
+            Mantid Workspace instans (or just its name) to find a direct beam for
         """
         self.data_dir = nexus_data_dir(experiment)
         self.ar_dir = ar_out_dir(experiment)
@@ -47,7 +51,7 @@ class DirectBeamFinder:
             self.s1 = sample_logs.mean("S1HWidth")
             self.s2 = sample_logs.mean("S2HWidth")
             self.s3 = sample_logs.mean("S3HWidth")
-        self.run = int(scatt_ws.getRunNumber())
+        self.run = int(workspace_handle(scatt_ws).getRunNumber())
 
     def search(self, skip_slits=False, allow_later_runs=False):
         """
@@ -172,7 +176,10 @@ class DirectBeamFinder:
                 continue
             summary_path = os.path.join(db_dir, item)
             with open(summary_path, "r") as fd:
-                meta_data = json.load(fd)
+                try:
+                    meta_data = json.load(fd)
+                except JSONDecodeError as e:
+                    raise ValueError(f"Could not read {summary_path}: {e}")
             if "invalid" in meta_data.keys():
                 continue
             run_number = meta_data["run"]
