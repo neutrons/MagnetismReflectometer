@@ -6,6 +6,7 @@ from mantid.simpleapi import LoadEventNexus, mtd
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 
 
+@pytest.mark.datarepo()
 @pytest.fixture(scope="module")
 def ws(data_server):
     workspace = mtd.unique_hidden_name()
