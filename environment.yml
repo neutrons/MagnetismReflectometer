@@ -15,7 +15,7 @@ dependencies:
   - plotly
   - pyoncat
   - versioningit
-  # -- Development dependencies
+  # -- Development and documentation
   - anaconda-client
   - boa
   - conda-build < 4  # conda-build 24.x has a bug, missing update_index from conda_build.index
@@ -30,3 +30,4 @@ dependencies:
   - setuptools
   - sphinx
   - sphinx-rtd-theme
+  - furo

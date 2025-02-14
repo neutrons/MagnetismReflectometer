@@ -13,7 +13,7 @@ User Guide
    /user/multiple_peaks
    /user/conda_environments
    /user/reduce
-   /releases
+   /release_notes
 
 Contacting the Team
 +++++++++++++++++++
@@ -30,6 +30,7 @@ Developer Guide
 
    /developer/contributing
    /developer/developer
+   /developer/troubleshoot
 
 Deployment
 ----------
