@@ -20,7 +20,6 @@ class TestDirectBeamFinder:
         This will excercise a different path in looking for direct beams.
         """
         finder = DirectBeamFinder(scatt_ws=ws)
-
         finder.data_dir = tempdir
         finder.ar_dir = tempdir
         finder.db_dir = tempdir

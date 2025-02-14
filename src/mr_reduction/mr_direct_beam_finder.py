@@ -33,7 +33,7 @@ class DirectBeamFinder:
         Parameters
         ----------
         scatt_ws
-            Mantid Workspace instans (or just its name) to find a direct beam for
+            Mantid Workspace instance (or just its name) to find a direct beam for
         """
         self.data_dir = nexus_data_dir(experiment)
         self.ar_dir = ar_out_dir(experiment)
