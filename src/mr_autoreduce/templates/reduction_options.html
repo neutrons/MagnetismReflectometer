@@ -268,6 +268,9 @@ use it for peak selection."><input type="checkbox" id="force_low_res_s3"> Force 
                 bck_max: document.getElementById('bck_max').value,
                 use_side_bck: document.getElementById('use_side_bck').checked,
                 bck_width: document.getElementById('bck_width').value,
+                force_low_res: document.getElementById('force_low_res').checked,
+                low_res_min: document.getElementById('low_res_min').value,
+                low_res_max: document.getElementById('low_res_max').value,
 
                 force_peak_s2: document.getElementById('force_peak_s2').checked,
                 peak_min_s2: document.getElementById('peak_min_s2').value,
@@ -278,6 +281,9 @@ use it for peak selection."><input type="checkbox" id="force_low_res_s3"> Force 
                 bck_max_s2: document.getElementById('bck_max_s2').value,
                 use_side_bck_s2: document.getElementById('use_side_bck_s2').checked,
                 bck_width_s2: document.getElementById('bck_width_s2').value,
+                force_low_res_s2: document.getElementById('force_low_res_s2').checked,
+                low_res_min_s2: document.getElementById('low_res_min_s2').value,
+                low_res_max_s2: document.getElementById('low_res_max_s2').value,
 
                 force_peak_s3: document.getElementById('force_peak_s3').checked,
                 peak_min_s3: document.getElementById('peak_min_s3').value,
@@ -288,6 +294,10 @@ use it for peak selection."><input type="checkbox" id="force_low_res_s3"> Force 
                 bck_max_s3: document.getElementById('bck_max_s3').value,
                 use_side_bck_s3: document.getElementById('use_side_bck_s3').checked,
                 bck_width_s3: document.getElementById('bck_width_s3').value,
+                force_low_res_s3: document.getElementById('force_low_res_s3').checked,
+                low_res_min_s3: document.getElementById('low_res_min_s3').value,
+                low_res_max_s3: document.getElementById('low_res_max_s3').value,
+
             };
             fetch('/submit', {
                 method: 'POST',

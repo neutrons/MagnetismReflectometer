@@ -25,11 +25,11 @@ from mr_reduction.simple_utils import add_to_sys_path
 @pytest.mark.datarepo()
 def test_reduce_REF_M_run(mock_filesystem, data_server):
     #
-    # Gather all necessary auxiliary files for reduction of run 41447
+    # Gather all necessary auxiliary files for reduction of run 42537
     #
     # direct beam for data run 41447
     mock_filesystem.DirectBeamFinder.return_value.search.return_value = 42534
-    # autoreduced files from previous runs, to be stitched to profile from 41447
+    # autoreduced files from previous runs, to be stitched to profile from 42537
     for run, suffix in itertools.product(
         ["42535_1", "42535_2", "42536_1", "42536_2"],
         ["Off_Off_autoreduce.dat", "On_Off_autoreduce.dat", "partial.py"],
@@ -46,7 +46,7 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         "q_step": -0.022,
         "use_sangle": False,
         "fit_peak_in_roi": False,
-        "peak_count": 2,  # run 41447 has two peaks
+        "peak_count": 2,  # run 42537 has two peaks
     }
     # Options for first peak
     peak1 = {

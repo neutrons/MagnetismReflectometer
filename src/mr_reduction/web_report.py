@@ -101,7 +101,7 @@ def upload_html_report(html_report, publish=True, run_number=None, report_file=N
 
 
 def process_collection(summary_content=None, report_list=[], publish=True, run_number=None) -> Tuple[str, str]:
-    r"""Process a collection of HTMNL reports into on final HTML report
+    r"""Process a collection of HTML reports into on final HTML report
 
     Parameters
     ----------
@@ -176,8 +176,7 @@ def paste_collection_reports(collection_reports, run_number, publish=False) -> s
 
 class Report:
     """
-    Take the output of the reduction and generate
-    diagnostics plots, and a block of meta data.
+    Take the output of the reduction and generate diagnostics plots, and a block of meta data.
     """
 
     def __init__(

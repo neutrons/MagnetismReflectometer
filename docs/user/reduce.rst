@@ -8,6 +8,10 @@ Manual Reduction
 Terminal command `reduce_REF_M` is available on the conda environments `mr_reduction-qa` and `mr_reduction`.
 Running this command starts a simple web application to configure reduction of a single experiment.
 
+Developers or power users running their own conda environment from `environment.yml`,
+and having installed the package in editable mode,
+can invoke the webapp by running script `src/mr_livereduce/reduce_REF_M_run.sh`
+
  .. code-block:: bash
 
    > reduce_REF_M
@@ -52,17 +56,24 @@ case is `/SNS/REF_M/IPTS-21391/shared/autoreduce/`. Runs 41445, 41446, and 41447
 taken on the same peak but with a different incidence angle.
 
 
-Reduction of a Samples with Two Peaks
-+++++++++++++++++++++++++++++++++++++
+Reduction of a Sample with Two Peaks
+++++++++++++++++++++++++++++++++++++
 The webapp supports reduction of up to three peaks for the scenarios when the run contains more than one peak.
 This typically arise when the sample has two or layers with slightly different orientations with respect
 to the incoming beam. Thus, the two layers will reflect neutrons at slightly different angles. This
 results in two distinct intensity regions in the detector panel.
 
+The picture below shows two runs (42536 and 39012) each one reflecting two distinct intensity regions.
 
+.. figure:: ./media/two_peaks_intensities.png
+   :align: center
+   :width: 600
 
-In the following screenshot we selected `Peak Count=2`, causing reduction taking into account options
-from `Peak #1` and `Peak #2`.
+For run 42536, identifying two distinct ranges along the X-axis suffices to differentiate the two peaks.
+For run 39012, two distinct ranges along the Y-axis suffice to differentiate the two peaks.
+
+As before, we invoke the webapp and introduce the following options for run 42536:
+
 
 .. figure:: ./media/manual_reduction_two_peaks.GIF
    :alt: Reduction of two peaks.

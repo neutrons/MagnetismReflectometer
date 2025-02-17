@@ -74,7 +74,7 @@ def submit():
     fails = wrong_options(opts)
     if fails:
         response = jsonify({"error": fails})
-        response.status = 400
+        response.status_code = 400
         return response
     output = reduce_single_run(opts)
     return jsonify({**opts, **{"report_file": output.report_file}})  # Return the JSON data as a response

@@ -863,8 +863,8 @@ class Fitter2:
 
     def fit_2d_peak(self):
         """Backward compatibility"""
-        spec_peak = self.fit_peak()
-        beam_peak = self.fit_beam_width()
+        spec_peak = self.fit_peak()  # Along Y-Pixel or vertical axis
+        beam_peak = self.fit_beam_width()  # Along X-Pixel or low resolution axis
         return spec_peak, beam_peak
 
     def fit_peak(self):
