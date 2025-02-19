@@ -3,9 +3,10 @@ Meta-data information for MR reduction
 """
 
 # standard library imports
+import contextlib
 import warnings
 from enum import IntEnum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 # third party imports
 import mantid.simpleapi as api
@@ -16,7 +17,7 @@ from scipy.optimize import OptimizeWarning
 
 # mr_reduction imports
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
-from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.types import MantidWorkspace
 
 warnings.simplefilter("ignore", OptimizeWarning)
@@ -799,15 +800,70 @@ class Fitter:
 
 
 class Fitter2:
-    DEAD_PIXELS = 10
+    DEAD_PIXELS = 10  # ignore the top and bottom edges of the detector (along the vertical Y-axis)
 
-    def __init__(self, workspace):
-        self.workspace = workspace
+    def __init__(self, workspace: MantidWorkspace):
+        """
+
+        Parameters
+        ----------
+        workspace
+            Mantid workspace instance (or just its name) containing the pixel intensities
+        """
+        self.workspace = workspace_handle(workspace)
+        self.n_x: Optional[int] = None  # Number of x-pixels in the instrument's detector panel
+        self.n_y: Optional[int] = None  # Number of y-pixels in the instrument's detector panel
+        self.z: Optional[np.ndarray] = None  # 2D (n_x X n_y) array of pixel intensities
+        self.y: Optional[np.ndarray] = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
+        self.x_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus x-pixel indices
+        self.y_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus y-pixel indices
+        self.guess_x: Optional[int] = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
+        self.guess_wx: Optional[float] = None  # Initial guess for the width of the peak along the x-pixel axis
+
         self._prepare_data()
+
+    def plot2D(self, array2D):
+        import matplotlib.pyplot as plt
+
+        plt.imshow(array2D, aspect="auto", origin="lower")
+        plt.colorbar(label="Intensity")
+        plt.title("Filtered Array z")
+        plt.xlabel("X Pixels")
+        plt.ylabel("Y Pixels")
+        plt.show()
+
+    @contextlib.contextmanager
+    def filter_outside_roi(self, x_range: List[int] = None, y_range: List[int] = None):
+        """
+        Temporarily set the counts outside the specified x and y ranges to zero
+
+        Parameters
+        ----------
+        x_range : List[int], optional
+            The range of x-pixels to keep. Pixels outside this range are set to 0.
+        y_range : List[int], optional
+            The range of y-pixels to keep. Pixels outside this range are set to 0.
+        """
+        z = np.copy(self.z)
+        if x_range is not None:
+            x_min, x_max = x_range
+            z[:x_min, :] = 0
+            z[x_max:, :] = 0
+        if y_range is not None:
+            y_min, y_max = y_range
+            z[:, :y_min] = 0
+            z[:, y_max:] = 0
+        self.x_vs_counts = np.sum(z, axis=1)
+        self.y_vs_counts = np.sum(z, axis=0)
+        try:
+            yield
+        finally:
+            self.x_vs_counts = np.sum(self.z, axis=1)
+            self.y_vs_counts = np.sum(self.z, axis=0)
 
     def _prepare_data(self):
         """
-        Read in the data and create arrays for fitting
+        Read in the data and create intensity and indexing arrays for future fitting
         """
         # Prepare data to fit
         self.n_x = int(self.workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
@@ -818,14 +874,23 @@ class Fitter2:
         self.z = np.reshape(signal, (self.n_x, self.n_y))
         self.y = np.arange(0, self.n_y)[self.DEAD_PIXELS : -self.DEAD_PIXELS]
         # 1D data x/y vs counts
-        self.x_vs_counts = np.sum(self.z, 1)
-        self.y_vs_counts = np.sum(self.z, 0)
+        self.x_vs_counts = np.sum(self.z, axis=1)
+        self.y_vs_counts = np.sum(self.z, axis=0)
 
         self.guess_x = np.argmax(self.x_vs_counts)
         self.guess_wx = 6.0
 
-    def _scan_peaks(self):
-        f1 = ndimage.gaussian_filter(self.x_vs_counts, 3)
+    def _scan_peaks(self) -> List[int]:
+        """Scan for peaks along the X-axis.
+
+        Update the guess_x and guess_ws attributes with the position and width of best peak found.
+
+        Returns
+        -------
+        List[int]
+            List of found peak positions.
+        """
+        f1 = ndimage.gaussian_filter(self.x_vs_counts, sigma=3)
         peaks, _ = find_peaks(f1)
         prom, _, _ = peak_prominences(f1, peaks)
         peaks_w, _, _, _ = peak_widths(f1, peaks)
@@ -861,13 +926,27 @@ class Fitter2:
 
         return found_peaks
 
-    def fit_2d_peak(self):
-        """Backward compatibility"""
-        spec_peak = self.fit_peak()  # Along Y-Pixel or vertical axis
-        beam_peak = self.fit_beam_width()  # Along X-Pixel or low resolution axis
+    def fit_2d_peak(self, x_range: List[int] = None, y_range: List[int] = None) -> Tuple[List[int], List[int]]:
+        """
+        Find the boundaries of the peak along the X- and Y- axes of the instrument detector panel
+
+        Parameters
+        ----------
+        x_range
+            Limit the search of the peak along the X-axis to the specified range
+        y_range
+            Limit the search of the peak along the Y-axis to the specified range
+
+        """
+        with self.filter_outside_roi(x_range, y_range):
+            spec_peak = self.fit_peak()  # Along the vertical Y-Pixel axis
+            beam_peak = self.fit_beam_width()  # Along low-resolution X-Pixel axis
         return spec_peak, beam_peak
 
-    def fit_peak(self):
+    def fit_peak(self) -> List[int]:
+        """
+        Find the boundaries of the peak along the X-axis of the instrument detector panel
+        """
         self.peaks = self._scan_peaks()
 
         # Package the best results
@@ -915,6 +994,66 @@ class Fitter2:
         return _coef
 
     def fit_beam_width(self):
+        def smooth_top_hat(x: np.ndarray, h: float, x0_l: float, d_l: float, x0_r: float, d_r: float) -> np.ndarray:
+            """
+            Function with a nearly flat top with steep edges modeled as sigmoids.
+            It models the peak profile in the instrument detector panel along the vertical Y-axis
+
+            Parameters
+            ----------
+            x : np.ndarray
+                The input array of x-values.
+            h : float
+                The height of the top-hat function.
+            x0_l : float
+                The center position of the left edge.
+            d_l : float
+                The decay width of the left edge.
+            x0_r : float
+                The center position of the right edge.
+            d_r : float
+                The decay width of the right edge.
+
+            Returns
+            -------
+            np.ndarray
+                The output array representing the smooth top-hat function.
+            """
+            assert h > 0, "Height (h) must be non-negative"
+            assert x0_l > 0, "Left edge center (x0_l) must be non-negative"
+            # assert d_l > 0, "Left edge decay width (d_l) must be non-negative"
+            assert x0_r > 0, "Right edge center (x0_r) must be non-negative"
+            # assert d_r > 0, "Right edge decay width (d_r) must be non-negative"
+
+            left_edge = 1 / (1 + np.exp(-(x - x0_l) / d_l))
+            right_edge = 1 / (1 + np.exp(-(x - x0_r) / d_r))
+            return h * (left_edge - right_edge)
+
+        # smooth the counts with a running window of 5 pixels
+        counts = 1.0 / 5 * np.convolve(self.y_vs_counts, np.ones(5), mode="valid")
+        y = np.arange(len(self.y_vs_counts))[2:-2]
+
+        # initial estimate
+        height = np.max(counts)
+        y_min = y[np.argmax(counts > height * 0.1)]
+        left_decay = 5.0
+        y_max = y[np.argmax(counts[::-1] > height * 0.1)]
+        y_max = y[len(y) - 1 - y_max]
+        right_decay = 5.0
+
+        # fit the top-hat function
+        p0 = [height, y_min, left_decay, y_max, right_decay]
+        xtol = 1.0e-6
+        while xtol < 1.0e-2:  # increase tolerance if fitting fails
+            try:
+                p_opt, _ = opt.curve_fit(smooth_top_hat, y, counts, p0=p0, xtol=xtol)
+                break  # Exit the loop if curve fitting is successful
+            except RuntimeError:
+                xtol *= 2  # this can happen when the peak resembles more a Gaussian than a top-hat function
+        [_, y_min, left_decay, y_max, right_decay] = p_opt
+        return [y_min - left_decay, y_max + right_decay]
+
+    def fit_beam_width_deprecated(self):
         """
         Fit the data distribution in y and get its range.
         """
