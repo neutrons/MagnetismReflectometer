@@ -219,9 +219,12 @@ class DataInfo:
         improved_peaks = True
         if improved_peaks:
             fitter = Fitter2(ws)
-            # fitter = Fitter(ws, True)
-            [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak()
-            # [low_res_min, low_res_max] = fitter.fit_beam_width()
+            # Limit the search of the peak along the X-axis and Y-axis if we're forcing certain ranges
+            fit_ranges = dict(
+                x_range=peak_roi if force_peak_roi else None, y_range=low_res_roi if force_low_res_roi else None
+            )
+            [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak(**fit_ranges)
+
             api.logger.notice("New peak: %s %s" % (peak_min, peak_max))
             if np.abs(peak_max - peak_min) <= 1:
                 peak_min = peak_min - 2
