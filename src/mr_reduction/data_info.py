@@ -1051,7 +1051,9 @@ class Fitter2:
             except RuntimeError:
                 xtol *= 2  # this can happen when the peak resembles more a Gaussian than a top-hat function
         [_, y_min, left_decay, y_max, right_decay] = p_opt
-        return [y_min - left_decay, y_max + right_decay]
+        peak_min = int(max(y_min - left_decay, self.DEAD_PIXELS))
+        peak_max = int(min(y_max + right_decay, self.n_x - self.DEAD_PIXELS))
+        return [peak_min, peak_max]
 
     def fit_beam_width_deprecated(self):
         """
