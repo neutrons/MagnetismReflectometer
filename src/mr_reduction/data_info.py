@@ -27,6 +27,11 @@ Number of events under which we can't consider a direct beam file
 """
 EVENT_COUNT_CUTOFF = 2000
 
+"""
+We require that reflected peaks must have a minimum width on the vertical Y-axis in the instrument detector panel
+"""
+LOWRES_MINIMUM_WIDTH = 25
+
 
 def get_cross_section_label(ws, cross_section) -> str:
     """
@@ -229,7 +234,7 @@ class DataInfo:
             if np.abs(peak_max - peak_min) <= 1:
                 peak_min = peak_min - 2
                 peak_max = peak_max + 2
-            if np.abs(low_res_min - low_res_max) <= 50:
+            if np.abs(low_res_min - low_res_max) <= LOWRES_MINIMUM_WIDTH:
                 low_res_min = sample_logs["low_res_min"]
                 low_res_max = sample_logs["low_res_max"]
                 low_res_min = max(fitter.DEAD_PIXELS, low_res_min)
@@ -942,8 +947,8 @@ class Fitter2:
 
         """
         with self.filter_outside_roi(x_range, y_range):
-            spec_peak = self.fit_peak()  # Along the vertical Y-Pixel axis
-            beam_peak = self.fit_beam_width()  # Along low-resolution X-Pixel axis
+            spec_peak = self.fit_peak()  # Along the vertical X-Pixel axis
+            beam_peak = self.fit_beam_width()  # Along low-resolution Y-Pixel axis
         return spec_peak, beam_peak
 
     def fit_peak(self) -> List[int]:
