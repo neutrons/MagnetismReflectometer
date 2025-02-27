@@ -23,7 +23,7 @@ import pytz
 import mr_reduction
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script, write_tunable_reduction_script
-from mr_reduction.settings import ar_out_dir, nexus_data_dir
+from mr_reduction.settings import ar_out_dir, collect_search_directories, nexus_data_dir
 
 
 def match_run_for_cross_section(run, ipts, cross_section, extra_search_dir=None) -> List[str]:
@@ -56,13 +56,7 @@ def match_run_for_cross_section(run, ipts, cross_section, extra_search_dir=None)
     """
     runpeak = RunPeakNumber(run)
     peak_number = runpeak.peak_number
-
-    # assemble the list of search directories
-    search_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     _previous_q_min = 0
     _previous_q_max = 0
@@ -174,13 +168,7 @@ def match_run_with_sequence(run, ipts, cross_section, extra_search_dir=None):
     runpeak = RunPeakNumber(run)
     peak_number = runpeak.peak_number
     api.logger.notice(f"Matching sequence for {ipts} r{runpeak} [{cross_section}]")
-
-    # assemble the list of data directories
-    data_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        data_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in data_dirs:
-        data_dirs.append(ar_out_dir(ipts))
+    data_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     # Check to see if we have the sequence_id information
     group_id = None
@@ -256,10 +244,7 @@ def compute_scaling_factors(
     run_count = 0
     scaling_factors = [1.0]
 
-    search_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     for i_runpeak in matched_runs:
         for search_dir in search_dirs:
@@ -365,11 +350,7 @@ def apply_scaling_factors(
         input `cross_section`, e.g ('On_Off', '0.02344 5.666 ....'), ("On_On", '')
     """
 
-    search_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     data_buffers = []
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
@@ -418,12 +399,7 @@ def select_cross_section(run, ipts, extra_search_dir=None):
     str
         One of "Off_Off", "On_Off", "Off_On", and "On_On"
     """
-    search_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
-
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
     runpeak = RunPeakNumber(run)  # e.g. "12345" or "12345_2"
     best_xs = None
     best_error = None
@@ -566,11 +542,7 @@ def plot_combined(matched_runs, scaling_factors, ipts, extra_search_dir=None, pu
     str
         The contents inside the <div>..</div> element
     """
-    search_dirs = list()
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     # Collect reflectivity profiles for each cross section
     data_names = []  # list of cross sections
