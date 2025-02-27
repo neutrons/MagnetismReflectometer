@@ -1,6 +1,5 @@
 # third party imports
 import pytest
-from mantid.api import WorkspaceGroup
 from mantid.simpleapi import AddSampleLog, CreateWorkspace, GroupWorkspaces
 
 # mr_reduction imports
