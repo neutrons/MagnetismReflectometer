@@ -1002,7 +1002,9 @@ class Fitter2:
         return _coef
 
     def fit_beam_width(self):
-        def smooth_top_hat(x: np.ndarray, h: float, x0_l: float, d_l: float, x0_r: float, d_r: float) -> np.ndarray:
+        def smooth_top_hat(
+            x: np.ndarray, h: float, x0_l: float, d_l: float, x0_r: float, d_r: float, b: float
+        ) -> np.ndarray:
             """
             Function with a nearly flat top with steep edges modeled as sigmoids.
             It models the peak profile in the instrument detector panel along the vertical Y-axis
@@ -1021,21 +1023,18 @@ class Fitter2:
                 The center position of the right edge.
             d_r : float
                 The decay width of the right edge.
+            b : float
+                The background level.
 
             Returns
             -------
             np.ndarray
                 The output array representing the smooth top-hat function.
             """
-            assert h > 0, "Height (h) must be non-negative"
-            assert x0_l > 0, "Left edge center (x0_l) must be non-negative"
-            # assert d_l > 0, "Left edge decay width (d_l) must be non-negative"
-            assert x0_r > 0, "Right edge center (x0_r) must be non-negative"
-            # assert d_r > 0, "Right edge decay width (d_r) must be non-negative"
 
             left_edge = 1 / (1 + np.exp(-(x - x0_l) / d_l))
             right_edge = 1 / (1 + np.exp(-(x - x0_r) / d_r))
-            return h * (left_edge - right_edge)
+            return b + h * (left_edge - right_edge)
 
         # smooth the counts with a running window of 5 pixels
         counts = 1.0 / 5 * np.convolve(self.y_vs_counts, np.ones(5), mode="valid")
@@ -1048,17 +1047,19 @@ class Fitter2:
         y_max = y[np.argmax(counts[::-1] > height * 0.1)]
         y_max = y[len(y) - 1 - y_max]
         right_decay = 5.0
+        background = 0.0
 
         # fit the top-hat function
-        p0 = [height, y_min, left_decay, y_max, right_decay]
+        p0 = [height, y_min, left_decay, y_max, right_decay, background]
+        bounds = (0, np.inf)  # all parameters should be non-negative
         xtol = 1.0e-6
         while xtol < 1.0e-2:  # increase tolerance if fitting fails
             try:
-                p_opt, _ = opt.curve_fit(smooth_top_hat, y, counts, p0=p0, xtol=xtol)
+                p_opt, _ = opt.curve_fit(smooth_top_hat, y, counts, p0=p0, bounds=bounds, xtol=xtol)
                 break  # Exit the loop if curve fitting is successful
             except RuntimeError:
                 xtol *= 2  # this can happen when the peak resembles more a Gaussian than a top-hat function
-        [_, y_min, left_decay, y_max, right_decay] = p_opt
+        [_, y_min, left_decay, y_max, right_decay, background] = p_opt
         peak_min = int(max(y_min - left_decay, self.DEAD_PIXELS))
         peak_max = int(min(y_max + right_decay, self.n_x - self.DEAD_PIXELS))
         return [peak_min, peak_max]
