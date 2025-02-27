@@ -19,7 +19,7 @@ class TestDirectBeamFinder:
         """
         This will excercise a different path in looking for direct beams.
         """
-        finder = DirectBeamFinder(scatt_ws=ws)
+        finder = DirectBeamFinder(scatt_ws=ws, experiment="IPTS-12345")
         finder.data_dir = tempdir
         finder.ar_dir = tempdir
         finder.db_dir = tempdir
@@ -32,7 +32,7 @@ class TestDirectBeamFinder:
         malformed_json_file = db_dir.join("REF_M_43827.nxs.h5.json")
         malformed_json_file.write('{"data_type": 0, "theta_d": 0.274}ngle": 4.917}')
         # Call the search_dir method and assert that it raises a ValueError
-        finder = DirectBeamFinder(scatt_ws=ws)
+        finder = DirectBeamFinder(scatt_ws=ws, experiment="IPTS-12345")
         with pytest.raises(ValueError, match=f"Could not read {malformed_json_file}"):
             finder.search_dir(str(db_dir))
 
