@@ -16,7 +16,7 @@ import mantid.simpleapi as api
 # mr_reduction imports
 from mr_reduction.reflectivity_output import quicknxs_scaling_factor
 from mr_reduction.runpeak import RunPeakNumber
-from mr_reduction.settings import ar_out_dir
+from mr_reduction.settings import ar_out_dir, collect_search_directories
 
 
 def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None, extra_search_dir=None) -> str:
@@ -49,11 +49,7 @@ def write_reduction_script(matched_runs, scaling_factors, ipts, output_dir=None,
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
 
-    search_dirs = []
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     for i, runpeak in enumerate(matched_runs):
         for search_dir in search_dirs:
@@ -104,11 +100,7 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ipts, output_d
     script += "workspaces =  dict()\n"
     script += "parameters = dict()\n\n"
 
-    search_dirs = []
-    if extra_search_dir is not None and os.path.isdir(extra_search_dir):
-        search_dirs.append(extra_search_dir)
-    if ar_out_dir(ipts) not in search_dirs:
-        search_dirs.append(ar_out_dir(ipts))
+    search_dirs = collect_search_directories(ipts, extra=extra_search_dir)
 
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
