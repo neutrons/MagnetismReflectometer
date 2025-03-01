@@ -200,7 +200,7 @@ class DataInfo:
         self.workspace_name = str(ws)
 
         self.data_type = DataType.from_workspace(ws)
-        self.is_direct_beam = self.data_type == DataType.DIRECT_BEAM
+        self.is_direct_beam: bool = self.data_type == DataType.DIRECT_BEAM
 
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = DataType.UNKNOWN

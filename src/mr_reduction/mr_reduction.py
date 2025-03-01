@@ -32,7 +32,7 @@ from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curv
 from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
-from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO, ar_out_dir
+from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO
 from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.types import MantidWorkspace
 from mr_reduction.web_report import Report, process_collection
@@ -91,7 +91,8 @@ class ReductionProcess:
         data_ws: mantid.dataobjects.EventWorkspace
             Mantid events workspace containing the events for the run we're to reduce
         output_dir: str
-            Directory where the autoreduced files are stored. Usually /SNS/REF_M/IPTS-****/shared/
+            Directory where the autoreduced files will be stored.
+            If `None`, it will be set to /SNS/REF_M/IPTS-****/shared/autoreduce
         use_sangle: bool
             Use metadata entry SANGLE as the scattering angle
         const_q_binning: bool
@@ -175,6 +176,25 @@ class ReductionProcess:
             self.logfile.write(msg + "\n")
         logger.notice(msg)
 
+    def set_ipts(self, ipts):
+        """
+        Set the IPTS (Integrated Proposal Tracking System) identifier and update the autoreduction directory.
+
+        This method sets the IPTS identifier for the current reduction process.
+        Also, `output_dir` is set to '/SNS/REF_M/{ipts}/shared/autoreduce/' if found empty.
+
+        Parameters
+        ----------
+        ipts : str
+            The experiment identifier (e.g., "IPTS-12345").
+        """
+        if self.ipts is not None:
+            return  # we already have an IPTS
+        assert "IPTS-" in ipts, f"Invalid IPTS identifier: {ipts}"
+        self.ipts = ipts
+        if self.output_dir is None:
+            self.output_dir = f"/SNS/REF_M/{ipts}/shared/autoreduce/"
+
     def _extract_data_info(self, xs_list: List[MantidWorkspace]):
         """
         Extract data info for the cross-section with the most events
@@ -189,7 +209,7 @@ class ReductionProcess:
                 n_max_events = n_events
                 i_main = i
         sample_logs = SampleLogs(xs_list[i_main])
-        self.ipts = sample_logs["experiment_identifier"]
+        self.set_ipts(sample_logs["experiment_identifier"])
         entry = sample_logs["cross_section_id"]
         data_info = DataInfo(
             xs_list[i_main],
@@ -210,14 +230,10 @@ class ReductionProcess:
         norm_run = None
         direct_info = data_info
         apply_norm = False
-        if not data_info.is_direct_beam:
+        if data_info.is_direct_beam is False:
             apply_norm, norm_run, direct_info = self.find_direct_beam(xs_list[i_main])
             if direct_info is None:
                 direct_info = data_info
-
-        # Set output directory
-        if self.output_dir is None:
-            self.output_dir = ar_out_dir(self.ipts)
 
         # Important note: data_info is created from the cross-section with the most
         # data, so data_info.cross_section indicates which one that was.
@@ -300,21 +316,19 @@ class ReductionProcess:
         try:
             run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
             matched_runs, scaling_factors, outputs = combined_curves(
-                run=run_peak_number, ipts=self.ipts, output_dir=self.output_dir
+                run=run_peak_number, ipts=self.ipts, ar_dir=self.output_dir
             )
             if not self.live:
                 self.json_info = combined_catalog_info(
                     matched_runs,
                     self.ipts,
                     outputs,
-                    output_dir=self.output_dir,
+                    ar_dir=self.output_dir,
                     run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
                 )
             self.log("Matched runs: %s" % str(matched_runs))
             # plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container
-            ref_plot = plot_combined(
-                matched_runs, scaling_factors, self.ipts, extra_search_dir=self.output_dir, publish=False
-            )
+            ref_plot = plot_combined(matched_runs, scaling_factors, self.output_dir, publish=False)
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:  # noqa E722
             self.log("Could not generate combined curve")
@@ -352,7 +366,7 @@ class ReductionProcess:
         ws = xs_list[0]
         sample_logs = SampleLogs(ws)
         entry = sample_logs["cross_section_id"]
-        self.ipts = sample_logs["experiment_identifier"]
+        self.set_ipts(sample_logs["experiment_identifier"])
 
         # combine run and peak number when the run contains more than one peak
         runpeak = RunPeakNumber(self.run_number, self.peak_number)
@@ -405,7 +419,7 @@ class ReductionProcess:
 
         # Generate partial python script
         self.log("Workspace r_%s: %s" % (runpeak, type(mtd["r_%s" % runpeak])))
-        write_partial_script(mtd["r_%s" % runpeak], output_dir=self.output_dir)
+        write_partial_script(mtd["r_%s" % runpeak], self.output_dir)
 
         report_list = []
         for ws in xs_list:
@@ -443,14 +457,16 @@ class ReductionProcess:
 
         return report_list
 
-    def find_direct_beam(self, scatt_ws):
+    def find_direct_beam(self, scatt_ws: MantidWorkspace):
         """
         Find the appropriate direct beam run
         :param workspace scatt_ws: scattering workspace we are trying to match
         """
         run_number = scatt_ws.getRunNumber()
         entry = SampleLogs(scatt_ws)["cross_section_id"]
-        db_finder = DirectBeamFinder(scatt_ws, skip_slits=False, tolerance=self.tolerance, experiment=self.ipts)
+        db_finder = DirectBeamFinder(
+            scatt_ws, experiment=self.ipts, ar_dir=self.output_dir, skip_slits=False, tolerance=self.tolerance
+        )
         norm_run = db_finder.search()
         if norm_run is None:
             logger.warning(
