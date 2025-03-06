@@ -41,6 +41,6 @@ else (no)
     endif
 endif
 
-:Override roi_peak, roi_low_res, roi_background with values define by User, if so provided;
+:Override roi_peak, roi_low_res, roi_background with values defined by User, if so provided;
 stop
 @enduml
