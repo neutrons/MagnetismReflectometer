@@ -24,3 +24,5 @@ when determining the peak and background regions:
    :alt: ROI extraction from the sample logs
    :align: center
    :width: 900
+
+   (user/media/roi_pv_digest.puml)
