@@ -4,12 +4,17 @@ Release Notes
 =============
 Notes for major and minor releases. Notes for patch releases are referred.
 
-<Next Major or Minor Release>
------------------------------
+<v2.1.0>
+---------
+(date of release, format YYYY-MM-DD)
+
+<v2.0.0>
+---------
 (date of release, format YYYY-MM-DD)
 
 **Of interest to the User**:
 
+- PR #30 Documentation on how the ROI's in the sample logs are used
 - PR #26 Fix extracting the run number in the autoreduction template
 - PR #25 Converter from Nexus to ORSO.ort for autoreduced files
 - PR #9 Add the capability to autoreduce two peaks from the same run
