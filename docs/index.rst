@@ -13,6 +13,7 @@ User Guide
    /user/multiple_peaks
    /user/conda_environments
    /user/reduce
+   /user/roi
    /release_notes
 
 Contacting the Team

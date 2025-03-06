@@ -1,0 +1,46 @@
+@startuml
+start
+if (<back:yellow> ROI1StartX in Sample Logs ?) then (yes)
+    :<back:lightblue>collect peak1 and low_res1;
+    if (<back:yellow>peak1 and low_res1 both empty ?) then (yes)
+        :invalid roi1;
+    else (no)
+        :valid roi1;
+    endif
+    if (<back:yellow> ROI2StartX in Sample Logs ?) then (yes)
+        :<back:lightblue>collect peak2 and low_res2;
+        if (<back:yellow>peak2 and low_res2 both empty ?) then (yes)
+            :invalid roi2;
+        else (no)
+            :valid roi2;
+        endif
+    else (no)
+        :invalid roi2;
+    endif
+else (no)
+    :invalid roi1\ninvalid roi2;
+endif
+
+if (<back:yellow>valid roi1 but invalid roi2 ?) then (yes)
+    :<back:lightgreen>roi_peak = peak1\n<back:lightgreen>roi_low_res = low_res1\n<back:lightgreen>roi_background = [0, 0];
+else (no)
+    if (<back:yellow>invalid roi1 but valid roi2 ?) then (yes)
+        :<back:lightgreen>roi_peak = peak2\n<back:lightgreen>roi_low_res = low_res2\n<back:lightgreen>nroi_background = [0, 0];
+    else (no)
+        if (<back:yellow>roi1 and roi2 both valid ?) then (yes)
+            if (<back:yellow>is the peak1 range inside the peak2 range ?) then (yes)
+                :<back:lightgreen>roi_peak = peak1\n<back:lightgreen>roi_low_res = low_res1\n<back:lightgreen>roi_background = peak2;
+            else (no)
+                if (<back:yellow>is the peak2 range inside the peak1 range ?) then (yes)
+                    :<back:lightgreen>roi_peak = peak2\n<back:lightgreen>roi_low_res = low_res2\n<back:lightgreen>roi_background = peak1;
+                else (no)
+                    :<back:lightgreen>roi_peak = peak1\n<back:lightgreen>roi_low_res = low_res1\n<back:lightgreen>roi_background = [0, 0];
+                endif
+            endif
+        endif
+    endif
+endif
+
+:Override roi_peak, roi_low_res, roi_background with values defined by User, if so provided;
+stop
+@enduml
