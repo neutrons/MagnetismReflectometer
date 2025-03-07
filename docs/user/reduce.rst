@@ -104,7 +104,7 @@ After the reduction is finished, we can view the report by pressing the **View R
 .. figure:: ./media/manual_reduction_two_peaks_3.png
    :alt: setting up the reduction.
    :align: center
-   :width: 950
+   :width: 1200
 
 The report shows the reflectivity of the two cross-sections ("Off_Off" and "On_Off")
 for Peak #1 ("43884_1") and Peak #2 ("43884_2").
@@ -126,7 +126,7 @@ As before, we view the report by pressing the **View Report** button:
 .. figure:: ./media/manual_reduction_two_peaks_5.png
    :alt: setting up the reduction.
    :align: center
-   :width: 950
+   :width: 1200
 
 We notice in the report that reflectivity curves for the two runs are shown, stitched together.
 There are four curves in each plot so it can be difficult to discern the stitching for a given cross-section.
