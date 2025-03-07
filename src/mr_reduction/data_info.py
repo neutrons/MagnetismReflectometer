@@ -3,8 +3,10 @@ Meta-data information for MR reduction
 """
 
 # standard library imports
+import contextlib
 import warnings
 from enum import IntEnum
+from typing import List, Optional, Tuple
 
 # third party imports
 import mantid.simpleapi as api
@@ -15,7 +17,8 @@ from scipy.optimize import OptimizeWarning
 
 # mr_reduction imports
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
-from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.simple_utils import SampleLogs, workspace_handle
+from mr_reduction.types import MantidWorkspace
 
 warnings.simplefilter("ignore", OptimizeWarning)
 
@@ -23,6 +26,11 @@ warnings.simplefilter("ignore", OptimizeWarning)
 Number of events under which we can't consider a direct beam file
 """
 EVENT_COUNT_CUTOFF = 2000
+
+"""
+We require that reflected peaks must have a minimum width on the vertical Y-axis in the instrument detector panel
+"""
+LOWRES_MINIMUM_WIDTH = 25
 
 
 def get_cross_section_label(ws, cross_section) -> str:
@@ -111,8 +119,9 @@ class DataType(IntEnum):
 
 class DataInfo:
     """
-    Class to provide a convenient interface to the meta-data extracted
-    by MRInspectData.
+    Class to provide a convenient interface to the meta-data extracted by Mantid algorithm MRInspectData.
+
+    The ROI is further refined.
     """
 
     # Number of events under which we can't consider a direct beam file
@@ -120,19 +129,57 @@ class DataInfo:
 
     def __init__(
         self,
-        ws,
+        ws: MantidWorkspace,
         cross_section,
-        use_roi=True,
-        update_peak_range=False,
-        use_roi_bck=False,
-        use_tight_bck=False,
-        bck_offset=3,
-        force_peak_roi=False,
+        use_roi: bool = True,
+        update_peak_range: bool = False,
+        use_roi_bck: bool = False,
+        use_tight_bck: bool = False,
+        bck_offset: int = 3,
+        force_peak_roi: bool = False,
         peak_roi=[0, 0],
-        force_bck_roi=False,
-        bck_roi=[0, 0],
+        force_bck_roi: bool = False,
+        bck_roi: List[int] = [0, 0],
+        low_res_roi: List[int] = None,
+        force_low_res_roi: bool = False,
     ):
-        # inspect Workspace `ws` and populate its logs with the reflectivity peak position, the pixel range, and more
+        """
+        Inspect the Processing Variables (PV's) of the input workspace with Mantid algorithm MRInspectData.
+
+        The PV's inspected by MRInspectData are ROI1StartX, ROI1SizeX, ROI1StartY, ROI1SizeY,
+        ROI2StartX, ROI2SizeX, ROI2StartY, and ROI2SizeY.
+
+        The low-resolution range after inspection is further refined by the Fitter2 class.
+
+        Parameters
+        ----------
+        ws
+            The workspace to inspect and populate with logs.
+        cross_section : str
+            The cross-section label.
+        use_roi
+            Whether to use the region of interest (ROI). Default is True.
+        update_peak_range
+            Whether to update the peak range. Default is False.
+        use_roi_bck
+            Whether to use the ROI for background. Default is False.
+        use_tight_bck
+            Whether to use a tight background. Default is False.
+        bck_offset
+            The background offset. Default is 3.
+        force_peak_roi
+            Whether to force the peak ROI. Default is False.
+        peak_roi
+            The peak ROI range. Default is [0, 0].
+        force_bck_roi
+            Whether to force the background ROI. Default is False.
+        bck_roi
+            The background ROI range. Default is [0, 0].
+        low_res_roi
+            The Y-Pixel-Axis, vertical, or low-resolution range. Pass a two-item list [y_min, y_max]
+        force_low_res_roi
+            Override the low-resolution range extracted by MRInspectData
+        """
         api.MRInspectData(
             Workspace=ws,
             UpdatePeakRange=update_peak_range,
@@ -144,6 +191,8 @@ class DataInfo:
             BckROI=bck_roi,
             UseTightBck=use_tight_bck,
             BckWidth=bck_offset,
+            LowResPeakROI=[0, 0] if low_res_roi is None else low_res_roi,
+            ForceLowResPeakROI=force_low_res_roi,
         )
 
         self.cross_section = cross_section
@@ -151,7 +200,7 @@ class DataInfo:
         self.workspace_name = str(ws)
 
         self.data_type = DataType.from_workspace(ws)
-        self.is_direct_beam = self.data_type == DataType.DIRECT_BEAM
+        self.is_direct_beam: bool = self.data_type == DataType.DIRECT_BEAM
 
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = DataType.UNKNOWN
@@ -175,14 +224,17 @@ class DataInfo:
         improved_peaks = True
         if improved_peaks:
             fitter = Fitter2(ws)
-            # fitter = Fitter(ws, True)
-            [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak()
-            # [low_res_min, low_res_max] = fitter.fit_beam_width()
+            # Limit the search of the peak along the X-axis and Y-axis if we're forcing certain ranges
+            fit_ranges = dict(
+                x_range=peak_roi if force_peak_roi else None, y_range=low_res_roi if force_low_res_roi else None
+            )
+            [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak(**fit_ranges)
+
             api.logger.notice("New peak: %s %s" % (peak_min, peak_max))
             if np.abs(peak_max - peak_min) <= 1:
                 peak_min = peak_min - 2
                 peak_max = peak_max + 2
-            if np.abs(low_res_min - low_res_max) <= 50:
+            if np.abs(low_res_min - low_res_max) <= LOWRES_MINIMUM_WIDTH:
                 low_res_min = sample_logs["low_res_min"]
                 low_res_max = sample_logs["low_res_max"]
                 low_res_min = max(fitter.DEAD_PIXELS, low_res_min)
@@ -756,15 +808,70 @@ class Fitter:
 
 
 class Fitter2:
-    DEAD_PIXELS = 10
+    DEAD_PIXELS = 10  # ignore the top and bottom edges of the detector (along the vertical Y-axis)
 
-    def __init__(self, workspace):
-        self.workspace = workspace
+    def __init__(self, workspace: MantidWorkspace):
+        """
+
+        Parameters
+        ----------
+        workspace
+            Mantid workspace instance (or just its name) containing the pixel intensities
+        """
+        self.workspace = workspace_handle(workspace)
+        self.n_x: Optional[int] = None  # Number of x-pixels in the instrument's detector panel
+        self.n_y: Optional[int] = None  # Number of y-pixels in the instrument's detector panel
+        self.z: Optional[np.ndarray] = None  # 2D (n_x X n_y) array of pixel intensities
+        self.y: Optional[np.ndarray] = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
+        self.x_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus x-pixel indices
+        self.y_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus y-pixel indices
+        self.guess_x: Optional[int] = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
+        self.guess_wx: Optional[float] = None  # Initial guess for the width of the peak along the x-pixel axis
+
         self._prepare_data()
+
+    def plot2D(self, array2D):
+        import matplotlib.pyplot as plt
+
+        plt.imshow(array2D, aspect="auto", origin="lower")
+        plt.colorbar(label="Intensity")
+        plt.title("Filtered Array z")
+        plt.xlabel("X Pixels")
+        plt.ylabel("Y Pixels")
+        plt.show()
+
+    @contextlib.contextmanager
+    def filter_outside_roi(self, x_range: List[int] = None, y_range: List[int] = None):
+        """
+        Temporarily set the counts outside the specified x and y ranges to zero
+
+        Parameters
+        ----------
+        x_range : List[int], optional
+            The range of x-pixels to keep. Pixels outside this range are set to 0.
+        y_range : List[int], optional
+            The range of y-pixels to keep. Pixels outside this range are set to 0.
+        """
+        z = np.copy(self.z)
+        if x_range is not None:
+            x_min, x_max = x_range
+            z[:x_min, :] = 0
+            z[x_max:, :] = 0
+        if y_range is not None:
+            y_min, y_max = y_range
+            z[:, :y_min] = 0
+            z[:, y_max:] = 0
+        self.x_vs_counts = np.sum(z, axis=1)
+        self.y_vs_counts = np.sum(z, axis=0)
+        try:
+            yield
+        finally:
+            self.x_vs_counts = np.sum(self.z, axis=1)
+            self.y_vs_counts = np.sum(self.z, axis=0)
 
     def _prepare_data(self):
         """
-        Read in the data and create arrays for fitting
+        Read in the data and create intensity and indexing arrays for future fitting
         """
         # Prepare data to fit
         self.n_x = int(self.workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
@@ -775,14 +882,23 @@ class Fitter2:
         self.z = np.reshape(signal, (self.n_x, self.n_y))
         self.y = np.arange(0, self.n_y)[self.DEAD_PIXELS : -self.DEAD_PIXELS]
         # 1D data x/y vs counts
-        self.x_vs_counts = np.sum(self.z, 1)
-        self.y_vs_counts = np.sum(self.z, 0)
+        self.x_vs_counts = np.sum(self.z, axis=1)
+        self.y_vs_counts = np.sum(self.z, axis=0)
 
         self.guess_x = np.argmax(self.x_vs_counts)
         self.guess_wx = 6.0
 
-    def _scan_peaks(self):
-        f1 = ndimage.gaussian_filter(self.x_vs_counts, 3)
+    def _scan_peaks(self) -> List[int]:
+        """Scan for peaks along the X-axis.
+
+        Update the guess_x and guess_ws attributes with the position and width of best peak found.
+
+        Returns
+        -------
+        List[int]
+            List of found peak positions.
+        """
+        f1 = ndimage.gaussian_filter(self.x_vs_counts, sigma=3)
         peaks, _ = find_peaks(f1)
         prom, _, _ = peak_prominences(f1, peaks)
         peaks_w, _, _, _ = peak_widths(f1, peaks)
@@ -818,13 +934,27 @@ class Fitter2:
 
         return found_peaks
 
-    def fit_2d_peak(self):
-        """Backward compatibility"""
-        spec_peak = self.fit_peak()
-        beam_peak = self.fit_beam_width()
+    def fit_2d_peak(self, x_range: List[int] = None, y_range: List[int] = None) -> Tuple[List[int], List[int]]:
+        """
+        Find the boundaries of the peak along the X- and Y- axes of the instrument detector panel
+
+        Parameters
+        ----------
+        x_range
+            Limit the search of the peak along the X-axis to the specified range
+        y_range
+            Limit the search of the peak along the Y-axis to the specified range
+
+        """
+        with self.filter_outside_roi(x_range, y_range):
+            spec_peak = self.fit_peak()  # Along the vertical X-Pixel axis
+            beam_peak = self.fit_beam_width()  # Along low-resolution Y-Pixel axis
         return spec_peak, beam_peak
 
-    def fit_peak(self):
+    def fit_peak(self) -> List[int]:
+        """
+        Find the boundaries of the peak along the X-axis of the instrument detector panel
+        """
         self.peaks = self._scan_peaks()
 
         # Package the best results
@@ -872,6 +1002,69 @@ class Fitter2:
         return _coef
 
     def fit_beam_width(self):
+        def smooth_top_hat(
+            x: np.ndarray, h: float, x0_l: float, d_l: float, x0_r: float, d_r: float, b: float
+        ) -> np.ndarray:
+            """
+            Function with a nearly flat top with steep edges modeled as sigmoids.
+            It models the peak profile in the instrument detector panel along the vertical Y-axis
+
+            Parameters
+            ----------
+            x : np.ndarray
+                The input array of x-values.
+            h : float
+                The height of the top-hat function.
+            x0_l : float
+                The center position of the left edge.
+            d_l : float
+                The decay width of the left edge.
+            x0_r : float
+                The center position of the right edge.
+            d_r : float
+                The decay width of the right edge.
+            b : float
+                The background level.
+
+            Returns
+            -------
+            np.ndarray
+                The output array representing the smooth top-hat function.
+            """
+
+            left_edge = 1 / (1 + np.exp(-(x - x0_l) / d_l))
+            right_edge = 1 / (1 + np.exp(-(x - x0_r) / d_r))
+            return b + h * (left_edge - right_edge)
+
+        # smooth the counts with a running window of 5 pixels
+        counts = 1.0 / 5 * np.convolve(self.y_vs_counts, np.ones(5), mode="valid")
+        y = np.arange(len(self.y_vs_counts))[2:-2]
+
+        # initial estimate
+        height = np.max(counts)
+        y_min = y[np.argmax(counts > height * 0.1)]
+        left_decay = 5.0
+        y_max = y[np.argmax(counts[::-1] > height * 0.1)]
+        y_max = y[len(y) - 1 - y_max]
+        right_decay = 5.0
+        background = 0.0
+
+        # fit the top-hat function
+        p0 = [height, y_min, left_decay, y_max, right_decay, background]
+        bounds = (0, np.inf)  # all parameters should be non-negative
+        xtol = 1.0e-6
+        while xtol < 1.0e-2:  # increase tolerance if fitting fails
+            try:
+                p_opt, _ = opt.curve_fit(smooth_top_hat, y, counts, p0=p0, bounds=bounds, xtol=xtol)
+                break  # Exit the loop if curve fitting is successful
+            except RuntimeError:
+                xtol *= 2  # this can happen when the peak resembles more a Gaussian than a top-hat function
+        [_, y_min, left_decay, y_max, right_decay, background] = p_opt
+        peak_min = int(max(y_min - left_decay, self.DEAD_PIXELS))
+        peak_max = int(min(y_max + right_decay, self.n_x - self.DEAD_PIXELS))
+        return [peak_min, peak_max]
+
+    def fit_beam_width_deprecated(self):
         """
         Fit the data distribution in y and get its range.
         """

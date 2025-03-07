@@ -54,6 +54,9 @@ def test_template(mock_filesystem, data_server):
         "bck_max": 70,
         "use_side_bck": False,
         "bck_width": 10,
+        "force_low_res": False,
+        "low_res_min": 50,
+        "low_res_max": 175,
     }
     # Options for second peak
     peak2 = {
@@ -66,6 +69,9 @@ def test_template(mock_filesystem, data_server):
         "bck_max_s2": 70,
         "use_side_bck_s2": False,
         "bck_width_s2": 11,
+        "force_low_res_s2": False,
+        "low_res_min_s2": 50,
+        "low_res_max_s2": 175,
     }
     # Options for third peak (will be ignored because `peak_count` is 2)
     peak3 = {
@@ -78,6 +84,9 @@ def test_template(mock_filesystem, data_server):
         "bck_max_s3": 102,
         "use_side_bck_s3": False,
         "bck_width_s3": 12,
+        "force_low_res_s3": False,
+        "low_res_min_s3": 50,
+        "low_res_max_s3": 175,
     }
     values = {**common, **peak1, **peak2, **peak3}  # all options into one dictionary
 

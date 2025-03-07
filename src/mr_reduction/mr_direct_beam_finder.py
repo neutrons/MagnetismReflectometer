@@ -16,35 +16,67 @@ from mantid.simpleapi import LoadEventNexus, MRGetTheta
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
-from mr_reduction.settings import DIRECT_BEAM_DIR, ar_out_dir, nexus_data_dir
+from mr_reduction.settings import DIRECT_BEAM_DIR, nexus_data_dir
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.types import MantidWorkspace
 
 
 class DirectBeamFinder:
-    """ """
+    """
+    Class to find a suitable direct beam file for a given scattering workspace.
+
+    This class extracts information from the given workspace and searches for a matching direct beam run
+    based on various criteria such as wavelength, slit gaps, and experiment identifier.
+    """
 
     def __init__(
-        self, scatt_ws: MantidWorkspace, skip_slits=False, allow_later_runs=False, tolerance=0.2, experiment=""
+        self,
+        scatt_ws: MantidWorkspace,
+        experiment: str,
+        ar_dir: str,
+        skip_slits=False,
+        allow_later_runs=False,
+        tolerance=0.2,
     ):
         """
-        Extract information from the given workspace
+        Initialize the DirectBeamFinder with the given scattering workspace and parameters.
+
+        This method extracts necessary information from the given workspace and sets up the
+        directories and parameters for searching a suitable direct beam run.
 
         Parameters
         ----------
-        scatt_ws
-            Mantid Workspace instance (or just its name) to find a direct beam for
+        scatt_ws : MantidWorkspace
+            The scattering workspace to match with a direct beam run.
+        experiment : str
+            The experiment identifier (e.g., "IPTS-12345"). Default is an empty string.
+        ar_dir : str
+            Directory to search for autoreduced data.
+            In autoreduce mode, it will be /SN/REF_M/IPTS-XXXX/shared/autoreduce/
+        skip_slits : bool, optional
+            Whether to skip the slit gap matching. Default is False.
+        allow_later_runs : bool, optional
+            Whether to allow later runs in the search for a direct beam. Default is False.
+        tolerance : float, optional
+            Tolerance for matching the direct beam run based on wavelength and slit gaps. Default is 0.2.
         """
+        assert "IPTS-" in experiment, f"Experiment identifier must contain 'IPTS-': {experiment}"
+        # Directory where the Nexus data files are stored.
         self.data_dir = nexus_data_dir(experiment)
-        self.ar_dir = ar_out_dir(experiment)
+        # Directory where the autoreduced data files are stored.
+        self.ar_dir = ar_dir
+        # Directory where the direct beam files are stored.
         self.db_dir = DIRECT_BEAM_DIR
+        # Tolerance for matching the direct beam run based on wavelength and slit gaps.
         self.tolerance = tolerance
+        # Whether to skip the slit gap matching.
         self.skip_slits = skip_slits
+        # Whether to allow later runs in the search for a direct beam.
         self.allow_later_runs = allow_later_runs
         sample_logs = SampleLogs(scatt_ws)
         self.wl = sample_logs.mean("LambdaRequest")
         if "BL4A:Mot:S1:X:Gap" in sample_logs:
-            self.s1 = sample_logs.mean("BL4A:Mot:S1:X:Gap")
+            self.s1 = sample_logs.mean("BL4A:Mot:S1:X:Gap")  # Slit 1 gap of the scattering workspace.
             self.s2 = sample_logs.mean("BL4A:Mot:S2:X:Gap")
             self.s3 = sample_logs.mean("BL4A:Mot:S3:X:Gap")
         else:
@@ -55,7 +87,26 @@ class DirectBeamFinder:
 
     def search(self, skip_slits=False, allow_later_runs=False):
         """
-        Update our data information, and search for a suitable direct beam file.
+        Search for a suitable direct beam file.
+
+        This method first updates the meta-data about the experiment data,
+        then searches for a matching direct beam run based on various criteria such as wavelength,
+        slit gaps, and experiment identifier.
+        It first looks in the autoreduction directory and then in the top-level storage directory
+        containing metadata for all direct-beam runs.
+        The search will stop as soon as a suitable direct beam run is found.
+
+        Parameters
+        ----------
+        skip_slits : bool, optional
+            Whether to skip the slit gap matching. Default is False.
+        allow_later_runs : bool, optional
+            Whether to allow later runs in the search for a direct beam. Default is False.
+
+        Returns
+        -------
+        closest : str or None
+            The path to the closest matching direct beam file, or None if no suitable file is found.
         """
         self.skip_slits = skip_slits
         self.allow_later_runs = allow_later_runs
@@ -65,11 +116,12 @@ class DirectBeamFinder:
             self.update_database()
 
         closest = None
-        # Look in the autoreduction directory
+
+        # Look in the autoreduction directory first
         if closest is None and os.path.isdir(self.ar_dir):
             closest = self.search_dir(self.ar_dir)
 
-        # Look in the top level storage place
+        # Look in the top level storage place, the directory containing metadata for all direct-beam runs
         if closest is None and os.path.isdir(self.db_dir):
             closest = self.search_dir(self.db_dir)
 
@@ -77,13 +129,22 @@ class DirectBeamFinder:
 
     def update_database(self):
         """
-        Create meta-data json files from data sets
+        Create a metadata JSON file from each event Nexus file in the data directory.
+
+        This method iterates over the event Nexus files in the data directory `data_dir`
+        and queries the autoreduction directory (`ar_dir`) for the corresponding metadata file.
+        If no metadata file is found, the method extracts the necessary information from the event Nexus file
+        and writes it to a new metadata JSON file in the autoreduction directory.
+        if the event Nexus file corresponds to a direct-beam run,
+        then the method also writes the metadata to the directory of direct-beam metadata (`db_dir`).
         """
         for item in os.listdir(self.data_dir):
+            # example of valid filenames: "REF_M_30900_event.nxs", "REF_M_30900.nxs.h5"
             if item.endswith("_event.nxs") or item.endswith("h5"):
-                summary_path = os.path.join(self.ar_dir, item + ".json")
-                if not os.path.isfile(summary_path):
-                    entry = "entry"
+                # Check if the summary file already exists in the autoreduction directory, otherwise create it
+                metadata_path = os.path.join(self.ar_dir, item + ".json")
+                if os.path.isfile(metadata_path) is False:
+                    # Check if the file is valid by trying to load any of its cross-sections with LoadEventNexus
                     is_valid = False
                     for entry in ["entry", "entry-Off_Off", "entry-On_Off", "entry-Off_On", "entry-On_On"]:
                         try:
@@ -101,13 +162,15 @@ class DirectBeamFinder:
                             # This is expected so we just need to proceed with the next entry.
                             logging.debug("Finding direct beam: %s [%s]: %s", item, entry, sys.exc_info()[1])
 
-                    if not is_valid:
+                    # If the file is not valid, flag it as such and continue to the next events file
+                    if is_valid is False:
                         meta_data = dict(run=0, invalid=True)
-                        fd = open(summary_path, "w")
+                        fd = open(metadata_path, "w")
                         fd.write(json.dumps(meta_data))
                         fd.close()
                         continue
 
+                    # If the file is valid, proceed to extract the meta-data
                     try:
                         run_number = int(ws.getRunNumber())
                         sample_logs = SampleLogs(ws)
@@ -153,14 +216,16 @@ class DirectBeamFinder:
                             dangle=dangle,
                             sangle=sangle,
                         )
-                        fd = open(summary_path, "w")
-                        fd.write(json.dumps(meta_data))
-                        fd.close()
+
+                        # Write the meta-data to the summary file in the first autoreduction directory
+                        with open(metadata_path, "w") as fd:
+                            fd.write(json.dumps(meta_data))
+
+                        # If a direct-beam run, also write it to the directory of direct-beam metadata
                         if (data_info is not None) and (data_info.data_type == DataType.DIRECT_BEAM):
                             standard_path = os.path.join(self.db_dir, item + ".json")
-                            fd = open(standard_path, "w")
-                            fd.write(json.dumps(meta_data))
-                            fd.close()
+                            with open(standard_path, "w") as fd:
+                                fd.write(json.dumps(meta_data))
                     except:  # noqa E722
                         logging.info("Could not process run %s\n %s", run_number, sys.exc_info()[1])
 

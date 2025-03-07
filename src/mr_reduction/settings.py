@@ -1,3 +1,6 @@
+import os
+from typing import List, Union
+
 """
 Reduction settings for MR
 """
@@ -21,13 +24,9 @@ TOF_MAX = 100000
 TOF_BIN = 400.0
 
 
-def ar_out_dir(ipts: str) -> str:
-    return "/SNS/REF_M/%(ipts)s/shared/autoreduce/" % {"ipts": ipts}
+DIRECT_BEAM_DIR = "/SNS/REF_M/shared/autoreduce/direct_beams/"
+GLOBAL_AR_DIR = "/SNS/REF_M/shared/autoreduce"
 
 
 def nexus_data_dir(ipts: str) -> str:
     return "/SNS/REF_M/%(ipts)s/nexus" % {"ipts": ipts}
-
-
-DIRECT_BEAM_DIR = "/SNS/REF_M/shared/autoreduce/direct_beams/"
-GLOBAL_AR_DIR = "/SNS/REF_M/shared/autoreduce"

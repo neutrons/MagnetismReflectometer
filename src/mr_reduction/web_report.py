@@ -101,7 +101,7 @@ def upload_html_report(html_report, publish=True, run_number=None, report_file=N
 
 
 def process_collection(summary_content=None, report_list=[], publish=True, run_number=None) -> Tuple[str, str]:
-    r"""Process a collection of HTMNL reports into on final HTML report
+    r"""Process a collection of HTML reports into on final HTML report
 
     Parameters
     ----------
@@ -176,8 +176,7 @@ def paste_collection_reports(collection_reports, run_number, publish=False) -> s
 
 class Report:
     """
-    Take the output of the reduction and generate
-    diagnostics plots, and a block of meta data.
+    Take the output of the reduction and generate diagnostics plots, and a block of meta data.
     """
 
     def __init__(
@@ -428,8 +427,8 @@ class Report:
         xy_plot = None
         if self.plot_2d:
             try:
-                # integrated = Integration(workspace)
-                signal = np.log10(workspace.extractY())
+                integrated = Integration(workspace)
+                signal = np.log10(integrated.extractY())
                 z = np.reshape(signal, (n_x, n_y))
                 xy_plot = _plot2d(
                     z=z.T,
@@ -462,19 +461,19 @@ class Report:
                 YPixelMax=n_y,
                 OutputWorkspace="direct_summed",
             )
-            signal = np.log10(direct_summed.extractY())
+            signal = np.transpose(np.log10(direct_summed.extractY()))
             tof_axis = direct_summed.extractX()[0] / 1000.0
 
             if self.plot_2d:
                 x_tof_plot = _plot2d(
                     z=signal,
-                    y=list(range(signal.shape[0])),
-                    x=tof_axis,
-                    x_range=None,
-                    y_range=scatt_peak,
-                    y_bck_range=self.data_info.background,
-                    x_label="TOF (ms)",
-                    y_label="X pixel",
+                    y=tof_axis,
+                    x=list(range(signal.shape[0])),
+                    x_range=scatt_peak,
+                    x_bck_range=self.data_info.background,
+                    y_range=None,
+                    x_label="X pixel",
+                    y_label="TOF (ms)",
                     title="r%s [%s]" % (self.data_info.run_number, cross_section),
                 )
         except:  # noqa E722
@@ -500,6 +499,35 @@ class Report:
         except:  # noqa E722
             self.log("  - Could not generate X count distribution")
 
+        self.log("  - generating Y count distribution")
+        # Count per Y pixel
+        low_res_profile = None
+        try:
+            direct_summed = RefRoi(
+                InputWorkspace=workspace,
+                IntegrateY=False,
+                NXPixel=n_x,
+                NYPixel=n_y,
+                ConvertToQ=False,
+                OutputWorkspace="direct_summed",
+            )
+            integrated = Integration(direct_summed)
+            integrated = Transpose(integrated)
+            signal_x = integrated.readY(0)
+            signal_y = np.arange(len(signal_x))
+            low_res_profile = _plot1d(
+                signal_x,
+                signal_y,
+                x_log=True,
+                y_log=False,
+                y_range=scatt_low_res,
+                x_label="Counts",
+                y_label="Y pixel",
+                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+            )
+        except:  # noqa E722
+            self.log("  - Could not generate Y count distribution")
+
         # TOF distribution
         tof_dist = None
         try:
@@ -517,7 +545,7 @@ class Report:
         except:  # noqa E722
             self.log("  - Could not generate TOF distribution")
 
-        return [xy_plot, x_tof_plot, peak_pixels, tof_dist]
+        return [xy_plot, peak_pixels, low_res_profile, x_tof_plot, tof_dist]
 
 
 def _plot2d(
@@ -603,7 +631,7 @@ def _plot2d(
             y=[y_range[0], y_range[0]],
             x=[min(x), max(x)],
             marker=dict(
-                color="rgba(152, 0, 0, .8)",
+                color="rgba(0, 128, 0, 1)",
             ),
         )
         y_right = go.Scatter(
@@ -611,7 +639,7 @@ def _plot2d(
             y=[y_range[1], y_range[1]],
             x=[min(x), max(x)],
             marker=dict(
-                color="rgba(152, 0, 0, .8)",
+                color="rgba(0, 128, 0, 1)",
             ),
         )
         data.append(y_left)
@@ -674,7 +702,7 @@ def _plot2d(
 
 
 def _plot1d(
-    x, y, x_range=None, x_label="", y_label="Counts", title="", bck_range=None, x_log=False, y_log=True
+    x, y, x_range=None, y_range=None, x_label="", y_label="Counts", title="", bck_range=None, x_log=False, y_log=True
 ) -> str:
     r"""Generate a simple 1D plot as an HTML snippet containing a Plotly graph embedded within a web page
 
@@ -722,6 +750,27 @@ def _plot1d(
         )
         data.append(x_left)
         data.append(x_right)
+
+    if y_range is not None:
+        min_x = min([v for v in x if v > 0])
+        y_left = go.Scatter(
+            name="",
+            y=[y_range[0], y_range[0]],
+            x=[min_x, max(x)],
+            marker=dict(
+                color="rgba(0, 128, 0, 1)",
+            ),
+        )
+        y_right = go.Scatter(
+            name="",
+            y=[y_range[1], y_range[1]],
+            x=[min_x, max(x)],
+            marker=dict(
+                color="rgba(0, 128, 0, 1)",
+            ),
+        )
+        data.append(y_left)
+        data.append(y_right)
 
     if bck_range is not None:
         min_y = min([v for v in y if v > 0])

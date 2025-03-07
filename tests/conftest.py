@@ -83,13 +83,8 @@ def mock_filesystem(tempdir, data_server):
 
     with (
         mock.patch("mr_reduction.mr_reduction.DirectBeamFinder") as mock_DirectBeamFinder,
-        mock.patch("mr_reduction.reflectivity_merge.ar_out_dir") as mock_ar_out_dir,
-        mock.patch("mr_reduction.script_output.ar_out_dir") as mock_ar_out_dir2,
-        mock.patch("mr_reduction.reflectivity_merge.nexus_data_dir") as mock_ar_out_dir3,
+        mock.patch("mr_reduction.reflectivity_merge.nexus_data_dir") as mock_data_dir,
     ):
-        # Setup Mocks
-        mock_ar_out_dir.return_value = tempdir
-        mock_ar_out_dir2.return_value = tempdir
-        mock_ar_out_dir3.return_value = data_server.datarepo
+        mock_data_dir.return_value = data_server.datarepo
 
         yield MockSetup(tempdir, mock_DirectBeamFinder)
