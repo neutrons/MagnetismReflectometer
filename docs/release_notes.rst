@@ -14,6 +14,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 
 **Of interest to the User**:
 
+- PR #31 Save the spin selection state in the ORSO file
 - PR #30 Documentation on how the ROI's in the sample logs are used
 - PR #28 Ability to manually set the Y-Pixel (low resolution) range for the peaks
 - PR #26 Fix extracting the run number in the autoreduction template
