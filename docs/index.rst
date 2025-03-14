@@ -14,6 +14,7 @@ User Guide
    /user/conda_environments
    /user/reduce
    /user/roi
+   /user/polarization
    /release_notes
 
 Contacting the Team
