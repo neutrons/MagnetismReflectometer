@@ -1,16 +1,11 @@
-# standard imports
 import os
 from typing import List
 
-# mr_reduction imports
 import mr_reduction
-
-# from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
 import pytest
-
-# third party imports
 from mantid.simpleapi import LoadNexusProcessed
 from mr_reduction.io_orso import write_orso
+from numpy.testing import assert_almost_equal
 from orsopy.fileio.base import Column, ErrorColumn
 from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
 
@@ -48,6 +43,12 @@ def test_write_orso(mock_filesystem, data_server):
         assert info.columns[i].name == label
     assert info.reduction.software.version == mr_reduction.__version__
     assert "MagnetismReflectometryReduction" in info.reduction.call
+
+    # assert instrument settings
+    instrument_settings = info.data_source.measurement.instrument_settings
+    assert_almost_equal(instrument_settings.incident_angle.magnitude, 0.015, decimal=3)
+    assert_almost_equal(instrument_settings.wavelength.min, 2.7, decimal=3)
+    assert instrument_settings.polarization.value == "pp"
 
 
 if __name__ == "__main__":

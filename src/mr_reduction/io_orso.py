@@ -1,20 +1,22 @@
-# standard imports
 import math
 from datetime import datetime
 from typing import Optional
 
 import numpy as np
 from mantid.simpleapi import mtd
-
-# third party imports
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
+from orsopy.fileio.base import Value as ORSOValue
+from orsopy.fileio.base import ValueRange as ORSOValueRange
+from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettings
+from orsopy.fileio.data_source import Measurement as ORSOMeasurement
+from orsopy.fileio.orso import Orso
 
-# mr_reduction imports
 import mr_reduction
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 from mr_reduction.logging import logger
 from mr_reduction.script_output import generate_script_from_ws
 from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.spin_setup import REFMSpinSetup
 from mr_reduction.types import MantidAlgorithmHistory, MantidWorkspace
 
 
@@ -39,8 +41,8 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         r_error_value_is=MantidORSODataColumns.ErrorValue.Sigma,
         q_error_value_is=MantidORSODataColumns.ErrorValue.Sigma,
     )
-
-    theta = np.full(len(q), reflected_options.tth * math.pi / 360.0)
+    theta_in_degrees = reflected_options.tth * math.pi / 360.0
+    theta = np.full(len(q), theta_in_degrees)
     data_columns.add_column(
         name="theta", unit=MantidORSODataColumns.Unit.Degrees, physical_quantity="theta", data=theta
     )
@@ -99,14 +101,24 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     )
 
     #
-    # additional info for the ORSO header
+    # ORSO header
     dataset.set_facility("ORNL/SNS")
     sample_logs = SampleLogs(workspace)
     dataset.set_proposal_id(sample_logs["experiment_identifier"])
     dataset.set_reduction_call(generate_script_from_ws([workspace], str(workspace), quicknxs_mode=False))
-    reduction_software = dataset._header.reduction.software
+
+    info: Orso = dataset.dataset.info
+    reduction_software = info.reduction.software
     reduction_software.name = "mr_reduction"
     reduction_software.version = mr_reduction.__version__
+
+    measurement: ORSOMeasurement = info.data_source.measurement
+    measurement.instrument_settings = ORSOInstrumentSettings(
+        incident_angle=ORSOValue(theta_in_degrees, "deg"),
+        wavelength=ORSOValueRange(sample_logs["lambda_min"], sample_logs["lambda_max"], "angstrom"),
+        polarization=REFMSpinSetup.from_workspace(workspace).as_orso,
+    )
+    # building the InstrumentSetting object
 
     return dataset
 

@@ -1,4 +1,4 @@
-.. multiple_peaks
+.. _multiple_peaks:
 
 Multiple Peaks in a single Run
 ================================

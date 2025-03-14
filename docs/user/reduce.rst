@@ -1,4 +1,4 @@
-.. using_reduce_script
+.. _using_reduce_script:
 
 Reduction
 =========
