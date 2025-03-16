@@ -1,22 +1,22 @@
-# pylint: disable=bare-except
+# standard imports
 import json
 import os
 import sys
 import time
 import traceback
 
+# third party imports
 import mantid
 import numpy as np
-from mantid import simpleapi as api
+from mantid import simpleapi as mantid_api
+
+# mr imports
 from mr_reduction import mr_reduction as refm
 from mr_reduction.web_report import _plot1d, _plot2d
 
 AR_DIR = "/SNS/REF_M/shared/autoreduce"
 if AR_DIR not in sys.path:
     sys.path.append(AR_DIR)
-LIVE_DIR = "/SNS/REF_M/shared/livereduce"
-if LIVE_DIR not in sys.path:
-    sys.path.append(LIVE_DIR)
 
 
 DEBUG = True
@@ -26,8 +26,8 @@ if DEBUG:
 
 pol_info = ""
 try:
-    import polarization_analysis
-except:  # noqa E722
+    from mr_livereduce import polarization_analysis
+except (ImportError, ModuleNotFoundError):
     pol_info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 
@@ -51,7 +51,7 @@ def read_configuration():
     if len(_json_data) > 0:
         try:
             return json.loads(_json_data)
-        except:  # noqa E722
+        except json.JSONDecodeError:
             if DEBUG:
                 logfile.write("Could not parse reduction options from the reduction script\n")
     return None
@@ -112,7 +112,7 @@ def call_reduction(ws, options=None):
         )
 
 
-def generate_plots(run_number, workspace, options=None):  # noqa ARG001
+def generate_plots(run_number, workspace):
     """
     Generate diagnostics plots
     """
@@ -122,9 +122,9 @@ def generate_plots(run_number, workspace, options=None):  # noqa ARG001
     # X-TOF plot
     tof_min = workspace.getTofMin()
     tof_max = workspace.getTofMax()
-    workspace = api.Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
+    workspace = mantid_api.Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
 
-    direct_summed = api.RefRoi(
+    direct_summed = mantid_api.RefRoi(
         InputWorkspace=workspace,
         IntegrateY=True,
         NXPixel=n_x,
@@ -147,20 +147,20 @@ def generate_plots(run_number, workspace, options=None):  # noqa ARG001
     )
 
     # X-Y plot
-    _workspace = api.Integration(workspace)
+    _workspace = mantid_api.Integration(workspace)
     signal = np.log10(_workspace.extractY())
     z = np.reshape(signal, (n_x, n_y))
     xy_plot = _plot2d(z=z.T, x=np.arange(n_x), y=np.arange(n_y), title="r%s" % run_number)
 
     # Count per X pixel
-    integrated = api.Integration(direct_summed)
-    integrated = api.Transpose(integrated)
+    integrated = mantid_api.Integration(direct_summed)
+    integrated = mantid_api.Transpose(integrated)
     signal_y = integrated.readY(0)
     signal_x = np.arange(len(signal_y))
     peak_pixels = _plot1d(signal_x, signal_y, x_label="X pixel", y_label="Counts", title="r%s" % run_number)
 
     # TOF distribution
-    workspace = api.SumSpectra(workspace)
+    workspace = mantid_api.SumSpectra(workspace)
     signal_x = workspace.readX(0) / 1000.0
     signal_y = workspace.readY(0)
     tof_dist = _plot1d(
@@ -175,12 +175,12 @@ options = read_configuration()
 
 try:
     run_number = input.getRunNumber()
-except:  # noqa E722
+except Exception:  # noqa BLE001
     run_number = 0
 
 try:
     plots = generate_plots(run_number, input)
-except:  # noqa E722
+except RuntimeError:
     if DEBUG:
         logfile.write("%s\n" % sys.exc_info()[1])
     plots = []
@@ -195,7 +195,7 @@ try:
     info = "<div>Events: %s</div>\n" % n_evts
     info += "<div>Sequence: %s of %s</div>\n" % (seq_number, seq_total)
     info += "<div>Report time: %s</div>\n" % time.ctime()
-except:  # noqa E722
+except RuntimeError:
     info = "<div>Error: %s</div>\n" % sys.exc_info()[1]
 
 pol_info += "<table style='width:100%'>\n"
@@ -203,7 +203,7 @@ ws = None
 try:
     tof_min = input.getTofMin()
     tof_max = input.getTofMax()
-    ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
+    ws = mantid_api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
     ws_list, ratio1, ratio2, asym1, labels = polarization_analysis.calculate_ratios(
         ws, delta_wl=0.05, slow_filter=True
     )  # , roi=[60,110,80,140])
@@ -256,10 +256,10 @@ try:
             pol_info += "</tr>\n"
     else:
         pol_info += "<tr>\n"
-        div_r1 = api.SavePlot1D(InputWorkspace=ratio1, OutputType="plotly")
+        div_r1 = mantid_api.SavePlot1D(InputWorkspace=ratio1, OutputType="plotly")
         pol_info += "<td>%s</td>\n" % div_r1
         pol_info += "</tr>\n"
-except:  # noqa E722
+except RuntimeError:
     pol_info += "<div>Error: %s</div>\n" % sys.exc_info()[1]
 pol_info += "</table>\n"
 
@@ -267,7 +267,7 @@ pol_info += "</table>\n"
 reduction_info = ""
 if run_number > 0 and ws is not None:
     try:
-        ws = api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
+        ws = mantid_api.Rebin(input, params="%s, 50, %s" % (tof_min, tof_max), PreserveEvents=True)
         red = call_reduction(ws, options=options)
         red.pol_state = "SF1"
         red.pol_veto = "SF1_Veto"
@@ -275,7 +275,7 @@ if run_number > 0 and ws is not None:
         red.ana_veto = "SF2_Veto"
         red.use_slow_flipper_log = True
         reduction_info = red.reduce()
-    except:  # noqa E722
+    except RuntimeError:
         reduction_info += "<div>Could not reduce the data</div>\n"
         reduction_info += "<div>%s</div>\n" % sys.exc_info()[0]
         if DEBUG:
@@ -300,16 +300,15 @@ if DEBUG:
     # logfile.write(plot_html)
 try:
     mantid.logger.information("Posting plot of run %s" % run_number)
-    try:  # version on mr_autoreduce
+    try:  # version on autoreduce
         from postprocessing.publish_plot import publish_plot
     except ImportError:  # version on instrument computers
         from finddata import publish_plot
     request = publish_plot("REF_M", run_number, files={"file": plot_html})
-except:  # noqa E722
-    exc_type, exc_value, exc_traceback = sys.exc_info()
+except Exception as e:  # noqa: BLE001
     if DEBUG:
-        logfile.write("\n" + exc_value + "\n")
-        for line in traceback.format_exception(exc_type, exc_value, exc_traceback):
+        logfile.write("\n" + str(e) + "\n")
+        for line in traceback.format_exception(type(e), e, e.__traceback__):
             logfile.write(line)
 if DEBUG:
     logfile.write("DONE\n")
