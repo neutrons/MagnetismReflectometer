@@ -1,9 +1,10 @@
+# standard library imports
 import math
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
+# third-party imports
 import numpy as np
-from mantid.simpleapi import mtd
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
 from orsopy.fileio.base import Value as ORSOValue
 from orsopy.fileio.base import ValueRange as ORSOValueRange
@@ -11,24 +12,25 @@ from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettin
 from orsopy.fileio.data_source import Measurement as ORSOMeasurement
 from orsopy.fileio.orso import Orso
 
+# mr_reduction imports
 import mr_reduction
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 from mr_reduction.logging import logger
 from mr_reduction.script_output import generate_script_from_ws
-from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.spin_setup import REFMSpinSetup
 from mr_reduction.types import MantidAlgorithmHistory, MantidWorkspace
 
 
 def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
-    # TODO: direct_options will be used in a future version
+    # TODO: direct_options will be used in a future version if we bother to gather data from the normalizing run
     # direct_options = DirectBeamOptions.from_workspace(workspace)
     reflected_options = ReflectedBeamOptions.from_workspace(workspace)
 
     #
     # collect the numerical data (Q, intensity, theta)
     #
-    ws = mtd[str(workspace)]
+    ws = workspace_handle(workspace)
 
     q, q_error = ws.readX(0), ws.readDx(0)
     intensity, intensity_error = ws.readY(0), ws.readE(0)
@@ -59,7 +61,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     # reduction (or stitch) algorithm history
     #
     reduction_history = None
-    for history in workspace.getHistory().getAlgorithmHistories():
+    for history in ws.getHistory().getAlgorithmHistories():
         if history.name() in ("MagnetismReflectometryReduction", "Stitch1D"):
             reduction_history = history
             break
@@ -91,10 +93,13 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     #
     # create the dataset
     #
+    sample_logs = SampleLogs(workspace)
+    cross_section_label = sample_logs["cross_section_id"]  # e.g. "Off_Off", "On_Off"
+
     dataset = MantidORSODataset(
-        dataset_name="dataset_name",
+        dataset_name=cross_section_label,
         data_columns=data_columns,
-        ws=workspace,
+        ws=ws,
         reduction_timestamp=_reduction_timestamp(reduction_history),
         creator_name="ORNL/SNS/REF_M",
         creator_affiliation="Oak Ridge National Laboratory",
@@ -103,7 +108,6 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     #
     # ORSO header
     dataset.set_facility("ORNL/SNS")
-    sample_logs = SampleLogs(workspace)
     dataset.set_proposal_id(sample_logs["experiment_identifier"])
     dataset.set_reduction_call(generate_script_from_ws([workspace], str(workspace), quicknxs_mode=False))
 
@@ -123,7 +127,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     return dataset
 
 
-def write_orso(ws_list, output_path):
+def write_orso(ws_list: List[MantidWorkspace], output_path: str) -> None:
     r"""
     Write out reflectivity output (usually from autoreduction, as file REF_M_*_autoreduce.dat).
 
@@ -136,6 +140,11 @@ def write_orso(ws_list, output_path):
         A list of workspace objects containing reflectivity data.
     output_path : str
         The path where the output file will be written. Must end with extension ".ort".
+
+    Raises
+    -------
+    ValueError
+        If the output file path does not end with ".ort".
     """
     if not output_path.endswith(".ort"):
         raise ValueError("Output file must have .ort extension")
