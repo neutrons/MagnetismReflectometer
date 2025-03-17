@@ -8,9 +8,14 @@ Notes for major and minor releases. Notes for patch releases are referred.
 ---------
 (date of release, format YYYY-MM-DD)
 
+**Of interest to the User**:
+
+**Of interest to the Developer:**
+
+
 <v2.0.0>
 ---------
-(date of release, format YYYY-MM-DD)
+2025-03-18
 
 **Of interest to the User**:
 
