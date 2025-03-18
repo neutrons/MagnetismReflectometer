@@ -9,6 +9,7 @@ Notes for major and minor releases. Notes for patch releases are referred.
 (date of release, format YYYY-MM-DD)
 
 **Of interest to the User**:
+- PR #33 Saving all cross-sections for one run in one ORSO-formatted file
 
 **Of interest to the Developer:**
 
