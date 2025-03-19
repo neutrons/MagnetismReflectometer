@@ -8,7 +8,7 @@ dependencies:
   - argcomplete
   - flask
   - gunicorn
-  - mantid=6.10
+  - mantidworkbench=6.10
   - neutrons::finddata=0.10
   - pandas
   - pip
