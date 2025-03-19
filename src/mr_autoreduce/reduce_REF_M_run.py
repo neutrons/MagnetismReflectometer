@@ -58,7 +58,7 @@ def wrong_options(opts):
     if os.path.isfile(opts["events_file"]) is False:
         return f"File {opts['events_file']} does not exist"
     if os.path.isdir(opts["outdir"]) is False:
-        return f"Output directory {opts['outdir']} does not exist"
+        os.makedirs(opts["outdir"])
     return ""
 
 
