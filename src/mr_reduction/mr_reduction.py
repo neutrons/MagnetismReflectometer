@@ -136,6 +136,8 @@ class ReductionProcess:
         self.data_ws = data_ws
         self.peak_number = None if peak_number is None else int(peak_number)
         self.ipts = None
+        if output_dir is not None:
+            os.makedirs(output_dir, exist_ok=True)  # create the directory
         self.output_dir = output_dir
         self.const_q_binning = const_q_binning
         # Q-value below which const-q binning will not be used [NOT CURRENTLY IMPLEMENTED]

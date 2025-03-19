@@ -4,6 +4,7 @@ Report class sed to populate the web monitor
 """
 
 # standard imports
+import math
 import sys
 import time
 from typing import Optional, Tuple
@@ -580,10 +581,35 @@ def _plot2d(
         [1, "rgb(128,0,0)"],
     ]
 
+    # Eliminate items in array Z that are not finite and below a certain threshold
+    x_grid, y_grid = np.meshgrid(x, y)
+    x_flat, y_flat, z_flat = x_grid.flatten(), y_grid.flatten(), z.flatten()
+    threshold = 0.01 * np.max(z_flat)
+    mask = np.isfinite(z_flat) & (z_flat > threshold)  # Keep only significant values (exclude NaN, -inf, inf)
+    x_sparse, y_sparse, z_sparse = x_flat[mask], y_flat[mask], z_flat[mask]
+
+    # Round the remaining values to a certain number of decimal places, for instance 0.003455245 to 0.0034.
+    # This will later save disk space when writing the figure to file
+    def leading_decimal_places(x: float):
+        """Calculate the number of leading decimal places for a number between 0 and 1."""
+        if x <= 0 or x >= 1:
+            raise ValueError("x must be between 0 and 1")
+        return abs(math.floor(math.log10(x)))
+
+    z_sparse = np.round(z_sparse, 1 + leading_decimal_places(threshold))
+
     heatmap = go.Heatmap(
-        x=x, y=y, z=z, autocolorscale=False, type="heatmap", showscale=False, hoverinfo="x+y+z", colorscale=colorscale
+        x=x_sparse,
+        y=y_sparse,
+        z=z_sparse,
+        autocolorscale=False,
+        type="heatmap",
+        showscale=False,
+        hoverinfo="x+y+z",
+        colorscale=colorscale,
     )
 
+    # Set the color scale limits
     data = [heatmap]
     if x_range is not None:
         x_left = go.Scatter(
