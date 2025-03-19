@@ -2,17 +2,17 @@
 
 Release Notes
 =============
-Notes for major and minor releases. Notes for patch releases are referred.
+.. Notes for major and minor releases. Notes for patch releases are referred.
 
-v2.1.0
-------
-(date of release, format YYYY-MM-DD)
+.. v2.1.0
+.. ------
+.. (date of release, format YYYY-MM-DD)
 
-**Of interest to the User**:
-- PR #33 Saving all cross-sections for one run in one ORSO-formatted file
+.. **Of interest to the User**:
+.. - PR #33 Saving all cross-sections for one run in one ORSO-formatted file
 
-**Of interest to the Developer:**
-- PR #35 Reduce figure size in the web report by eliminating non-significant data
+.. **Of interest to the Developer:**
+.. - PR #35 Reduce figure size in the web report by eliminating non-significant data
 
 v2.0.0
 ------
