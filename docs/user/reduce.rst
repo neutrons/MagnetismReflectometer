@@ -10,7 +10,7 @@ Running this command starts a simple web application to configure reduction of a
 
 Developers or power users running their own conda environment from `environment.yml`,
 and having installed the package in editable mode,
-can invoke the webapp by running script `src/mr_livereduce/reduce_REF_M_run.sh`
+can invoke the webapp by running script `src/mr_autoreduce/reduce_REF_M_run.sh`
 
  .. code-block:: bash
 
