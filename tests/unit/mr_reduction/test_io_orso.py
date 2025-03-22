@@ -7,7 +7,7 @@ import pytest
 from mantid.simpleapi import LoadNexusProcessed, mtd
 
 # mr_reduction imports
-from mr_reduction.io_orso import write_orso
+from mr_reduction.io_orso import save_cross_sections
 from numpy.testing import assert_almost_equal
 from orsopy.fileio.base import Column, ErrorColumn
 from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
@@ -42,17 +42,17 @@ def assert_instrument_settings(datasets: List[OrsoDataset], thetas, wavelengths,
         assert instrument_settings.polarization.value == polarizations[i]
 
 
-def test_write_orso_output_file_extension():
+def test_save_cross_sections_output_file_extension():
     with pytest.raises(ValueError, match="Output file must have .ort extension"):
-        write_orso([], "output_file")
+        save_cross_sections([], "output_file")
 
 
 @pytest.mark.datarepo()
-def test_write_orso_single_cross_section(mock_filesystem, data_server):
+def test_save_cross_sections_single_cross_section(mock_filesystem, data_server):
     """write a single cross-section workspace to an ORSO file and check its contents"""
     reflectivity_workspace = LoadNexusProcessed(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
-    write_orso([reflectivity_workspace], output_file)
+    save_cross_sections([reflectivity_workspace], output_file)
     #
     # load the ORSO file and check its contents
     #
@@ -63,7 +63,7 @@ def test_write_orso_single_cross_section(mock_filesystem, data_server):
 
 
 @pytest.mark.datarepo()
-def test_write_orso_run_cross_sections(mock_filesystem, data_server):
+def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     workspace_list = []
     for cross_section in ["Off_Off", "On_Off"]:
         workspace = mtd.unique_hidden_name()
@@ -72,7 +72,7 @@ def test_write_orso_run_cross_sections(mock_filesystem, data_server):
         )
         workspace_list.append(workspace)
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
-    write_orso(workspace_list, output_file)
+    save_cross_sections(workspace_list, output_file)
     #
     # load the ORSO file and check its contents
     #

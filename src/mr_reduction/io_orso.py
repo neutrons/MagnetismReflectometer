@@ -1,7 +1,8 @@
 # standard library imports
 import math
+from collections.abc import Iterable
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 # third-party imports
 import numpy as np
@@ -10,7 +11,7 @@ from orsopy.fileio.base import Value as ORSOValue
 from orsopy.fileio.base import ValueRange as ORSOValueRange
 from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettings
 from orsopy.fileio.data_source import Measurement as ORSOMeasurement
-from orsopy.fileio.orso import Orso
+from orsopy.fileio.orso import Orso, OrsoDataset, load_orso, save_orso
 
 # mr_reduction imports
 import mr_reduction
@@ -23,6 +24,26 @@ from mr_reduction.types import MantidAlgorithmHistory, MantidWorkspace
 
 
 def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
+    """
+    Assemble a MantidORSODataset given a workspace containing reflectivity for one cross-section.
+
+    Parameters
+    ----------
+    workspace : MantidWorkspace
+        The Mantid workspace containing the reflectivity data
+
+    Returns
+    -------
+    MantidORSODataset
+        The assembled MantidORSODataset containing the reflectivity data and selected metadata
+        collected from the sample logs of the workspace.
+
+    Notes
+    -----
+    This function collects numerical data (Q, intensity, theta) from the workspace,
+    gathers reduction algorithm history, and creates a MantidORSODataset with the
+    appr
+    """
     # TODO: direct_options will be used in a future version if we bother to gather data from the normalizing run
     # direct_options = DirectBeamOptions.from_workspace(workspace)
     reflected_options = ReflectedBeamOptions.from_workspace(workspace)
@@ -127,9 +148,9 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     return dataset
 
 
-def write_orso(ws_list: List[MantidWorkspace], output_path: str) -> None:
+def save_cross_sections(ws_list: List[MantidWorkspace], output_path: str) -> None:
     r"""
-    Write out reflectivity output (usually from autoreduction, as file REF_M_*_autoreduce.dat).
+    Save the reflectivities for different cross-sections for a particular peak
 
     This function generates and writes reflectivity data (typically as a result of an autoreduction process)
     to an output file in ORSO ASCII format, which can be loaded by SasView.
@@ -137,7 +158,7 @@ def write_orso(ws_list: List[MantidWorkspace], output_path: str) -> None:
     Parameters
     ----------
     ws_list : list
-        A list of workspace objects containing reflectivity data.
+        A list of workspace objects containing reflectivity data for the different cross-sections.
     output_path : str
         The path where the output file will be written. Must end with extension ".ort".
 
@@ -153,3 +174,207 @@ def write_orso(ws_list: List[MantidWorkspace], output_path: str) -> None:
     for ws in ws_list:
         orso_saver.add_dataset(dataset_assembler(ws))
     orso_saver.save_orso_ascii()
+
+
+class SequenceDataSet:
+    """
+    Class to handle a sequence of ORSO files, each containing the reflectivities for the different cross-sections
+    (e.g. "Off_Off", "On_Off", etc.) of a particular run (e.g. run "29160", runpeak "29160_2").
+
+    The sequence is typically composed of a series of consecutive runs (e.g. "29160", "29161", "29162")
+    representing a sequence of reflectometry experiments conducted on the same sample
+    but at different incident angles or wavelengths ranges.
+    """
+
+    def __init__(self, filepath_sequence: Dict[str, str] = None):
+        """
+        Initialize the SequenceDataSet with a list of ORSO files, each containing the reflectivities
+        for the different cross-sections (e.g. "Off_Off", "On_Off", etc.)
+        of a particular runpeak (e.g. run "29160", runpeak "29160_2").
+
+        Parameters
+        ----------
+        filepath_sequence
+            a dictionary `filepath_sequence[runpeak] = filepath` where `runpeak` is the runpeak identifier
+        """
+        self.filepaths: Optional[List[str]] = None
+        self._cross_sections: Optional[List[str]] = None  # e.g. ["Off_Off", "On_Off"]
+        self.runpeaks: Optional[List[str]] = None  # e.g. ["29160", "29161", "29162"]
+        self.datasets: Dict[str, List[OrsoDataset]] = {}  # e.g. {"2916": [On_Off, On_On], "2917": [On_Off, On_On]}
+        for runpeak, filepath in filepath_sequence.items():
+            self.load_runpeak(runpeak, filepath)
+
+    def __getitem__(self, item):
+        """
+        Get the datasets for a given runpeak or a cross-section.
+
+        When `item` is a cross-section label (e.g. "Off_Off", "On_Off"), it returns the datasets for that cross-section
+        by iterating over the runpeaks in the order of list `self.runpeaks`.
+
+        Examples
+        --------
+        >>> datasets = sequence["29160"]  # get all cross-section datasets for runpeak "29160"
+        >>> datasets = sequence["Off_Off"]  # get the runpeak datasets for cross-section "Off_Off"
+
+        Parameters
+        ----------
+        item : str
+            The runpeak (e.g. "29160", "29160_2") or cross-section label (e.g. "Off_Off", "On_Off").
+
+        Returns
+        -------
+        List[OrsoDataset]
+            The list of datasets for the given runpeak or cross-section.
+        """
+        if item in self.runpeaks:  # item is a runpeak
+            return self.datasets[item]
+        elif item in self.cross_sections:  # item is a cross-section
+            index = self.cross_sections.index(item)  # find the index of the cross-section label `item`
+            return [self.datasets[runpeak][index] for runpeak in self.runpeaks]
+        else:
+            raise KeyError(f"{item} not found in the datasets")
+
+    @property
+    def cross_sections(self) -> Optional[List[str]]:
+        """Get the list of cross-section labels e.g. ["Off_Off", "On_Off"]"""
+        return self._cross_sections
+
+    def is_compatible(self, datasets: List[OrsoDataset]) -> bool:
+        """
+        Check if the cross-section labels in the input datasets are the same as those in this SequenceDataSet, and
+        whether they are in the same order.
+
+        The name of each dataset (dataset.info.data_set) in input `datasets` should be a valid cross-section label,
+        such as "Off_On", "On_Off", etc.
+
+        Parameters
+        ----------
+        datasets : List[OrsoDataset]
+            List of input datasets to check.
+
+        Returns
+        -------
+        bool
+            True if the datasets are compatible, False otherwise.
+        """
+        if len(self.cross_sections) == 0:
+            return True  # the SequenceDataSet is empty, so it is compatible with any input datasets
+        if len(datasets) != len(self.cross_sections):
+            return False  # quick check on the number of cross-sections
+        cross_sections = [dataset.info.data_set for dataset in datasets]  # collect the input cross-section labels
+        return self.cross_sections == cross_sections  # the order matters
+
+    def load_runpeak(self, runpeak: str, filepath: str):
+        """
+        Load an ORSO file containing the datasets for the different cross-sections of a given runpeak.
+
+        Parameters
+        ----------
+        runpeak : str
+            The runpeak identifier (e.g. "29160", "29160_2").
+        filepath : str
+            Path to the ORSO file.
+        """
+        assert runpeak in self.datasets is False, "Runpeak already loaded"
+        datasets: List[OrsoDataset] = load_orso(filepath)
+        assert self.is_compatible(datasets), "Cross-section labels do not match the existing datasets"
+        if self.cross_sections is None:  # this is the very first dataset to be loaded
+            self._cross_sections = [dataset.info.data_set for dataset in datasets]
+            self.runpeaks = []
+        self.datasets[runpeak] = datasets
+        self.runpeaks.append(runpeak)
+
+    def sort(self):
+        """
+        Sort the runpeak sequence by increasing Qz values
+
+        Assumptions:
+           all the cross-sections datasets of a runpeak have the same Qz values
+           in any given OrsoDataset, the Qz values are in the first column
+        """
+
+        def qz_min(runpeak: str) -> float:
+            """find smallest Qz for the datasets of a given runpeak"""
+            datasets = self.datasets[runpeak]  # cross-section datasets for this runpeak
+            # look at the first value of the first column of the first dataset. That's Qz min
+            return datasets[0].data[0][0]
+
+        self.runpeaks.sort(key=qz_min)  # sort the list of runpeaks by increasing Qz values
+
+    def scale_intensities(self, scaling_factors: Dict[str, float]):
+        """
+        Scale the datasets by the given scaling factors.
+
+        This will rescale Column "R" and ErrorColumn "R" in each dataset by the corresponding scaling factor.
+        It's assumed they are columns 1 and 2 in the datasets of any cross-section of any runpeak.
+
+        Parameters
+        ----------
+        scaling_factors
+            A dictionary `scaling_factors[runpeak] = scaling`
+        """
+        assert set(scaling_factors) == set(self.runpeaks), "Scaling factors must be provided for all runpeaks"
+        for runpeak, scaling_factor in scaling_factors.items():
+            for dataset in self.datasets[runpeak]:  # iterate over the cross-sections
+                data: np.array = dataset.data
+                data[:, 1] *= scaling_factor  # scale the R column in-place
+                data[:, 2] *= scaling_factor  # scale the sR column in-place
+
+    def concatenate(self) -> List[OrsoDataset]:
+        """
+        Concatenate the datasets of all the runpeaks, for each cross-section.
+
+        For instance, starting with datasets {"2916": [On_Off, On_On], "2917": [On_Off, On_On]},
+        we end up with datasets ["On_Off", "On_On"] where dataset "On_Off" results from
+        concatenating datasets ["2916"][0] and ["2917"][0].
+        Notice that the last Qz values of ["2916"][0] can be higher than the first Qz values of ["2917"][0]
+        because we're not stitching, just concatenating.
+
+        Returns
+        -------
+        A list of datasets, one for each cross-section.
+        """
+        datasets: List[OrsoDataset] = []
+        for cross_section in self.cross_sections:  # iterate over the cross-sections labels
+            # concatenate the numpy arrays containing the data for this cross-section for all runpeaks
+            data = np.concatenate([dataset.data for dataset in self.datasets[cross_section]])
+            # use the `info` attribute of the dataset of the first runpeak
+            dataset: OrsoDataset = self.datasets[cross_section][0]
+            datasets.append(OrsoDataset(info=dataset.info, data=data))
+        return datasets
+
+
+def concatenate_runs(
+    filepath_sequence: Dict[str, str], concatenated_filepath: str, scaling_factors: Dict[str, float] = None
+):
+    """
+    Concatenate the reflectivity curves for a sequence of runs or runpeaks (e.g. "29160_1", "29161_1", "29162_1").
+
+    Each runpeak is represented by an ORSO file containing the reflectivities for the different cross-sections
+    (e.g. "Off_Off", "On_Off", etc.). All the ORSO files must contain reflectivity data for the same cross-sections
+    and in the same order.
+
+    Other assumptions:
+    - The Qz values are in the first column of each dataset.
+    - The reflectivity values are in the second column of each dataset.
+    - The error values are in the third column of each dataset.
+
+    Parameters
+    ----------
+    filepath_sequence
+        a dictionary `filepath_sequence[runpeak] = filepath` where `runpeak` is the runpeak identifier
+    concatenated_filepath
+        The path where the stitched ORSO file will be saved. Should end with ".ort" extension.
+    scaling_factors
+        A dictionary `scaling_factors[runpeak] = scaling`
+    """
+    assert concatenated_filepath.endswith(".ort"), "Output file must have .ort extension"
+    if scaling_factors is not None:
+        assert set(filepath_sequence) == set(scaling_factors), "Scaling factors must be provided for all runpeaks"
+
+    sequence = SequenceDataSet(filepath_sequence)
+    sequence.sort()  # sort runpeaks by increasing Qz values
+    if scaling_factors is not None:
+        sequence.scale_intensities(scaling_factors)
+    datasets = sequence.concatenate()  # concatenate the runpeaks for each cross-section
+    save_orso(datasets, concatenated_filepath)
