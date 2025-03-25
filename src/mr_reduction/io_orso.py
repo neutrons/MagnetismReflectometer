@@ -1,8 +1,7 @@
 # standard library imports
 import math
-from collections.abc import Iterable
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 # third-party imports
 import numpy as np
@@ -197,10 +196,11 @@ class SequenceDataSet:
         filepath_sequence
             a dictionary `filepath_sequence[runpeak] = filepath` where `runpeak` is the runpeak identifier
         """
-        self.filepaths: Optional[List[str]] = None
         self._cross_sections: Optional[List[str]] = None  # e.g. ["Off_Off", "On_Off"]
         self.runpeaks: Optional[List[str]] = None  # e.g. ["29160", "29161", "29162"]
         self.datasets: Dict[str, List[OrsoDataset]] = {}  # e.g. {"2916": [On_Off, On_On], "2917": [On_Off, On_On]}
+        if filepath_sequence is None:
+            return
         for runpeak, filepath in filepath_sequence.items():
             self.load_runpeak(runpeak, filepath)
 
@@ -257,7 +257,7 @@ class SequenceDataSet:
         bool
             True if the datasets are compatible, False otherwise.
         """
-        if len(self.cross_sections) == 0:
+        if self.cross_sections is None or len(self.cross_sections) == 0:
             return True  # the SequenceDataSet is empty, so it is compatible with any input datasets
         if len(datasets) != len(self.cross_sections):
             return False  # quick check on the number of cross-sections
@@ -275,7 +275,7 @@ class SequenceDataSet:
         filepath : str
             Path to the ORSO file.
         """
-        assert runpeak in self.datasets is False, "Runpeak already loaded"
+        assert runpeak not in self.datasets, f"Runpeak {runpeak} already loaded"
         datasets: List[OrsoDataset] = load_orso(filepath)
         assert self.is_compatible(datasets), "Cross-section labels do not match the existing datasets"
         if self.cross_sections is None:  # this is the very first dataset to be loaded
@@ -337,18 +337,19 @@ class SequenceDataSet:
         datasets: List[OrsoDataset] = []
         for cross_section in self.cross_sections:  # iterate over the cross-sections labels
             # concatenate the numpy arrays containing the data for this cross-section for all runpeaks
-            data = np.concatenate([dataset.data for dataset in self.datasets[cross_section]])
+            data = np.concatenate([dataset.data for dataset in self[cross_section]])
             # use the `info` attribute of the dataset of the first runpeak
-            dataset: OrsoDataset = self.datasets[cross_section][0]
+            dataset: OrsoDataset = self[cross_section][0]
             datasets.append(OrsoDataset(info=dataset.info, data=data))
         return datasets
 
 
 def concatenate_runs(
     filepath_sequence: Dict[str, str], concatenated_filepath: str, scaling_factors: Dict[str, float] = None
-):
+) -> List[OrsoDataset]:
     """
-    Concatenate the reflectivity curves for a sequence of runs or runpeaks (e.g. "29160_1", "29161_1", "29162_1").
+    Concatenate the reflectivity curves for a sequence of runs or runpeaks (e.g. "29160_1", "29161_1", "29162_1"),
+    and save to an ORSO file in ASCII format.
 
     Each runpeak is represented by an ORSO file containing the reflectivities for the different cross-sections
     (e.g. "Off_Off", "On_Off", etc.). All the ORSO files must contain reflectivity data for the same cross-sections
@@ -367,6 +368,10 @@ def concatenate_runs(
         The path where the stitched ORSO file will be saved. Should end with ".ort" extension.
     scaling_factors
         A dictionary `scaling_factors[runpeak] = scaling`
+
+    Returns
+    -------
+    A list of datasets, one for each cross-section, containing the concatenated reflectivity data.
     """
     assert concatenated_filepath.endswith(".ort"), "Output file must have .ort extension"
     if scaling_factors is not None:
@@ -378,3 +383,4 @@ def concatenate_runs(
         sequence.scale_intensities(scaling_factors)
     datasets = sequence.concatenate()  # concatenate the runpeaks for each cross-section
     save_orso(datasets, concatenated_filepath)
+    return datasets
