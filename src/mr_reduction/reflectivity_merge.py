@@ -565,21 +565,21 @@ def combined_curves(run, ipts, ar_dir):
     Tuple[List[str], List[float], List[str]]
         matched_runs: List[str] Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
         scaling_factors: List[float] numbers by which to multiply each matched reflectivity curve, when stitching
-        file_list: List[str]] paths to the reflectivity profile files, one file for each cross section.
+        file_list: List[str]] paths to the stitched reflectivity files, one file for each cross section.
     """
     runpeak = RunPeakNumber(run)  # e.g. "12345", "12345_2"
     # Select the cross section with the best statistics
-    high_stat_xs = select_cross_section(runpeak, ar_dir)
-    api.logger.notice("High xs: %s" % high_stat_xs)
+    high_stat_cross_section = select_cross_section(runpeak, ar_dir)
+    api.logger.notice("High xs: %s" % high_stat_cross_section)
 
     # Match the given run with other runs of the same group ID
-    matched_runs = match_run_with_sequence(runpeak, ipts, high_stat_xs, ar_dir)
+    matched_runs: List[str] = match_run_with_sequence(runpeak, ipts, high_stat_cross_section, ar_dir)
     api.logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section
     try:
         scaling_factors, direct_beam_info, data_info, data_buffer, xs_label = compute_scaling_factors(
-            matched_runs, high_stat_xs, ar_dir
+            matched_runs, high_stat_cross_section, ar_dir
         )
     except:  # noqa E722
         return matched_runs, np.ones(len(matched_runs)), [""] * len(matched_runs)
@@ -588,25 +588,25 @@ def combined_curves(run, ipts, ar_dir):
     write_reduction_script(matched_runs, scaling_factors, ar_dir)
     write_tunable_reduction_script(matched_runs, scaling_factors, ar_dir)
 
-    xs_buffers = apply_scaling_factors(matched_runs, high_stat_xs, scaling_factors, ar_dir)
-    xs_buffers.append((high_stat_xs, data_buffer))
-
-    file_list = []
-    for item in xs_buffers:  # e.g ('On_On', '0.00345  9.92443 ...')
+    # load the different REF_M_{runpeak}_{cross-section}_autoreduce.dat files and stitch them together
+    cross_section_buffers = apply_scaling_factors(matched_runs, high_stat_cross_section, scaling_factors, ar_dir)
+    cross_section_buffers.append((high_stat_cross_section, data_buffer))
+    stitched_cross_sections_filepaths = []
+    for item in cross_section_buffers:  # e.g ('On_On', '0.00345  9.92443 ...')
         if item[1]:  # reflectivity profile exists for the selected cross-section
             _file_path = write_reflectivity_cross_section(
-                matched_runs[0],
-                item[0],
-                matched_runs,
-                direct_beam_info,
-                data_info,
-                item[1],
-                xs_label,
+                runpeak=matched_runs[0],
+                cross_section=item[0],
+                matched_runs=matched_runs,
+                direct_beam_info=direct_beam_info,
+                data_info=data_info,
+                data_buffer=item[1],
+                xs_label=xs_label,
                 output_dir=ar_dir,
             )
-            file_list.append(_file_path)
+            stitched_cross_sections_filepaths.append(_file_path)
 
-    return matched_runs, scaling_factors, file_list
+    return matched_runs, scaling_factors, stitched_cross_sections_filepaths
 
 
 def combined_catalog_info(matched_runs, ipts, output_files, ar_dir, run_peak_number=None) -> str:

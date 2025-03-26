@@ -317,20 +317,20 @@ class ReductionProcess:
         ref_plot = None
         try:
             run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
-            matched_runs, scaling_factors, outputs = combined_curves(
+            matched_run_list, scaling_factor_list, stitched_filepath_list = combined_curves(
                 run=run_peak_number, ipts=self.ipts, ar_dir=self.output_dir
             )
             if not self.live:
                 self.json_info = combined_catalog_info(
-                    matched_runs,
+                    matched_run_list,
                     self.ipts,
-                    outputs,
+                    stitched_filepath_list,
                     ar_dir=self.output_dir,
                     run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
                 )
-            self.log("Matched runs: %s" % str(matched_runs))
+            self.log("Matched runs: %s" % str(matched_run_list))
             # plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container
-            ref_plot = plot_combined(matched_runs, scaling_factors, self.output_dir, publish=False)
+            ref_plot = plot_combined(matched_run_list, scaling_factor_list, self.output_dir, publish=False)
             self.log("Generated reflectivity: %s" % len(str(ref_plot)))
         except:  # noqa E722
             self.log("Could not generate combined curve")
@@ -442,7 +442,7 @@ class ReductionProcess:
                     data_info.cross_section_label,
                 )
 
-                # Write output file in NeXus format
+                # Write output file in NeXus format.
                 SaveNexus(
                     InputWorkspace=reflectivity,
                     Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),

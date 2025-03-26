@@ -9,6 +9,7 @@ Release Notes
 .. (date of release, format YYYY-MM-DD)
 
 .. **Of interest to the User**:
+.. - PR #36 Saving all cross-sections for the combined profiles in one ORSO-formatted file
 .. - PR #33 Saving all cross-sections for one run in one ORSO-formatted file
 
 .. **Of interest to the Developer:**

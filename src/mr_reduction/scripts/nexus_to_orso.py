@@ -10,7 +10,7 @@ import argcomplete
 from mantid.simpleapi import LoadNexusProcessed
 
 # mr_reduction imports
-from mr_reduction.io_orso import write_orso
+from mr_reduction.io_orso import save_cross_sections
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
         workspace_list.append(workspace_name)
 
     # Write the ORSO file
-    write_orso(workspace_list, args.ort)
+    save_cross_sections(workspace_list, args.ort)
 
 
 if __name__ == "__main__":
