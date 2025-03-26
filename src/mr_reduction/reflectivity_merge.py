@@ -596,7 +596,7 @@ def combined_curves(run, ipts, ar_dir):
         if item[1]:  # reflectivity profile exists for the selected cross-section
             _file_path = write_reflectivity_cross_section(
                 runpeak=matched_runs[0],
-                cross_section=[0],
+                cross_section=item[0],
                 matched_runs=matched_runs,
                 direct_beam_info=direct_beam_info,
                 data_info=data_info,
