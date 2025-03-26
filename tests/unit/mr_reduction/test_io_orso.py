@@ -88,7 +88,7 @@ def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     assert_instrument_settings(datasets, thetas=[0.007, 0.007], wavelengths=[2.55, 2.55], polarizations=["po", "mo"])
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def mock_runpeak_datasets():
     dataset1, dataset2 = mock.Mock(), mock.Mock()
     dataset1.info.data_set, dataset2.info.data_set = "Off_Off", "On_Off"
@@ -143,7 +143,7 @@ class TestSequenceDataSet:
         assert sequence.is_compatible(mock_runpeak_datasets) is False  # different order of cross-sections
 
     def test_sort(self, mock_runpeak_datasets):
-        dataset1, dataset2 = [deepcopy(dataset) for dataset in mock_runpeak_datasets]
+        dataset1, dataset2 = mock_runpeak_datasets
         sequence = SequenceDataSet()
         sequence.runpeaks = ["1234", "1235"]  # initial order
         sequence.datasets = {"1234": [dataset2], "1235": [dataset1]}  # dataset2 has bigger Qz-min than dataset1
@@ -151,7 +151,7 @@ class TestSequenceDataSet:
         assert sequence.runpeaks == ["1235", "1234"]  # sorted order
 
     def test_scale_intensities(self, mock_runpeak_datasets):
-        dataset1, dataset2 = [deepcopy(dataset) for dataset in mock_runpeak_datasets]
+        dataset1, dataset2 = mock_runpeak_datasets
         sequence = SequenceDataSet()
         sequence.runpeaks = ["1235", "1234"]
         sequence.datasets = {"1234": [dataset1], "1235": [dataset2]}
@@ -160,7 +160,7 @@ class TestSequenceDataSet:
         assert_almost_equal(sequence["1235"][0].data, np.array([[43, 8.0, 0.8]]), decimal=3)
 
     def test_concatenate(self, mock_runpeak_datasets):
-        dataset1, dataset2 = [deepcopy(dataset) for dataset in mock_runpeak_datasets]
+        dataset1, dataset2 = mock_runpeak_datasets
         sequence = SequenceDataSet()
         sequence.runpeaks = ["1234", "1235"]
         sequence._cross_sections = ["Off_Off", "On_Off"]
@@ -176,7 +176,7 @@ def test_concatenate_runs(mock_runpeak_datasets):
     def _load_orso_mock(filepath: str):
         match filepath:
             case "path/to/1234.ort":  # has Qz_min == 43
-                dataset1, dataset2 = [deepcopy(dataset) for dataset in mock_runpeak_datasets]
+                dataset1, dataset2 = mock_runpeak_datasets
                 dataset1.data = np.array([[43, 1.0, 0.1]])  # dataset for "Off_Off"
                 dataset2.data = np.array([[43, 2.0, 0.2]])  # dataset for "On_Off"
                 return [dataset1, dataset2]
