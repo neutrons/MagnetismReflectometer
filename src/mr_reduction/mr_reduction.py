@@ -25,6 +25,8 @@ from mantid.simpleapi import (
     mtd,
 )
 
+from mr_reduction import io_orso
+
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
@@ -424,6 +426,7 @@ class ReductionProcess:
         write_partial_script(mtd["r_%s" % runpeak], self.output_dir)
 
         report_list = []
+        reflectivity_workspaces: List[MantidWorkspace] = []
         for ws in xs_list:
             try:
                 if str(ws).endswith("unfiltered"):
@@ -431,8 +434,6 @@ class ReductionProcess:
                 self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
                 entry = SampleLogs(ws)["cross_section_id"]
                 reflectivity = mtd["%s__reflectivity" % str(ws)]
-                report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
-                report_list.append(report)
 
                 # Write output file in QuickNXS format
                 self.log("  - ready to write: %s" % self.output_dir)
@@ -448,14 +449,19 @@ class ReductionProcess:
                     Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),
                 )
 
+                reflectivity_workspaces.append(reflectivity)
                 self.log("  - done writing")
-                # Write partial output script
+                report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
+                report_list.append(report)
             except:  # noqa E722
                 self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_info()[1]))
-                report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
+                report = Report(ws, data_info, direct_info, reflectivity_ws=None, plot_2d=self.plot_2d)
                 report_list.append(report)
+
+        # save the reflectivities of all valid cross sections to an ORSO file
+        io_orso.save_cross_sections(reflectivity_workspaces, os.path.join(self.output_dir, f"REF_M_{runpeak}.ort"))
 
         return report_list
 

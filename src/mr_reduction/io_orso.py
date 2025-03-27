@@ -1,11 +1,12 @@
 # standard library imports
 import math
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 # third-party imports
 import numpy as np
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
+from numpy.testing import assert_almost_equal, assert_equal
 from orsopy.fileio.base import Value as ORSOValue
 from orsopy.fileio.base import ValueRange as ORSOValueRange
 from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettings
@@ -384,3 +385,87 @@ def concatenate_runs(
     datasets = sequence.concatenate()  # concatenate the runpeaks for each cross-section
     save_orso(datasets, concatenated_filepath)
     return datasets
+
+
+class Questor:
+    """Helper class to check a few things of an ORSO file, used in test functions"""
+
+    def __init__(self, filepath: str = None, datasets: List[OrsoDataset] = None):
+        self.datasets: datasets
+        if filepath is not None:
+            self.datasets = load_orso(filepath)
+
+    @property
+    def incident_angle(self):
+        """Fetch the theta angle for each dataset"""
+        return [
+            dataset.info.data_source.measurement.instrument_settings.incident_angle.magnitude
+            for dataset in self.datasets
+        ]
+
+    @property
+    def polarizations(self) -> List[str]:
+        """Fetch the polarization states for each dataset, e.g. 'unpolarized', 'op', 'mm'"""
+        return [
+            dataset.info.data_source.measurement.instrument_settings.polarization.value for dataset in self.datasets
+        ]
+
+    @property
+    def cross_sections(self) -> List[str]:
+        """Fetch the cross section label for each dataset, e.g. 'Off_Off', 'Off_On'"""
+        return [dataset.info.data_set for dataset in self.datasets]
+
+    def assert_equal(self, **kwargs):
+        """
+        Assert that the specified attributes of the Questor instance match the given values.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments where the key is the name of the attribute to check,
+            and the value is the expected value.
+
+        Raises
+        ------
+        AssertionError
+            If any of the specified attributes do not match the expected values.
+
+        Examples
+        --------
+        >>> questor = Questor(filepath="path/to/file.ort")
+        >>> questor.assert_equal(cross_sections=["Off_Off"], polarizations=["unpolarized"])
+        """
+        for query, test_value in kwargs.items():
+            stored_value = getattr(self, query)
+            assert_equal(stored_value, test_value)
+
+    def assert_almost_equal(self, decimal: Union[int, List[int]], **kwargs):
+        """
+        Assert that the specified attributes of the Questor instance match the given values to a certain decimal place.
+
+        Parameters
+        ----------
+        decimal : int or list of int
+            The number of decimal places to which to compare the values. If a single integer is provided,
+            it is used for all comparisons. If a list of integers is provided,
+            each integer corresponds to the number of decimal places for each comparison.
+
+        **kwargs : dict
+            Keyword arguments where the key is the name of the attribute to check,
+            and the value is the expected value.
+
+        Raises
+        ------
+        AssertionError
+            If any of the specified attributes do not match the expected values.
+
+        Examples
+        --------
+        >>> questor = Questor(filepath="path/to/file.ort")
+        >>> questor.assert_almost_equal(decimal=3, incident_angle=[0.0273, 0.0114])
+        """
+        if isinstance(decimal, int):
+            decimal = [decimal] * len(kwargs)  # same decimal for all values to test
+        for i, (query, test_value) in enumerate(kwargs.items()):
+            stored_value = getattr(self, query)
+            assert_almost_equal(stored_value, test_value, decimal=decimal[i])

@@ -8,6 +8,7 @@ import mr_reduction.mr_reduction as mr
 
 # third party imports
 import pytest
+from mr_reduction import io_orso
 
 
 class TestReduction:
@@ -62,11 +63,16 @@ class TestReduction:
             "REF_M_28142_On_Off_combined.dat",
             "REF_M_28142_On_On_autoreduce.dat",
             "REF_M_28142_On_On_combined.dat",
+            "REF_M_28142.ort",
+            "REF_M_28142_combined.ort",
             "REF_M_28142_combined.py",
             "REF_M_28142_partial.py",
             "REF_M_28142_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
+
+        questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_28142_combined.ort"))
+        questor.assert_equal(cross_sections=["Off_Off", "On_Off", "On_On"], polarizations=["pp", "mp", "mm"])
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
@@ -108,6 +114,7 @@ class TestReduction:
         for file in [
             "REF_M_41447_Off_Off_autoreduce.dat",
             "REF_M_41447_Off_Off_autoreduce.nxs.h5",
+            "REF_M_41447.ort",
             "REF_M_41447_partial.py",
             "REF_M_41445_combined.py",
             "REF_M_41447.json",
@@ -115,6 +122,10 @@ class TestReduction:
             "REF_M_41445_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
+
+        questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_41447.ort"))
+        questor.assert_equal(cross_sections=["Off_Off"], polarizations=["unpolarized"])
+        questor.assert_almost_equal(decimal=3, incident_angle=[0.0273])
 
     @pytest.mark.datarepo()
     def test_reduce_multiple_peaks(self, mock_filesystem, data_server):

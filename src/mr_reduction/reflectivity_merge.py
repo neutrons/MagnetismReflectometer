@@ -21,6 +21,7 @@ import pytz
 
 # mr_reduction iports
 import mr_reduction
+from mr_reduction import io_orso
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script, write_tunable_reduction_script
 from mr_reduction.settings import nexus_data_dir
@@ -605,6 +606,21 @@ def combined_curves(run, ipts, ar_dir):
                 output_dir=ar_dir,
             )
             stitched_cross_sections_filepaths.append(_file_path)
+
+    # Combine the ORSO reflectivity profiles for each matched run (or runpeak) into a single ORSO file.
+    # Assume ORSO files for each run have names such as "REF_M_12345.ort"
+    # For backwards compatibility, we check that the ORSO files for each exist
+    orso_sequence, scalings = dict(), dict()
+    for run in matched_runs:
+        filepath = os.path.join(ar_dir, f"REF_M_{run}.ort")
+        if os.path.isfile(filepath):
+            orso_sequence[run] = filepath
+            scalings[run] = scaling_factors[matched_runs.index(run)]
+    io_orso.concatenate_runs(
+        orso_sequence=orso_sequence,
+        concatenated_filepath=os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_combined.ort"),
+        scaling_factors=scalings,
+    )
 
     return matched_runs, scaling_factors, stitched_cross_sections_filepaths
 
