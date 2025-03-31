@@ -434,7 +434,8 @@ class ReductionProcess:
                 self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
                 entry = SampleLogs(ws)["cross_section_id"]
                 reflectivity = mtd["%s__reflectivity" % str(ws)]
-
+                report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
+                report_list.append(report)
                 # Write output file in QuickNXS format
                 self.log("  - ready to write: %s" % self.output_dir)
                 write_reflectivity(
@@ -451,13 +452,12 @@ class ReductionProcess:
 
                 reflectivity_workspaces.append(reflectivity)
                 self.log("  - done writing")
-                report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile, plot_2d=self.plot_2d)
-                report_list.append(report)
+
             except:  # noqa E722
                 self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
                 logger.error("Cross section: %s" % str(sys.exc_info()[1]))
-                report = Report(ws, data_info, direct_info, reflectivity_ws=None, plot_2d=self.plot_2d)
+                report = Report(ws, data_info, direct_info, None, plot_2d=self.plot_2d)
                 report_list.append(report)
 
         # save the reflectivities of all valid cross sections to an ORSO file

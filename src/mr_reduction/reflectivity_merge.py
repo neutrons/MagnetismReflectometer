@@ -617,7 +617,7 @@ def combined_curves(run, ipts, ar_dir):
             orso_sequence[run] = filepath
             scalings[run] = scaling_factors[matched_runs.index(run)]
     io_orso.concatenate_runs(
-        orso_sequence=orso_sequence,
+        filepath_sequence=orso_sequence,
         concatenated_filepath=os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_combined.ort"),
         scaling_factors=scalings,
     )

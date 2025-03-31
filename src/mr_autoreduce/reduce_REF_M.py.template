@@ -104,14 +104,13 @@ def reduction_user_options():
 
 
 def reduce_events_file(event_file_path, outdir):
-    event_file = os.path.split(event_file_path)[-1]  # file name
     reports = list()  # autoreduction reports for each peak in the run, in HTML format
     opts = reduction_user_options()
     assert opts.peak_count <= 3, "Peak count must be <= 3"
     kwargs_peaks = [opts.peak1, opts.peak2, opts.peak3]
     peak_numbers = [None, ] if opts.peak_count == 1 else range(1, opts.peak_count + 1)  # numbers start at 1, not 0
     for i, peak_number in enumerate(peak_numbers):
-        d = dict(data_run=event_file, output_dir=outdir, peak_number=peak_number)
+        d = dict(data_run=event_file_path, output_dir=outdir, peak_number=peak_number)
         kwargs = {**d, **opts.common, **kwargs_peaks[i]}  # merge all partial dicts
         reports.append(ReductionProcess(**kwargs).reduce())
     return reports
