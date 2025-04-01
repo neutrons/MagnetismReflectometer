@@ -140,7 +140,7 @@ class TestSequenceDataSet:
         sequence._cross_sections = ["Off_Off", "On_Off"]
         assert sequence.is_compatible(mock_runpeak_datasets)  # datasets' cross-sections match
         sequence._cross_sections = ["On_Off", "Off_Off"]
-        assert sequence.is_compatible(mock_runpeak_datasets) is False  # different order of cross-sections
+        assert sequence.is_compatible(mock_runpeak_datasets) is True  # different order of cross-sections
 
     def test_sort(self, mock_runpeak_datasets):
         dataset1, dataset2 = mock_runpeak_datasets

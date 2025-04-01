@@ -1,11 +1,12 @@
 # standard library imports
 import math
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 # third-party imports
 import numpy as np
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
+from numpy.testing import assert_almost_equal, assert_equal
 from orsopy.fileio.base import Value as ORSOValue
 from orsopy.fileio.base import ValueRange as ORSOValueRange
 from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettings
@@ -262,7 +263,7 @@ class SequenceDataSet:
         if len(datasets) != len(self.cross_sections):
             return False  # quick check on the number of cross-sections
         cross_sections = [dataset.info.data_set for dataset in datasets]  # collect the input cross-section labels
-        return self.cross_sections == cross_sections  # the order matters
+        return set(self.cross_sections) == set(cross_sections)  # order may be different
 
     def load_runpeak(self, runpeak: str, filepath: str):
         """
@@ -276,13 +277,21 @@ class SequenceDataSet:
             Path to the ORSO file.
         """
         assert runpeak not in self.datasets, f"Runpeak {runpeak} already loaded"
-        datasets: List[OrsoDataset] = load_orso(filepath)
+        datasets: List[OrsoDataset] = load_orso(filepath)  # one dataset per cross-section
         assert self.is_compatible(datasets), "Cross-section labels do not match the existing datasets"
         if self.cross_sections is None:  # this is the very first dataset to be loaded
             self._cross_sections = [dataset.info.data_set for dataset in datasets]
-            self.runpeaks = []
+            self.runpeaks = [runpeak]
+        else:
+            self.runpeaks.append(runpeak)
+
+            # check that the cross-section labels are in the same order as in self.cross_sections
+            def _sorting_index(dataset: OrsoDataset) -> int:
+                """Get the index of the dataset in the cross-section list"""
+                return self.cross_sections.index(dataset.info.data_set)
+
+            datasets.sort(key=_sorting_index)
         self.datasets[runpeak] = datasets
-        self.runpeaks.append(runpeak)
 
     def sort(self):
         """
@@ -384,3 +393,130 @@ def concatenate_runs(
     datasets = sequence.concatenate()  # concatenate the runpeaks for each cross-section
     save_orso(datasets, concatenated_filepath)
     return datasets
+
+
+class Questor:
+    """Helper class to check a few things of an ORSO file, used in test functions"""
+
+    def __init__(self, filepath: str = None, datasets: List[OrsoDataset] = None):
+        self.datasets = datasets
+        if filepath is not None:
+            self.datasets = load_orso(filepath)
+
+    @property
+    def dataset_instrument_settings(self):
+        """Iterator over the instrument settings of each dataset"""
+        for dataset in self.datasets:
+            yield dataset.info.data_source.measurement.instrument_settings
+
+    @property
+    def incident_angle(self):
+        """Fetch the theta angle for each dataset"""
+        return [i.incident_angle.magnitude for i in self.dataset_instrument_settings]
+
+    @property
+    def polarizations(self) -> List[str]:
+        """Fetch the polarization states for each dataset, e.g. 'unpolarized', 'op', 'mm'"""
+        return [i.polarization.value for i in self.dataset_instrument_settings]
+
+    @property
+    def cross_sections(self) -> List[str]:
+        """Fetch the cross section label for each dataset, e.g. 'Off_Off', 'Off_On'"""
+        return [dataset.info.data_set for dataset in self.datasets]
+
+    def datasets_column(self, column_name: str = "Qz", error_column_name: str = None) -> List[np.ndarray]:
+        """
+        list of column data, one list element is the column data or one of the datasets
+
+        Parameters
+        ----------
+        column_name : str
+            The name of the column to iterate over.
+        error_column_name : str
+            The name of the error column to iterate over (optional).
+
+        Examples
+        --------
+        >>> questor = Questor(filepath="path/to/file.ort")
+        >>> questor.datasets_column(column_name="theta")  # column of theta values for each dataset
+        >>> questor.datasets_column(error_column_name="theta")  # column of theta error values for each dataset
+        """
+        name = "d" + error_column_name if error_column_name is not None else column_name
+        # Order of columns assumed in the dataset
+        index = ["Qz", "R", "dR", "dQz", "theta", "dtheta"].index(name)
+        return [dataset.data[:, index] for dataset in self.datasets]
+
+    @property
+    def column_R(self):
+        return self.datasets_column(column_name="R")
+
+    @property
+    def column_Qz(self):
+        return self.datasets_column(column_name="Qz")
+
+    def assert_equal(self, **kwargs):
+        """
+        Assert that the specified attributes of the Questor instance match the given values.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Keyword arguments where the key is the name of the attribute to check,
+            and the value is the expected value.
+
+        Raises
+        ------
+        AssertionError
+            If any of the specified attributes do not match the expected values.
+
+        Examples
+        --------
+        >>> questor = Questor(filepath="path/to/file.ort")
+        >>> questor.assert_equal(cross_sections=["Off_Off"], polarizations=["unpolarized"])
+        """
+        for query, test_value in kwargs.items():
+            stored_value = getattr(self, query)
+            assert_equal(stored_value, test_value)
+
+    def assert_almost_equal(self, decimal: Union[int, List[int]], partial_match: bool = False, **kwargs):
+        """
+        Assert that the specified attributes of the Questor instance match the given values to a certain decimal place.
+
+        Parameters
+        ----------
+        decimal : int or list of int
+            The number of decimal places to which to compare the values. If a single integer is provided,
+            it is used for all comparisons. If a list of integers is provided,
+            each integer corresponds to the number of decimal places for each comparison.
+
+        partial_match : bool
+            If True, the comparison will be done for all elements in the quantity to be compared
+            (for instance, all elements in a list). If False, a partial comparison is made for each
+            dataset. For instance, `column_R=[[0.0167, 0.0145], [0.3456, 0.3092, 0.2844]]` will compare
+            the first two elements of the `R` column of the first dataset to [0.0167, 0.0145] and
+            the first three elements of the `R` column of the second dataset to [0.3456, 0.3092, 0.2844].
+
+        **kwargs : dict
+            Keyword arguments where the key is the name of the attribute to check,
+            and the value is the expected value.
+
+        Raises
+        ------
+        AssertionError
+            If any of the specified attributes do not match the expected values.
+
+        Examples
+        --------
+        >>> questor = Questor(filepath="path/to/file.ort")
+        >>> questor.assert_almost_equal(decimal=3, incident_angle=[0.0273, 0.0114])
+        """
+        if isinstance(decimal, int):
+            decimal = [decimal] * len(kwargs)  # same decimal for all values to test
+        for i, (query, test_value) in enumerate(kwargs.items()):
+            stored_value = getattr(self, query)
+            if partial_match is False:  # compare all elements
+                assert_almost_equal(stored_value, test_value, decimal=decimal[i])
+            else:  # compare only the first N elements for each dataset
+                for stored_per_dataset, test_per_dataset in zip(stored_value, test_value):
+                    stored_partial = stored_per_dataset[: len(test_per_dataset)]
+                    assert_almost_equal(stored_partial, test_per_dataset, decimal=decimal[i])

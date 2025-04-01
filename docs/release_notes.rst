@@ -13,7 +13,7 @@ Release Notes
    **Of interest to the User**:
 
    **Of interest to the Developer:**
-..
+.. - PR #37 Introduce ORSO-saving functionality in the autoreduction workflow
 
 v2.1.0
 ------

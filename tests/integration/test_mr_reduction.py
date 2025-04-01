@@ -8,6 +8,7 @@ import mr_reduction.mr_reduction as mr
 
 # third party imports
 import pytest
+from mr_reduction import io_orso
 
 
 class TestReduction:
@@ -33,10 +34,16 @@ class TestReduction:
             "REF_M_29160_2_Off_Off_autoreduce.dat",
             "REF_M_29160_2_Off_Off_autoreduce.nxs.h5",
             "REF_M_29160_2_Off_Off_combined.dat",
+            "REF_M_29160_2.ort",
+            "REF_M_29160_2_combined.ort",
             "REF_M_29160_2_partial.py",
             "REF_M_29160_2_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file))
+        questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_combined.ort"))
+        questor.assert_equal(cross_sections=["Off_Off"], polarizations=["pp"])
+        # compare the first two elements of column R of the first dataset to [0.00342, 0.00349]
+        questor.assert_almost_equal(decimal=4, partial_match=True, column_R=[[0.0187, 0.0198]])
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_1(self, data_server, mock_filesystem):
@@ -62,11 +69,15 @@ class TestReduction:
             "REF_M_28142_On_Off_combined.dat",
             "REF_M_28142_On_On_autoreduce.dat",
             "REF_M_28142_On_On_combined.dat",
+            "REF_M_28142.ort",
+            "REF_M_28142_combined.ort",
             "REF_M_28142_combined.py",
             "REF_M_28142_partial.py",
             "REF_M_28142_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
+        questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_28142_combined.ort"))
+        questor.assert_equal(cross_sections=["Off_Off", "On_Off", "On_On"], polarizations=["pp", "mp", "mm"])
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
@@ -108,6 +119,8 @@ class TestReduction:
         for file in [
             "REF_M_41447_Off_Off_autoreduce.dat",
             "REF_M_41447_Off_Off_autoreduce.nxs.h5",
+            "REF_M_41447.ort",
+            "REF_M_41445_combined.ort",
             "REF_M_41447_partial.py",
             "REF_M_41445_combined.py",
             "REF_M_41447.json",
@@ -115,6 +128,9 @@ class TestReduction:
             "REF_M_41445_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
+        questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_41447.ort"))
+        questor.assert_equal(cross_sections=["Off_Off"], polarizations=["unpolarized"])
+        questor.assert_almost_equal(decimal=3, incident_angle=[0.0273])
 
     @pytest.mark.datarepo()
     def test_reduce_multiple_peaks(self, mock_filesystem, data_server):
@@ -124,9 +140,9 @@ class TestReduction:
         # autoreduced files from previous runs, to be stitched to profile from 41447
         for run, suffix in itertools.product(
             ["42535_1", "42535_2", "42536_1", "42536_2"],
-            ["Off_Off_autoreduce.dat", "On_Off_autoreduce.dat", "partial.py"],
+            ["_Off_Off_autoreduce.dat", "_On_Off_autoreduce.dat", "_partial.py", ".ort"],
         ):
-            source_file = data_server.path_to(f"REF_M_{run}_{suffix}")
+            source_file = data_server.path_to(f"REF_M_{run}{suffix}")
             shutil.copy(source_file, mock_filesystem.tempdir)
 
         for peak_number, peak_roi in [(1, [169, 192]), (2, [207, 220])]:
@@ -160,16 +176,26 @@ class TestReduction:
                 "_On_Off_autoreduce.nxs.h5",
                 "_partial.py",
                 ".json",
+                ".ort",
             ]:
                 file = f"REF_M_42537_{sn}{suffix}"
                 assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"{file} doesn't exist"
 
-        # assert stitched files have been produced (file names use run 42535 because
+        # assert combined files have been produced (file names use run 42535 because
         # it's the first in the sequence of experiments encompassing run 42535 through 42538)
         for sn in (1, 2):
-            for suffix in ["_combined.py", "_Off_Off_combined.dat", "_On_Off_combined.dat", "_tunable_combined.py"]:
+            for suffix in [
+                "_combined.py",
+                "_Off_Off_combined.dat",
+                "_On_Off_combined.dat",
+                "_tunable_combined.py",
+                "_combined.ort",
+            ]:
                 file = f"REF_M_42535_{sn}{suffix}"
                 assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"{file} doesn't exist"
+            # inquire the combined ORSO files
+            questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, f"REF_M_42535_{sn}_combined.ort"))
+            questor.assert_equal(cross_sections=["Off_Off", "On_Off"], polarizations=["po", "mo"])
 
 
 if __name__ == "__main__":
