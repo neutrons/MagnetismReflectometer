@@ -151,3 +151,35 @@ The set of reduction options available in the manual reduction is also available
 of future experiment will employ the new options.
 Auto-reduced files are saved under directory `/SNS/REF_M/IPTS-XYZ/shared/autoreduce/`, where `XYZ` corresponds
 to the IPTS number associated to whatever run number is to be auto-reduced.
+
+Output Files
+++++++++++++
+
+After successful completion of the autoreduction, the following files are generated in the output directory.
+Belows is a list for run peak 42535_1. The particular cross-sections will depend on the instrument settings,
+which for run peak turn out to be "Off_Off" and "On_Off".
+
+- **REF_M_42535_1_Off_Off_autoreduce.dat**:  reflectivity curve for the "Off_Off" cross-section.
+- **REF_M_42535_1_Off_Off_autoreduce.nxs.h5**: reflectivity curve for the "Off_Off" cross-section (Nexus format)
+  with all sample-logs of the original Nexus events file.
+- **REF_M_42535_1_On_Off_autoreduce.dat**: reflectivity curve for the "On_Off" cross-section (ASCII format).
+- **REF_M_42535_1_On_Off_autoreduce.nxs.h5**: reflectivity curve for the "On_Off" cross-section (Nexus format)
+  with all sample-logs of the original Nexus events file.
+- **REF_M_42535_1.ort**: reflectivity curves for all cross-sections (ORSO ASCII format).
+- **REF_M_42535_1_partial.py**: python script to autoreduce run peak 42535_1.
+
+- **REF_M_42535_1_Off_Off_combined.dat**: combined reflectivities for the "Off_Off" cross-section for all runs
+  in the same run-sequence as 42535. Run 42535 is the first run in the sequence,
+  hence is endowed with the combined file.
+- **REF_M_42535_1_On_Off_combined.dat**: combined reflectivities for the "On_Off" cross-section for all runs
+  in the same run-sequence as 42535. Run 42535 is the first run in the sequence,
+  hence is endowed with the combined file.
+- **REF_M_42535_1_combined.ort**: combined reflectivities for all cross-sections for all runs
+  in the same run-sequence as 42535 (ORSO ASCII format).
+- **REF_M_42535_1_combined.py**: paste scripts `REF_M_*_partial.py` for all runs in the same run-sequence
+  as 42535.
+- **REF_M_42535_1_tunable_combined.py**: same as `REF_M_42535_1_combined.py`, but the reduction workflow of
+  each run is grouped into two functions, one splitting the events according to the cross-section and the
+  other to calculate the reflectivity curve for each cross-section.
+- **REF_M_42535_1.json**: a small "database" file storing the path to the nexus file as well as the names
+  of the cross-section reflectivity files `REF_M_42535_1_*_autoreduce.dat`.
