@@ -22,9 +22,10 @@ jobs:
           channels: mantid/label/main,conda-forge,defaults
           miniforge-version: latest
           environment-file: environment.yml
-      - name: install additional dependencies
+      - name: Install chromium
         run: |
-          echo "installing additional dependencies if cannot be installed from conda"
+          echo "chromium enables testing HTML reports"
+          sudo apt-get install --yes chromium-browser
       - name: run unit tests
         run: |
           echo "running unit tests"
