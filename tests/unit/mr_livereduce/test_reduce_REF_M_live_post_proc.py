@@ -41,6 +41,7 @@ def test_rebin_tof(accumulation_workspace):
     assert ws.getTofMin() < ws.getTofMax(), "Rebinning failed: min TOF should be less than max TOF"
 
 
+@pytest.mark.datarepo()
 def test_header_report(accumulation_workspace):
     report = header_report(accumulation_workspace)
     assert "<div>Run Number: 42535</div>" in report
@@ -49,6 +50,7 @@ def test_header_report(accumulation_workspace):
     assert "<div>Report time:" in report  # Check for the presence of the report time
 
 
+@pytest.mark.datarepo()
 def test_polarization_report(accumulation_workspace, browser):
     report = polarization_report(accumulation_workspace)
     assert "<td>Number of polarization states: 2</td>" in report  # Adjust this check based on actual report content
