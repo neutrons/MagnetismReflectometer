@@ -4,7 +4,7 @@ import sys
 import unittest.mock as mock
 from collections import namedtuple
 from os.path import dirname
-from typing import List
+from typing import Any, Generator, List
 
 import pytest
 
@@ -115,11 +115,11 @@ def mock_filesystem(tempdir, data_server):
 
 
 @pytest.fixture()
-def browser(tmp_path):
-    """A headless Chrominum browser for testing Plotly reports.
+def browser(tmp_path) -> Generator[WebDriver, Any, None]:
+    """A headless Chromium browser for testing HTML reports containing plotly graphs.
 
-    Has method `render_report(report :str)` so that one can mimic rendering an HTML report containing
-    plotly graphs.
+    The yielded object has method `render_report(report :str)` so that one can mimic rendering
+    an HTML report containing plotly graphs.
     """
     chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install())
     chrome_options = Options()
@@ -137,9 +137,9 @@ def browser(tmp_path):
     driver = WebDriver(service=chrome_service, options=chrome_options)
 
     def _render_report(self: WebDriver, report: str) -> bool:
-        # include the javascript library for Plotly,
+        # include in the report the javascript script to handle Plotly <dvi> elements,
         # then save the HTML to a temporary file,
-        # and finally open it in the headless browser
+        # and finally render the temporary file in the headless browser
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,9 +158,8 @@ def browser(tmp_path):
         self.get(f"file://{html_path}")  # browser can't consume a python string, must be a valid URL
         return True  # if all goes well
 
-    # Bind the custom _render_report function as a method of the driver instance
+    # Bind the custom _render_report() function as a method of the driver instance
     driver.render_report = _render_report.__get__(driver)
-
     yield driver
     # Teardown code
     driver.quit()  # Or driver.close(), but quit() is safer
