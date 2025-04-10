@@ -7,7 +7,7 @@ Report class sed to populate the web monitor
 import math
 import sys
 import time
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import plotly.graph_objs as go
@@ -22,7 +22,9 @@ from mr_reduction.data_info import DataType
 from mr_reduction.simple_utils import SampleLogs
 
 
-def upload_html_report(html_report, publish=True, run_number=None, report_file=None) -> Optional[Response]:
+def upload_html_report(
+    html_report: Union[str, List[str]], publish=True, run_number: Union[str, int] = None, report_file=None
+) -> Optional[Response]:
     r"""Upload html report to the livedata server
 
     If `html_report` contains more than one report, then merge them.
@@ -35,10 +37,10 @@ def upload_html_report(html_report, publish=True, run_number=None, report_file=N
         if the experiment contained more than one sample, each reflecting at a different angle.
     publish: bool
         Upload the report to the livedata server
-    run_number: str
+    run_number: str, int
         Run number (e.g. '123435'). Required if `publish` is True
     report_file: Optional[str]
-        Save the report to a file
+        Save the report to a file. If `None` or `False`, the report will not be saved to a file.
 
     Returns
     -------
