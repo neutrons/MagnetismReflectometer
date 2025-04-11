@@ -3,16 +3,17 @@ import itertools
 import os
 import shutil
 import string
+from unittest.mock import patch
 
 # third party imports
 import pytest
 
-# mr_reduction imports
-from mr_reduction.simple_utils import add_to_sys_path
+# mr_livereduce imports
+from mr_livereduce.reduce_REF_M_live_post_proc import main
 
 
 @pytest.mark.datarepo()
-def test_template(mock_filesystem, data_server):
+def test_main(mock_filesystem, data_server, browser):
     r"""Substitute values in the template and then run a reduction using functions defined within the template
 
     Ideally, one would like to open a subprocess and invoke the reduction script, but it's not possible because
@@ -33,6 +34,9 @@ def test_template(mock_filesystem, data_server):
         source_file = data_server.path_to(f"REF_M_{run}_{suffix}")
         shutil.copy(source_file, mock_filesystem.tempdir)
 
+    #
+    # Create an autoreduction script reduce_REF_M.py with all the necessary options to reduce the two peaks
+    # of run 41447. The script is created by substituting values in the template.
     #
     # Options to reduce the two peaks of run 41447
     #
@@ -98,19 +102,25 @@ def test_template(mock_filesystem, data_server):
     reduce_REF_M = os.path.join(mock_filesystem.tempdir, "reduce_REF_M.py")
     open(reduce_REF_M, "w").write(script)
 
-    # We don't invoke the reduction script as a shell command because we need mock_filesystem.
-    # Instead, we import functions from it
-    with add_to_sys_path(mock_filesystem.tempdir):
-        from reduce_REF_M import reduce_events_file, upload_html_report  # script being used as a module
+    #
+    # Invoke the main routine of the livereduction script. It will digest the autoreduction script
+    # reduce_REF_M.py we just created
+    #
+    accumulation_workspace = data_server.load_events("REF_M_42537.nxs.h5")
+    report_file = os.path.join(mock_filesystem.tempdir, "report.html")
+    with patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
+        main(
+            accumulation_workspace,
+            outdir=mock_filesystem.tempdir,  # instead of /SNS/IPTS-31954/shared/autoreduce/
+            publish=False,
+            report_file=report_file,
+        )
 
-        events_file = data_server.path_to("REF_M_42537.nxs.h5")
-        outdir = mock_filesystem.tempdir  # instead of /SNS/IPTS-31954/shared/autoreduce/
-        reports = reduce_events_file(events_file, outdir)  # reduce the two peaks and generate HTML reports
-        report_file = os.path.join(mock_filesystem.tempdir, "report.html")
-        upload_html_report(reports, publish=False, report_file=report_file)  # save reports to a files
-
-    # assert the HTML report has been created
-    assert os.path.isfile(report_file)
+    #
+    # Check the result of the livereduction
+    #
+    # assert the HTML report can be rendered
+    browser.get(f"file://{report_file}")
 
     # assert reduction files have been produced for run 42537
     for sn in (1, 2):  # peak number
