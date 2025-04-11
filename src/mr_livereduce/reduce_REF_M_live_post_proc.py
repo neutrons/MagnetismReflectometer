@@ -1,14 +1,14 @@
 """
 Script digested by Mantid algorithm LiveDataAlgorithm.
-LiveDataAlgorithm creates child algorithm "RunPythonScript" and run
-RunPythonScript(InputWorkspace=input, Filename="reduce_REF_M_live_post_proc.py")
+LiveDataAlgorithm creates child algorithm "RunPythonScript" and runs it in a separate python interpreter process as
+    RunPythonScript(InputWorkspace=input, Filename="reduce_REF_M_live_post_proc.py")
+where "input" is the EventWorkspace containing the events accumulated up to the time when the script is run.
 """
 
 # standard library imports
 import math
 import os
 import time
-from contextlib import contextmanager
 from typing import Optional
 
 # third-party imports
@@ -24,20 +24,6 @@ from mr_reduction.types import MantidWorkspace
 from mr_reduction.web_report import _plot1d
 
 GLOBAL_LR_DIR = "/SNS/REF_M/shared/livereduce"
-
-
-@contextmanager
-def debug_logger(logpath: str = os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log"), debug: bool = True):
-    logfile = None
-    if debug:
-        logfile = open(logpath, "a")
-        logfile.write("Starting post-proc\n")
-    try:
-        yield logfile
-    finally:
-        if logfile is not None:
-            logfile.write("DONE\n")
-            logfile.close()
 
 
 def rebin_tof(input_workspace: MantidWorkspace, output_workspace: str = None) -> mantid.dataobjects.EventWorkspace:
@@ -67,7 +53,16 @@ def rebin_tof(input_workspace: MantidWorkspace, output_workspace: str = None) ->
 
 
 def header_report(workspace: MantidWorkspace) -> str:
-    """Basic information on the run"""
+    """
+    Basic information on the run.
+
+    The header is the beginning of the HTML report to be uploaded to the livedata server.
+
+    Parameters
+    ----------
+    workspace
+        The input workspace with the accumulated events
+    """
     try:
         samplelogs = SampleLogs(workspace)
         report = f"<div>Run Number: {workspace.getRunNumber()}</div>\n"
@@ -80,6 +75,17 @@ def header_report(workspace: MantidWorkspace) -> str:
 
 
 def polarization_report(workspace: MantidWorkspace) -> str:
+    """
+    Basic information on the polarization of the run, such as sping flipping ratios and asymmetry.
+
+    The polarization report is the last part of the HTML report to be uploaded to the livedata server.
+
+    Parameters
+    ----------
+    workspace
+        The input workspace with the accumulated events
+    """
+
     def div_plot1d(ratio: Optional[MantidWorkspace], y_label: str):
         if ratio is not None:
             plot = _plot1d(
@@ -127,20 +133,23 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
     report_file: Optional[str]
         Save the report to a file. If `None` or `False`, the report will not be saved to a file.
     """
-    with debug_logger(debug=True) as logfile:
-        live_report = [header_report(input_workspace)]
-        with add_to_sys_path(GLOBAL_AR_DIR):  # "/SNS/REF_M/shared/autoreduce"
-            from reduce_REF_M import (  # import from the autoreduction script reduce_REF_M.py
-                reduce_events,
-                upload_html_report,
-            )
+    live_report = [header_report(input_workspace)]
+    with add_to_sys_path(GLOBAL_AR_DIR):  # "/SNS/REF_M/shared/autoreduce"
+        from reduce_REF_M import (  # import from the autoreduction script reduce_REF_M.py
+            reduce_events,
+            upload_html_report,
+        )
 
-            events_binned = rebin_tof(input_workspace)
-            live_report += reduce_events(workspace=events_binned, outdir=outdir, log_file_handle=logfile)
-            live_report.append(polarization_report(events_binned))
-            upload_html_report(
-                live_report, publish=publish, run_number=events_binned.getRunNumber(), report_file=report_file
-            )
+        events_binned = rebin_tof(input_workspace)
+        # reduce the accumulated events and generate a report containing plots for the reflectivity curves
+        live_report += reduce_events(
+            workspace=events_binned, outdir=outdir, logfile=os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log")
+        )
+        live_report.append(polarization_report(events_binned))
+        # upload the HTML report to the livedata server, or just save it to a file
+        upload_html_report(
+            live_report, publish=publish, run_number=events_binned.getRunNumber(), report_file=report_file
+        )
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 import pytest
 
 # mr_livereduce imports
-from mr_livereduce.reduce_REF_M_live_post_proc import debug_logger, header_report, main, polarization_report, rebin_tof
+from mr_livereduce.reduce_REF_M_live_post_proc import header_report, main, polarization_report, rebin_tof
 
 
 @pytest.fixture(scope="module")
@@ -11,26 +11,6 @@ def accumulation_workspace(data_server):
     vide the input workspace for testing."""
     ws = data_server.load_events("REF_M_42535.nxs.h5")
     return ws
-
-
-def test_debug_logger(tmp_path):
-    # Create a temporary log file path
-    log_file_path = tmp_path / "test_log.log"
-
-    # Use the debug_logger context manager
-    with debug_logger(logpath=str(log_file_path), debug=True) as logfile:
-        assert logfile is not None  # Ensure the logfile is opened
-        logfile.write("Test log entry\n")
-
-    # Verify the log file content
-    with open(log_file_path, "r") as log_file:
-        content = log_file.read()
-        assert "Starting post-proc" in content
-        assert "Test log entry" in content
-        assert "DONE" in content
-
-    # Ensure the log file is closed
-    assert logfile.closed
 
 
 @pytest.mark.datarepo()

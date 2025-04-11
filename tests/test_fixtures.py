@@ -14,5 +14,10 @@ def test_data_server(data_server):
     assert events.getNumberEvents() == 593081
 
 
+def test_autoreduction_script(autoreduction_script):
+    script = autoreduction_script()
+    assert os.path.isfile(script)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -1,6 +1,10 @@
 # standard imports
+import itertools
 import os
+import shutil
+import string
 import sys
+import tempfile
 import unittest.mock as mock
 from collections import namedtuple
 from os.path import dirname
@@ -112,6 +116,99 @@ def mock_filesystem(tempdir, data_server):
         mock_data_dir.return_value = data_server.datarepo
 
         yield MockSetup(tempdir, mock_DirectBeamFinder)
+
+
+@pytest.fixture()
+def autoreduction_script(tempdir, data_server):
+    """Create a temporary autoreduction script by substituting the passed `options`
+    in the template autorereduction script.
+
+    Parameters
+    ----------
+    options: dict
+        Dictionary with the options to be substituted in the template script. If `None`, default options
+        defined in the body of this fixture are substituted. These options are good for reducing the two peaks
+        of run 42537.
+    outdir: str
+        Directory where to save script reduce_REF_M.py. If `None`, the script is saved in the temporary directory
+        given by the `tempdir` fixture
+    Returns
+    -------
+        Absolute path to the autoreduction script
+    """
+
+    def _autoreduction_script(options: dict = None, outdir: str = None) -> str:
+        #
+        # Options to reduce the two peaks of run 41447
+        #
+        common = {  # options for all peaks
+            "plot_in_2D": True,
+            "use_const_q": False,
+            "q_step": -0.022,
+            "use_sangle": False,
+            "fit_peak_in_roi": False,
+            "peak_count": 2,  # run 41447 has two peaks
+        }
+        # Options for first peak
+        peak1 = {
+            "force_peak": True,
+            "peak_min": 169,
+            "peak_max": 192,
+            "use_roi_bck": False,
+            "force_background": True,
+            "bck_min": 30,
+            "bck_max": 70,
+            "use_side_bck": False,
+            "bck_width": 10,
+            "force_low_res": False,
+            "low_res_min": 50,
+            "low_res_max": 175,
+        }
+        # Options for second peak
+        peak2 = {
+            "force_peak_s2": True,
+            "peak_min_s2": 207,
+            "peak_max_s2": 220,
+            "use_roi_bck_s2": False,
+            "force_background_s2": False,
+            "bck_min_s2": 30,
+            "bck_max_s2": 70,
+            "use_side_bck_s2": False,
+            "bck_width_s2": 11,
+            "force_low_res_s2": False,
+            "low_res_min_s2": 50,
+            "low_res_max_s2": 175,
+        }
+        # Options for third peak (will be ignored because `peak_count` is 2)
+        peak3 = {
+            "force_peak_s3": True,
+            "peak_min_s3": 180,
+            "peak_max_s3": 190,
+            "use_roi_bck_s3": False,
+            "force_background_s3": True,
+            "bck_min_s3": 7,
+            "bck_max_s3": 102,
+            "use_side_bck_s3": False,
+            "bck_width_s3": 12,
+            "force_low_res_s3": False,
+            "low_res_min_s3": 50,
+            "low_res_max_s3": 175,
+        }
+        values = {**common, **peak1, **peak2, **peak3}  # all options into one dictionary
+        if options is None:
+            options = values
+
+        # inject options in the reduction template and save as new script reduce_REF_M.py
+        with open(data_server.path_to_template, "r") as file_handle:
+            template = string.Template(file_handle.read())
+            script = template.substitute(**options)
+        if outdir is None:
+            outdir = tempdir
+        reduce_REF_M = os.path.join(outdir, "reduce_REF_M.py")
+        open(reduce_REF_M, "w").write(script)
+        return reduce_REF_M
+
+    return _autoreduction_script
 
 
 @pytest.fixture()
