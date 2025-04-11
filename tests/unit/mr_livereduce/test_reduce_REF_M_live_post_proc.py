@@ -1,10 +1,8 @@
 # third party imports
-from distutils.dep_util import newer_pairwise
-
 import pytest
 
 # mr_livereduce imports
-from mr_livereduce.reduce_REF_M_live_post_proc import debug_logger, header_report, polarization_report, rebin_tof
+from mr_livereduce.reduce_REF_M_live_post_proc import debug_logger, header_report, main, polarization_report, rebin_tof
 
 
 @pytest.fixture(scope="module")
