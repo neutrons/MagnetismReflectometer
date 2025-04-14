@@ -1,6 +1,6 @@
 """
-Script digested by Mantid algorithm LiveDataAlgorithm.
-LiveDataAlgorithm creates child algorithm "RunPythonScript" and runs it in a separate python interpreter process as
+Script digested by Mantid algorithm LoadLiveData.
+LoadLiveData creates child algorithm "RunPythonScript" and runs it in a separate python interpreter process as
     RunPythonScript(InputWorkspace=input, Filename="reduce_REF_M_live_post_proc.py")
 where "input" is the EventWorkspace containing the events accumulated up to the time when the script is run.
 """
