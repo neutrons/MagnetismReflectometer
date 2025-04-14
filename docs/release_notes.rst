@@ -3,29 +3,45 @@
 Release Notes
 =============
 
+Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
+
 ..
    Notes for major and minor releases. Notes for patch releases are referred.
 
-   v2.2.0
+   v2.3.0
    ------
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User**:
-   - PR #39 Update mantid version to 6.12
-   - PR #38: Live reduction integration
 
    **Of interest to the Developer:**
-.. - PR #37 Introduce ORSO-saving functionality in the autoreduction workflow
+..
+
+
+v2.2.0
+------
+2025-04-15
+
+**Of interest to the User**:
+
+- PR #39 Update mantid version to 6.12
+- PR #38: Live reduction integration
+
+**Of interest to the Developer:**
+
+- PR #37 Introduce ORSO-saving functionality in the autoreduction workflow
 
 v2.1.0
 ------
-(2025-04-01)
+2025-04-01
 
 **Of interest to the User**:
+
 - PR #36 Saving all cross-sections for the combined profiles in one ORSO-formatted file
 - PR #33 Saving all cross-sections for one run in one ORSO-formatted file
 
 **Of interest to the Developer:**
+
 - PR #35 Reduce figure size in the web report by eliminating non-significant data
 
 v2.0.0
