@@ -143,6 +143,7 @@ In the output directory,
 the files containing the reflectivity curves in ASCII format are `REF_M_*_autoreduce.dat`
 for individual runs and `REF_M_*_combined.dat` for stitched runs.
 
+
 Automated Reduction
 -------------------
 
@@ -183,3 +184,47 @@ which for run peak turn out to be "Off_Off" and "On_Off".
   other to calculate the reflectivity curve for each cross-section.
 - **REF_M_42535_1.json**: a small "database" file storing the path to the nexus file as well as the names
   of the cross-section reflectivity files `REF_M_42535_1_*_autoreduce.dat`.
+
+
+Live Reduction
+--------------
+
+Reduction of data as is being taken during the experiment is termed as "live reduction".
+A `live reduction service <https://github.com/mantidproject/livereduce>`_
+has been installed in a dedicated virtual machine, *bl4a-livereduce.sns.gov*,
+for live reduction of BL4A (a.k.a REF_M) data.
+The service taps into the `ADARA <https://ieeexplore.ieee.org/document/6972268>`_
+data stream and attaches a Mantid live listener to the data stream.
+The main Mantid algorithm for live reduction is
+`LoadLiveData <https://docs.mantidproject.org/nightly/algorithms/LoadLiveData-v1.html>`_.
+This algorithm creates child algorithm
+`RunPythonScript <https://docs.mantidproject.org/nightly/algorithms/RunPythonScript-v1.html>`_
+and runs it in a separate python interpreter process as
+
+.. code-block:: python
+
+   RunPythonScript(InputWorkspace=input,
+                   Filename="/SNS/REF_M/shared/livereduce/reduce_REF_M_live_post_proc.py")
+
+where `input` is the `EventWorkspace <https://docs.mantidproject.org/nightly/concepts/EventWorkspace.html>`_
+containing the events accumulated up to the time when script `reduce_REF_M_live_post_proc.py` is run.
+Package `mr_reduction.mr_livereduce` contains script
+`reduce_REF_M_live_post_proc.py <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/reduce_REF_M_live_post_proc.py>`_
+which specifies all the steps for successful reduction of the accumulated events workspace `input`.
+
+Live-reduction is very similar to auto-reduction, thus script
+`reduce_REF_M_live_post_proc.py <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/reduce_REF_M_live_post_proc.py>`_
+reuses
+much of the functionality encoded in the template auto-reduction script
+`mr_reduction.mr_autoreduce.reduce_REF_M.py.template <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_autoreduce/reduce_REF_M.py.template>`_.
+When the live-reduction script is deployed as `/SNS/REF_M/shared/livereduce/reduce_REF_M_live_post_proc.py`
+and invoked as above, the script imports the deployed auto-reduction script
+`/SNS/REF_M/shared/autoreduce/reduce_REF_M.py` as if it were a python module.
+This way the functions defined in the auto-reduction script can be reused in the live-reduction script.
+
+The output of the live-reduction script is virtually identical to that of the auto-reduction script,
+namely a series of reduced files and an HTML report that is uploaded to the
+`live data server <https://github.com/neutrons/live_data_server?tab=readme-ov-file>`_
+and available in the `monitor web page <https://monitor.sns.gov/dasmon/ref_m/>`_.
+The only difference is that the live-reduction report contains two graphs missing in the autor-reduction report.
+The graphs inform on the spin flipping ratio and the normalize spin differences.

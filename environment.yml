@@ -16,6 +16,7 @@ dependencies:
   - pyoncat
   - versioningit
   # -- Development and documentation
+  - selenium  # headless browser for testing
   - anaconda-client
   - boa
   - conda-build < 4  # conda-build 24.x has a bug, missing update_index from conda_build.index
@@ -31,3 +32,5 @@ dependencies:
   - sphinx
   - sphinx-rtd-theme
   - furo
+  - pip:
+        - webdriver-manager  # helper to selenium, to obtain the latest browser driver

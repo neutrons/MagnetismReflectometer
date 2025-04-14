@@ -12,6 +12,7 @@ Release Notes
 
    **Of interest to the User**:
    - PR #39 Update mantid version to 6.12
+   - PR #38: Live reduction integration
 
    **Of interest to the Developer:**
 .. - PR #37 Introduce ORSO-saving functionality in the autoreduction workflow
