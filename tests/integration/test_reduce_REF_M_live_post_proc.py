@@ -6,7 +6,10 @@ import unittest.mock as mock
 
 # third party imports
 import pytest
+
+# mr_reduction imports
 from mr_livereduce.reduce_REF_M_live_post_proc import main
+from selenium.webdriver.common.by import By
 
 
 @pytest.mark.datarepo()
@@ -56,6 +59,8 @@ def test_main(mock_filesystem, data_server, browser, autoreduction_script):
 
     # assert the HTML report can be rendered by a headless Chromium browser
     browser.get(f"file://{report_file}")
+    plotly_divs = browser.find_elements(By.CLASS_NAME, "plotly-graph-div")
+    assert len(plotly_divs) > 0, "No Plotly figures were rendered in the report."
 
     # assert reduction files have been produced for run 42537
     for peak_number in (1, 2):
