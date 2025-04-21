@@ -7,16 +7,13 @@ Reduction settings for MR
 # MANTID_PATH = ["/opt/mantid50/lib", "/opt/mantid50/bin"]
 # MANTID_PATH = '/SNS/users/m2d/mantid_build_area/master_release/bin'
 
-# Polarization states
-POL_STATE = "PolarizerState"
-POL_VETO = "PolarizerVeto"
-ANA_STATE = "AnalyzerState"
-ANA_VETO = "AnalyzerVeto"
-
-# POL_STATE = "SF1"
-# ANA_STATE = "SF2"
-# POL_VETO = "SF1_Veto"
-# ANA_VETO = "SF2_Veto"
+# Polarization Processing Variables
+# live data lacks PV's "PolarizerState", "PolarizerVeto", "AnalyzerState", and "AnalyzerVeto"
+# so we need to use the short names
+POL_STATE = "SF1"  # a.k.a "PolarizerState"
+POL_VETO = "SF1_Veto"  # a.k.a "PolarizerVeto"
+ANA_STATE = "SF2"  # a.k.a "AnalyzerState"
+ANA_VETO = "SF2_Veto"  # a.k.a "AnalyzerVeto"
 
 # Default TOF binning for histograms
 TOF_MIN = 10000
