@@ -111,7 +111,14 @@ def run_mantid_algorithm(algorithm_class: type, output_property: str = None, **k
     assert algorithm_instance.PyInit, "str(algorithm_class) is not a Mantid Python algorithm"
     algorithm_instance.PyInit()
     for name, value in kwargs.items():
-        algorithm_instance.setProperty(name, value)
+        try:
+            if value is None:
+                value = algorithm_instance.getProperty(name).getDefault  # ensure proper type
+            algorithm_instance.setProperty(name, value)
+        except TypeError as e:
+            raise TypeError(
+                f"Cannot set property {name} with value {value} for algorithm {algorithm_class.__name__}"
+            ) from e
     algorithm_instance.PyExec()
     if (output_property is not None) and (output_property in kwargs):
         return algorithm_instance.getProperty(output_property).value
