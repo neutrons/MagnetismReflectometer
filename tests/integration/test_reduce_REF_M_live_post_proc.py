@@ -96,7 +96,7 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
     Test the live reduction of a run with log entries that predate the start of the run.
     Such run used to cause an error in MRFilterCrossSections because some of the log entries
     have relative times (time with respect of the start of the run) that are negative,
-    causing FiterEvents to fail.
+    causing FilterEvents to fail.
     """
     # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
     autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
