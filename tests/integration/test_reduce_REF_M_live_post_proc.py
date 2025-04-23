@@ -116,7 +116,7 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
                 report_file=report_file,
             )
 
-    # assert all ouptut files have been produced for run 44316 once reduction is complete
+    # assert all output files have been produced for run 44316 once reduction is complete
     output_files = []
     for suffix in [
         "_combined.ort",
