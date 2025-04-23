@@ -17,6 +17,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
    - PR #41: MRFilterCrossections defined as Mantid python algorithm in the source code
+   - PR #43: update livereduce.conf file
 ..
 
 
