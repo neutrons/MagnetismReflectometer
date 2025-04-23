@@ -185,6 +185,7 @@ which for run peak turn out to be "Off_Off" and "On_Off".
 - **REF_M_42535_1.json**: a small "database" file storing the path to the nexus file as well as the names
   of the cross-section reflectivity files `REF_M_42535_1_*_autoreduce.dat`.
 
+.. _using_reduce_script/live_reduction:
 
 Live Reduction
 --------------
