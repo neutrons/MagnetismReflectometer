@@ -21,6 +21,7 @@ from mantid.simpleapi import (
     GroupWorkspaces,
     LoadEventNexus,
     logger,
+    mtd,
 )
 
 
@@ -85,7 +86,13 @@ class MRFilterCrossSections(PythonAlgorithm):
         # Keep track of when we have a fully specified state
         specified = [not has_polarizer, not has_analyzer]
 
-        for item in change_list:
+        # Find first entry with a time equal to or greater than start_time
+        for i, (entry_time, *_) in enumerate(change_list):
+            if entry_time >= start_time:
+                index_begin = i
+                break
+
+        for item in change_list[index_begin:]:
             # We have a change of state, add an entry for the state that just ended
             if specified[0] and specified[1] and not current_state[2] and not current_state[3]:
                 xs = "%s_%s" % ("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
@@ -100,7 +107,7 @@ class MRFilterCrossSections(PythonAlgorithm):
             current_state_t0 = item[0]
         return split_table_ws
 
-    def filter_cross_sections(self, file_path):
+    def filter_cross_sections(self, file_path: str):
         """
         Filter events according to the polarization states
         :param str file_path: data file path
@@ -238,6 +245,7 @@ class MRFilterCrossSections(PythonAlgorithm):
 
         # Filter events if we found enough information to do so
         if split_table_ws.rowCount() > 0:
+            correction_workspace = mtd.unique_hidden_name()
             outputs = FilterEvents(
                 InputWorkspace=ws_raw,
                 SplitterWorkspace=split_table_ws,
@@ -250,9 +258,9 @@ class MRFilterCrossSections(PythonAlgorithm):
                 SplitSampleLogs=True,
                 RelativeTime=True,
                 ExcludeSpecifiedLogs=True,
-                OutputTOFCorrectionWorkspace="_tmp",
+                OutputTOFCorrectionWorkspace=correction_workspace,
             )
-            AnalysisDataService.remove("_tmp")
+            AnalysisDataService.remove(correction_workspace)
             for ws in outputs[-1]:
                 pol_state = str(ws).replace(output_wsg + "_", "")
                 AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=pol_state)

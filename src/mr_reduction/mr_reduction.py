@@ -29,7 +29,7 @@ from mr_reduction import io_orso
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
-from mr_reduction.filter import MRFilterCrossSections
+from mr_reduction.filter_events import MRFilterCrossSections
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
