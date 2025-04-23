@@ -13,7 +13,7 @@ from typing import Any, Generator, List
 import pytest
 
 # third party imports
-from mantid.simpleapi import LoadEventNexus, config, mtd
+from mantid.simpleapi import LoadEventNexus, LoadNexusProcessed, config, mtd
 
 # mr_reduction imports
 from mr_reduction.types import MantidWorkspace
@@ -96,6 +96,21 @@ def data_server():
                 output_workspace = mtd.unique_hidden_name()
             return LoadEventNexus(self.path_to(basename), OutputWorkspace=output_workspace)
 
+        def load_nexus_processed(self, basename: str, output_workspace: str = None) -> MantidWorkspace:
+            r"""
+            Load a Nexus file created with SaveNexusProcessed
+
+            Parameters
+            ----------
+            basename
+                file name (with extension) to look for
+            output_workspace
+                name of the output workspace. If None, a unique hidden name is automatically provided
+            """
+            if output_workspace is None:
+                output_workspace = mtd.unique_hidden_name()
+            return LoadNexusProcessed(self.path_to(basename), OutputWorkspace=output_workspace)
+
     yield _DataServe()
     for key, val in _backup.items():
         config[key] = val
@@ -129,6 +144,9 @@ def autoreduction_script(tempdir, data_server):
         Dictionary with the options to be substituted in the template script. If `None`, default options
         defined in the body of this fixture are substituted. These options are good for reducing the two peaks
         of run 42537.
+    amend_options: dict
+        Dictionary to update either the default dictionary in the body of this fixture or the passed `options`.
+        It is useful when the intent is to amend some of the default options.
     outdir: str
         Directory where to save script reduce_REF_M.py. If `None`, the script is saved in the temporary directory
         given by the `tempdir` fixture
@@ -137,7 +155,7 @@ def autoreduction_script(tempdir, data_server):
         Absolute path to the autoreduction script
     """
 
-    def _autoreduction_script(options: dict = None, outdir: str = None) -> str:
+    def _autoreduction_script(options: dict = None, amend_options: dict = None, outdir: str = None) -> str:
         #
         # Options to reduce the two peaks of run 41447
         #
@@ -197,6 +215,8 @@ def autoreduction_script(tempdir, data_server):
         values = {**common, **peak1, **peak2, **peak3}  # all options into one dictionary
         if options is None:
             options = values
+        if amend_options is not None:
+            options.update(amend_options)
 
         # inject options in the reduction template and save as new script reduce_REF_M.py
         with open(data_server.path_to_template, "r") as file_handle:

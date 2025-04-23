@@ -4,6 +4,7 @@ import sys
 from collections import namedtuple
 from collections.abc import Mapping
 from contextlib import contextmanager
+from typing import Optional
 
 # third party imports
 from mantid.simpleapi import mtd
@@ -71,6 +72,56 @@ def namedtuplefy(func):
 def workspace_handle(input_workspace: MantidWorkspace):
     """Syntactic sugar for a more descriptive operation"""
     return mtd[str(input_workspace)]
+
+
+def run_mantid_algorithm(algorithm_class: type, output_property: str = None, **kwargs) -> Optional[MantidWorkspace]:
+    """
+    Call and run a Mantid algorithm.
+
+    This function is a wrapper around the Mantid algorithm execution.
+    It instantiates the algorithm class, initializes it, sets the properties, runs it,
+    and retrieves the output workspace
+
+    Parameters
+    ----------
+    algorithm_class : class
+        The Mantid algorithm class to be executed (not its name, but the class itself).
+    output_property: str
+        The name of the property assigned as the output property. This is usually "OutputWorkspace".
+    **kwargs : dict
+        Keyword arguments representing the properties to set for the algorithm instance
+
+    Returns
+    -------
+      A handle to the output workspace associated to the output property.
+
+    Raises
+    ------
+    AssertionError
+        If the provided class is not a valid Mantid Python algorithm.
+
+    Examples
+    --------
+    >>> from mr_reduction.filter import MRFilterCrossSections
+    >>> xs_list = run_mantid_algorithm(MRFilterCrossSections,
+    >>>                                 output_property='CrossSectionWorkspaces',
+    >>>                                 InputWorkspace='raw_events', CrossSectionWorkspaces='xs_list')
+    """
+    algorithm_instance = algorithm_class()
+    assert algorithm_instance.PyInit, "str(algorithm_class) is not a Mantid Python algorithm"
+    algorithm_instance.PyInit()
+    for name, value in kwargs.items():
+        try:
+            if value is None:
+                value = algorithm_instance.getProperty(name).getDefault  # ensure proper type
+            algorithm_instance.setProperty(name, value)
+        except TypeError as e:
+            raise TypeError(
+                f"Cannot set property {name} with value {value} for algorithm {algorithm_class.__name__}"
+            ) from e
+    algorithm_instance.PyExec()
+    if (output_property is not None) and (output_property in kwargs):
+        return algorithm_instance.getProperty(output_property).value
 
 
 class SampleLogs:

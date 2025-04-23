@@ -20,7 +20,6 @@ from mantid.simpleapi import (
     GroupWorkspaces,
     LoadEventNexus,
     MagnetismReflectometryReduction,
-    MRFilterCrossSections,
     SaveNexus,
     logger,
     mtd,
@@ -30,13 +29,14 @@ from mr_reduction import io_orso
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
+from mr_reduction.filter_events import MRFilterCrossSections
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO
-from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.simple_utils import SampleLogs, run_mantid_algorithm
 from mr_reduction.types import MantidWorkspace
 from mr_reduction.web_report import Report, process_collection
 
@@ -303,7 +303,9 @@ class ReductionProcess:
         if self.use_slow_flipper_log:
             _xs_list = self.slow_filter_cross_sections(self.data_ws)
         else:
-            _xs_list = MRFilterCrossSections(
+            _xs_list = run_mantid_algorithm(
+                MRFilterCrossSections,
+                output_property="CrossSectionWorkspaces",
                 Filename=_filename,
                 InputWorkspace=self.data_ws,
                 PolState=self.pol_state,
