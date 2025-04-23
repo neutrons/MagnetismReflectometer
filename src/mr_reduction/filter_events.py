@@ -87,6 +87,7 @@ class MRFilterCrossSections(PythonAlgorithm):
         specified = [not has_polarizer, not has_analyzer]
 
         # Find first entry with a time equal to or greater than start_time
+        index_begin = 0
         for i, (entry_time, *_) in enumerate(change_list):
             if entry_time >= start_time:
                 index_begin = i
