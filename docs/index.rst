@@ -31,7 +31,8 @@ Developer Guide
    :titlesonly:
 
    /developer/contributing
-   /developer/developer
+   /developer/developing
+   /developer/livereduction
    /developer/troubleshoot
 
 Deployment

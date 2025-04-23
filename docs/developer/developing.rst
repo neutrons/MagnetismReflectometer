@@ -1,7 +1,7 @@
-.. _developer_documentation:
+.. _developing:
 
-Developer Documentation
-=======================
+Developing
+==========
 
 Directory Tree
 --------------

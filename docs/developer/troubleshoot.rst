@@ -54,3 +54,18 @@ This is the scenario if debugging in one of the analysis machines with conda env
 `/opt/anaconda/envs/mr_reduction-dev/lib/python3.10/site-packages/mr_reduction`.
 Alternatively, you can set up your own `mr_reduction` conda environment in your home directory
 so that you can edit the modules and introduce `pdb.set_trace()` statements.
+
+
+.. _troubleshoot_documentation/live_reduction:
+
+Live Reduction
+--------------
+
+The autoreduction system is a complex system that can fail for many reasons.
+This section provides a list of common issues and their solutions.
+
+The general entry point for a livereduction fail is the inability to show reduction results in monitor.sns.gov.
+Here there is no error message, therefore we need to look at:
+
+- `/SNS/REF_M/shared/livereduce/REF_M_live_reduction.log`
+- `/var/log/SNS_applications/livereduce.log` in server `bl4a-livereduce.sns.gov`.
