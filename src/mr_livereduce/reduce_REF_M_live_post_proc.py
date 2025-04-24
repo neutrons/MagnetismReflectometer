@@ -9,7 +9,8 @@ where "input" is the EventWorkspace containing the events accumulated up to the 
 import math
 import os
 import time
-from typing import Optional
+import traceback
+from typing import List, Optional
 
 # third-party imports
 import mantid
@@ -69,6 +70,7 @@ def header_report(workspace: MantidWorkspace) -> str:
         report += f"<div>Events: {workspace.getNumberEvents()}</div>\n"
         report += f"<div>Sequence: {samplelogs['sequence_number']} of {samplelogs['sequence_total']}</div>\n"
         report += f"<div>Report time: {time.ctime()}</div>\n"
+        report += "<hr>\n"  # insert a horizontal line
     except Exception as exception:  # noqa E722
         report = f"<div>{exception}</div>\n"
     return report
@@ -133,6 +135,15 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
     report_file: Optional[str]
         Save the report to a file. If `None` or `False`, the report will not be saved to a file.
     """
+    try:
+        run_number = input_workspace.getRunNumber()
+        if run_number == 0:
+            api.logger.error("Post-Processing: Run number is 0 in the accumulated-events workspace")
+            return
+    except:  # noqa E722
+        api.logger.error("Post-Processing: Unable to get run number from the accumulated-events workspace")
+        return
+
     live_report = [header_report(input_workspace)]
     with add_to_sys_path(GLOBAL_AR_DIR):  # "/SNS/REF_M/shared/autoreduce"
         from reduce_REF_M import (  # import from the autoreduction script reduce_REF_M.py
@@ -141,11 +152,30 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
         )
 
         events_binned = rebin_tof(input_workspace)
+
         # reduce the accumulated events and generate a report containing plots for the reflectivity curves
-        live_report += reduce_events(
-            workspace=events_binned, outdir=outdir, logfile=os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log")
-        )
-        live_report.append(polarization_report(events_binned))
+        try:
+            report: List[str] = reduce_events(
+                workspace=events_binned, outdir=outdir, logfile=os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log")
+            )
+        except Exception as exception:  # noqa E722
+            error_message = f"\nERROR in Post-Processing.reduce_events(): {exception}\n{traceback.format_exc()}"
+            file_path = os.path.join(GLOBAL_LR_DIR, "accumulated.nxs")
+            api.SaveNexus(InputWorkspace=events_binned, Filename=file_path)
+            error_message += f"\nSaved accumulated events to {file_path}\n"
+            report = [f"<div><pre>{error_message}</pre></div>\n"]
+            api.logger.error(error_message)
+        live_report += report
+
+        # add the polarization report to the live report
+        try:
+            report: str = polarization_report(events_binned)
+        except Exception as exception:  # noqa E722
+            error_message = f"ERROR in Post-Processing.polarization_report(): {exception}\n{traceback.format_exc()}"
+            report: str = f"<div><pre>{error_message}</pre></div>\n"
+            api.logger.error(error_message)
+        live_report.append(report)
+
         # upload the HTML report to the livedata server, or just save it to a file
         upload_html_report(
             live_report, publish=publish, run_number=events_binned.getRunNumber(), report_file=report_file
@@ -154,3 +184,5 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
 
 if __name__ == "__main__":
     main(input, publish=True, report_file=None)
+    # Algorithm StartLiveData as invoked by livereduce.py requires an output workspace of name "result"
+    output = api.LoadEmptyInstrument(InstrumentName="REF_M", OutputWorkspace="result")
