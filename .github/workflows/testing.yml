@@ -14,18 +14,14 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v3
-      - uses: conda-incubator/setup-miniconda@v2
-        name: Setup Conda
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
-          auto-update-conda: true
-          channels: mantid/label/main,conda-forge,defaults
-          miniforge-version: latest
+          channels: mantid/label/main,oncat,conda-forge
+          python-version: '3.10'
+          miniconda-version: latest
+          mamba-version: "*"
           environment-file: environment.yml
-      - name: Create Conda Environment
-        run: |
-          echo "Creating the Conda environment explicitly to ensure it exists"
-          mamba env create --file environment.yml --force
       - name: Install chromium
         run: |
           echo "chromium enables testing HTML reports"
