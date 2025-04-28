@@ -13,6 +13,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User**:
+   - PR #51: Autoreduction will not save the current "REF_M_*_combined.py" script anymore
    - PR #41: bugfix for runs containing logs with time entries predating the start of the run
 
    **Of interest to the Developer:**
