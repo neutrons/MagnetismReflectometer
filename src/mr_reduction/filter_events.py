@@ -29,7 +29,7 @@ def extract_times(times, is_start, is_sf1=False, is_sf2=False, is_veto1=False, i
     """
     Extract a list of times
     """
-    return [(times[i], is_start, [is_sf1, is_sf2, is_veto1, is_veto2]) for i in range(len(times))]
+    return [[times[i], is_start, [is_sf1, is_sf2, is_veto1, is_veto2]] for i in range(len(times))]
 
 
 class MRFilterCrossSections(PythonAlgorithm):
@@ -86,11 +86,15 @@ class MRFilterCrossSections(PythonAlgorithm):
         # Keep track of when we have a fully specified state
         specified = [not has_polarizer, not has_analyzer]
 
-        # Find first entry with a time equal to or greater than start_time
+        # Find first entry with a time equal to or greater than start_time,
+        # then pick the previous entry (if existing) as the first entry
+        # and with a time equal to start_time
         index_begin = 0
         for i, (entry_time, *_) in enumerate(change_list):
-            if entry_time >= start_time:
-                index_begin = i
+            if entry_time > start_time:
+                if i > 0:
+                    change_list[i - 1][0] = start_time
+                    index_begin = i - 1
                 break
 
         for item in change_list[index_begin:]:

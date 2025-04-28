@@ -21,7 +21,7 @@ def test_MRFilterCrossSections(data_server):
         AnaVeto=ANA_VETO,
         CrossSectionWorkspaces="44316",
     )
-    assert [workspace.getNumberEvents() for workspace in workspace_group] == [281213, 265042]
+    assert [workspace.getNumberEvents() for workspace in workspace_group] == [289972, 281213]
 
 
 if __name__ == "__main__":
