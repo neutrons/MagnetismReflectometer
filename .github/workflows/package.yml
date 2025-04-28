@@ -21,6 +21,10 @@ jobs:
           channels: mantid/label/main,conda-forge,defaults
           miniforge-version: latest
           environment-file: environment.yml
+      - name: Create Conda Environment
+        run: |
+          echo "Creating the Conda environment explicitly to ensure it exists"
+          mamba env create --file environment.yml --force
       - name: build conda package
         run: |
           # set up environment
