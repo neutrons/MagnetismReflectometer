@@ -86,18 +86,17 @@ class MRFilterCrossSections(PythonAlgorithm):
         # Keep track of when we have a fully specified state
         specified = [not has_polarizer, not has_analyzer]
 
-        # Find first entry with a time equal to or greater than start_time
-        index_begin = 0
-        for i, (entry_time, *_) in enumerate(change_list):
-            if entry_time >= start_time:
-                index_begin = i
-                break
-
-        for item in change_list[index_begin:]:
+        for item in change_list:
             # We have a change of state, add an entry for the state that just ended
             if specified[0] and specified[1] and not current_state[2] and not current_state[3]:
                 xs = "%s_%s" % ("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
-                split_table_ws.addRow([int(current_state_t0 - start_time) * 1e-9, (item[0] - start_time) * 1e-9, xs])
+                start = int(current_state_t0 - start_time)
+                stop = item[0] - start_time
+                if start < 0 and stop <= 0:
+                    continue  # don't consider time-windows before the start time
+                if start < 0 < stop:
+                    start = 0.0  # keep only the fragment of the time-window after the start time
+                split_table_ws.addRow([start * 1e-9, stop * 1e-9, xs])
 
             # Now update the current state
             for i in range(len(current_state)):
