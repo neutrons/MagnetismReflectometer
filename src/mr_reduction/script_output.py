@@ -18,7 +18,7 @@ from mr_reduction.reflectivity_output import quicknxs_scaling_factor
 from mr_reduction.runpeak import RunPeakNumber
 
 
-def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
+def write_reduction_script_deprecated(matched_runs, scaling_factors, ar_dir) -> str:
     r"""Write a combined reduction script by pasting together the reduction script for each run that
     is to be stitched with the others.
 
@@ -58,7 +58,7 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     return script_filename
 
 
-def write_tunable_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
+def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     """Write a combined reduction script
 
     Parameters
@@ -75,7 +75,7 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ar_dir) -> str
     Returns
     -------
     str
-        File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_tunable_combined.py"")
+        File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_combined.py"")
     """
     script = "# Mantid version %s\n" % mantid.__version__
     script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
@@ -98,7 +98,7 @@ def write_tunable_reduction_script(matched_runs, scaling_factors, ar_dir) -> str
 
     script += prepare_call
     script += reduce_call
-    script_filepath = os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_tunable_combined.py")
+    script_filepath = os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_combined.py")
     with open(script_filepath, "w") as fd:
         fd.write(script)
     return script_filepath
