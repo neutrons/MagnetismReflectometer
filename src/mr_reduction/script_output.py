@@ -18,46 +18,6 @@ from mr_reduction.reflectivity_output import quicknxs_scaling_factor
 from mr_reduction.runpeak import RunPeakNumber
 
 
-def write_reduction_script_deprecated(matched_runs, scaling_factors, ar_dir) -> str:
-    r"""Write a combined reduction script by pasting together the reduction script for each run that
-    is to be stitched with the others.
-
-    Parameters
-    ----------
-    matched_runs : List[str]
-        Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
-        e.g ['1234', '1235'], ['1234_2', '1235_2']
-    scaling_factors : List[float]
-        Numbers by which to multiply each matched reflectivity curve, when stitching
-    ar_dir
-        Directory where to write the reduction script.
-        In autoreduce mode, it will be /SNS/REF_M/IPTS-XXXX/shared/autoreduce
-
-    Returns
-    -------
-    str
-        File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_combined.py")
-    """
-    script = "# Mantid version %s\n" % mantid.__version__
-    script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
-    script += "from mantid.simpleapi import *\n\n"
-    script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
-    script += "workspaces =  dict()\n"
-
-    for i, runpeak in enumerate(matched_runs):
-        file_path = os.path.join(ar_dir, "REF_M_%s_partial.py" % runpeak)
-        if os.path.isfile(file_path):
-            with open(file_path, "r") as _fd:
-                script += "# Run:%s\n" % runpeak
-                script += "scaling_factor = %s\n" % scaling_factors[i]
-                script += _fd.read() + "\n"
-
-    script_filename = f"REF_M_{matched_runs[0]}_combined.py"
-    with open(os.path.join(ar_dir, script_filename), "w") as fd:
-        fd.write(script)
-    return script_filename
-
-
 def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     """Write a combined reduction script
 
