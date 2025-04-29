@@ -23,7 +23,7 @@ import pytz
 import mr_reduction
 from mr_reduction import io_orso
 from mr_reduction.runpeak import RunPeakNumber
-from mr_reduction.script_output import write_reduction_script, write_tunable_reduction_script
+from mr_reduction.script_output import write_reduction_script
 from mr_reduction.settings import nexus_data_dir
 
 
@@ -587,7 +587,6 @@ def combined_curves(run, ipts, ar_dir):
 
     # Write combined python script
     write_reduction_script(matched_runs, scaling_factors, ar_dir)
-    write_tunable_reduction_script(matched_runs, scaling_factors, ar_dir)
 
     # load the different REF_M_{runpeak}_{cross-section}_autoreduce.dat files and stitch them together
     cross_section_buffers = apply_scaling_factors(matched_runs, high_stat_cross_section, scaling_factors, ar_dir)

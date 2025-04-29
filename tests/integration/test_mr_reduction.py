@@ -37,7 +37,6 @@ class TestReduction:
             "REF_M_29160_2.ort",
             "REF_M_29160_2_combined.ort",
             "REF_M_29160_2_partial.py",
-            "REF_M_29160_2_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file))
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_combined.ort"))
@@ -73,7 +72,6 @@ class TestReduction:
             "REF_M_28142_combined.ort",
             "REF_M_28142_combined.py",
             "REF_M_28142_partial.py",
-            "REF_M_28142_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_28142_combined.ort"))
@@ -125,7 +123,6 @@ class TestReduction:
             "REF_M_41445_combined.py",
             "REF_M_41447.json",
             "REF_M_41445_Off_Off_combined.dat",
-            "REF_M_41445_tunable_combined.py",
         ]:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_41447.ort"))
@@ -188,7 +185,6 @@ class TestReduction:
                 "_combined.py",
                 "_Off_Off_combined.dat",
                 "_On_Off_combined.dat",
-                "_tunable_combined.py",
                 "_combined.ort",
             ]:
                 file = f"REF_M_42535_{sn}{suffix}"

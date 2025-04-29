@@ -125,7 +125,7 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
     # assert stitched files have been produced (file names use run 42535 because this is
     # the first in the sequence of experiments encompassing run 42535 through 42538)
     for sn in (1, 2):
-        for suffix in ["_combined.py", "_Off_Off_combined.dat", "_On_Off_combined.dat", "_tunable_combined.py"]:
+        for suffix in ["_combined.py", "_Off_Off_combined.dat", "_On_Off_combined.dat"]:
             file = f"REF_M_42535_{sn}{suffix}"
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"{file} doesn't exist"
 

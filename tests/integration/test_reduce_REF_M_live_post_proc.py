@@ -84,7 +84,6 @@ def test_main(mock_filesystem, data_server, browser, autoreduction_script):
             "_Off_Off_combined.dat",
             "_On_Off_combined.dat",
             "_combined.ort",  # ORSO ASCII format
-            "_tunable_combined.py",
         ]:
             file = f"REF_M_42535_{peak_number}{suffix}"
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"{file} doesn't exist"
@@ -130,7 +129,6 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
         "_On_Off_combined.dat",
         ".ort",
         "_partial.py",
-        "_tunable_combined.py",
     ]:
         file_path = os.path.join(mock_filesystem.tempdir, f"REF_M_44316{suffix}")
         output_files.append(file_path)
