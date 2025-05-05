@@ -1,7 +1,7 @@
 # standard library imports
 import os
 from operator import itemgetter
-from typing import List
+from typing import List, Tuple
 
 # third-party imports
 from mantid.api import (
@@ -31,9 +31,44 @@ from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
 
 
-def extract_times(times, is_start, is_sf1=False, is_sf2=False, is_veto1=False, is_veto2=False):
+def extract_times(
+    times: List[int],
+    is_start: bool,
+    is_sf1: bool = False,
+    is_sf2: bool = False,
+    is_veto1: bool = False,
+    is_veto2: bool = False,
+) -> List[Tuple[int, bool, List[bool]]]:
     """
-    Extract a list of times
+    Extract time intervals and associates them with specific device states.
+
+    Parameters
+    ----------
+    times : list
+        A list of time values (in nanoseconds) representing state changes.
+    is_start : bool
+        Indicates whether the times correspond to the start of a state (True) or the end (False).
+    is_sf1 : bool, optional
+        Indicates whether the state change is related to the polarizer (SF1). Default is False.
+    is_sf2 : bool, optional
+        Indicates whether the state change is related to the analyzer (SF2). Default is False.
+    is_veto1 : bool, optional
+        Indicates whether the state change is related to the polarizer veto. Default is False.
+    is_veto2 : bool, optional
+        Indicates whether the state change is related to the analyzer veto. Default is False.
+
+    Returns
+    -------
+    list
+        A list of tuples, where each tuple contains:
+        - Time of the state change (int)
+        - Whether it is a start or end of a state (bool)
+        - A list of booleans indicating which devices are affected (polarizer, analyzer, veto1, veto2).
+
+    Examples
+    --------
+    >>> extract_times([100, 200], is_start=True, is_sf1=True)
+    [(100, True, [True, False, False, False]), (200, True, [True, False, False, False])]
     """
     return [(times[i], is_start, [is_sf1, is_sf2, is_veto1, is_veto2]) for i in range(len(times))]
 
@@ -69,7 +104,36 @@ def load_legacy_cross_Sections(file_path: str, output_workspace: str) -> Workspa
     return GroupWorkspaces(InputWorkspaces=cross_sections, OutputWorkspace=output_workspace)
 
 
-def create_table(change_list, start_time, has_polarizer=True, has_analyzer=True) -> MantidWorkspace:
+def create_table(
+    change_list: list, start_time: int, has_polarizer: bool = True, has_analyzer: bool = True
+) -> MantidWorkspace:
+    """
+    Creates a Mantid table workspace to define time intervals for cross-sections based on state changes.
+
+    Parameters
+    ----------
+    change_list : list
+        A list of tuples representing state changes. Each tuple contains:
+        - Time of the change (int)
+        - Whether the state is starting (bool)
+        - A list of booleans indicating which devices are affected (polarizer, analyzer, veto1, veto2).
+    start_time : int
+        The start time in nanoseconds to normalize the time intervals.
+    has_polarizer : bool, optional
+        Whether a polarizer is present in the experiment. Default is True.
+    has_analyzer : bool, optional
+        Whether an analyzer is present in the experiment. Default is True.
+
+    Returns
+    -------
+    MantidWorkspace
+        A Mantid table workspace containing the time intervals and corresponding cross-section labels.
+
+    Notes
+    -----
+    - The table includes columns for start time, stop time, and the target cross-section label.
+    - Time intervals before the start time are ignored, and only valid intervals are added.
+    """
     split_table_ws = CreateEmptyTableWorkspace()
     split_table_ws.addColumn("float", "start")
     split_table_ws.addColumn("float", "stop")
@@ -113,8 +177,39 @@ def filter_cross_sections(
     check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
-    Filter events according to the polarization states
-    :param str file_path: data file path
+    Filters events from a workspace into cross-sections based on polarization states.
+
+    Parameters
+    ----------
+    events_workspace : EventWorkspace
+        The input Mantid workspace containing events to be filtered.
+    output_workspace : str
+        Name of the output workspace to store the filtered cross-sections.
+    pv_polarizer_state : str, optional
+        Name of the sample log for the polarizer state. Default is "SF1".
+    pv_analyzer_state : str, optional
+        Name of the sample log for the analyzer state. Default is "SF2".
+    pv_polarizer_veto : str, optional
+        Name of the sample log for the polarizer veto. Default is "SF1_Veto".
+    pv_analyzer_veto : str, optional
+        Name of the sample log for the analyzer veto. Default is "SF2_Veto".
+    check_devices : bool, optional
+        Whether to check for the presence of polarizer and analyzer devices. Default is True.
+
+    Returns
+    -------
+    WorkspaceGroup
+        A Mantid workspace group containing the filtered cross-sections.
+
+    Raises
+    ------
+    RuntimeError
+        If no events remain after filtering.
+
+    Notes
+    -----
+    - If no polarizer or analyzer information is available, the raw workspace is returned without filtering.
+    - The function uses sample logs to determine the polarization states and applies event filters accordingly.
     """
     sample_logs = SampleLogs(events_workspace)
     if check_devices is True:
@@ -263,6 +358,7 @@ def filter_cross_sections(
 
 
 def split_events(
+    output_workspace: str,
     file_path: str = None,
     input_workspace: MantidWorkspace = None,
     pv_polarizer_state: str = POL_STATE,
@@ -270,8 +366,47 @@ def split_events(
     pv_polarizer_veto: str = POL_VETO,
     pv_analyzer_veto: str = ANA_VETO,
     check_devices: bool = True,
-    output_workspace: str = None,
 ) -> WorkspaceGroup:
+    """
+    Splits events from a workspace or file into cross-sections, based on polarization states.
+
+    Parameters
+    ----------
+    output_workspace : str
+        Name of the output workspace to store the results.
+    file_path : str, optional
+        Path to the data file. If provided, the file will be loaded.
+    input_workspace : MantidWorkspace, optional
+        An existing Mantid workspace to process. If both `file_path` and `input_workspace` are provided,
+        `input_workspace` takes precedence.
+    pv_polarizer_state : str, optional
+        Name of the sample log for the polarizer state. Default is "SF1".
+    pv_analyzer_state : str, optional
+        Name of the sample log for the analyzer state. Default is "SF2".
+    pv_polarizer_veto : str, optional
+        Name of the sample log for the polarizer veto. Default is "SF1_Veto".
+    pv_analyzer_veto : str, optional
+        Name of the sample log for the analyzer veto. Default is "SF2_Veto".
+    check_devices : bool, optional
+        Whether to check for the presence of polarizer and analyzer devices. Default is True.
+
+    Returns
+    -------
+    WorkspaceGroup
+        A Mantid workspace group containing the filtered cross-sections.
+
+    Raises
+    ------
+    ValueError
+        If neither `file_path` nor `input_workspace` is provided.
+    RuntimeError
+        If no events remain after filtering.
+
+    Notes
+    -----
+    - If the file path ends with `.nxs`, it is assumed to be legacy data, and cross-sections are loaded independently.
+    - If no polarizer or analyzer information is available, the raw workspace is returned without filtering.
+    """
     if (file_path is None) and (input_workspace is None):
         raise ValueError("Either file_path or input_workspace must be provided")
 
