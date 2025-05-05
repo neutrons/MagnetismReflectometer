@@ -17,6 +17,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
    - PR #41: bugfix for runs containing logs with time entries predating the start of the run
 
    **Of interest to the Developer:**
+   - PR #52: Convert Mantid algorithm MRFilterCrossSections to a module of mr_reduction
    - PR #50: Purge the cross-section filtering table of negative relative times to the start of the run
    - PR #45: Document how to deploy updates to the live reduction service
    - PR #44: Documentation on how to use StartLiveData algorithm
