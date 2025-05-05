@@ -3,10 +3,10 @@
 Check all that apply:
 - [ ] added [release notes](https://mr-reduction.readthedocs.io/en/latest/releases.html)
 (if not, provide an explanation in the work description)
-- [ ] updated documentation
+- [ ] Documentation updated
 - [ ] Source added/refactored
-- [ ] Added unit tests
-- [ ] Added integration tests
+- [ ] Unit tests added/refactored
+- [ ] Integration tests added/refactored
 
 **References:**
 - Links to IBM EWM items:

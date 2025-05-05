@@ -12,6 +12,7 @@ import mantid.simpleapi as api
 
 # mr_reduction imports
 from mr_reduction import settings as reduction_settings
+from mr_reduction.filter_events import split_events
 from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.types import MantidWorkspace
 
@@ -76,13 +77,7 @@ def calculate_ratios(
     if slow_filter:
         workspace_group = filter_GetDI(workspace)
     else:
-        workspace_group = api.MRFilterCrossSections(
-            InputWorkspace=workspace,
-            PolState=reduction_settings.POL_STATE,
-            AnaState=reduction_settings.ANA_STATE,
-            PolVeto=reduction_settings.POL_VETO,
-            AnaVeto=reduction_settings.ANA_VETO,
-        )
+        workspace_group = split_events(input_workspace=workspace)
 
     ws_list = []
     ws_non_zero = []
@@ -94,7 +89,7 @@ def calculate_ratios(
             ws_non_zero.append(workspace)
         intensities: MantidWorkspace = intensities_in_roi_pixels(workspace=workspace, step=delta_wl, roi=roi)
         ws_list.append(intensities)
-    mantid.logger.notice(f"Cross-sections found: {workspace_group}")
+
     try:
         if len(ws_non_zero) >= 3:  # the experiment used both polarizer and anaylizer
             ratio1 = api.Divide(
