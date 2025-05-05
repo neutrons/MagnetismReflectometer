@@ -29,15 +29,15 @@ from mr_reduction import io_orso
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
-from mr_reduction.filter_events import MRFilterCrossSections
+from mr_reduction.filter_events import split_events
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO
-from mr_reduction.simple_utils import SampleLogs, run_mantid_algorithm
-from mr_reduction.types import MantidWorkspace
+from mr_reduction.simple_utils import SampleLogs
+from mr_reduction.types import MantidWorkspace, WorkspaceGroup
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
@@ -301,18 +301,16 @@ class ReductionProcess:
         self.run_number = int(self.data_ws.getRunNumber())
 
         if self.use_slow_flipper_log:
-            _xs_list = self.slow_filter_cross_sections(self.data_ws)
+            _xs_list: WorkspaceGroup = self.slow_filter_cross_sections(self.data_ws)
         else:
-            _xs_list = run_mantid_algorithm(
-                MRFilterCrossSections,
-                output_property="CrossSectionWorkspaces",
-                Filename=_filename,
-                InputWorkspace=self.data_ws,
-                PolState=self.pol_state,
-                AnaState=self.ana_state,
-                PolVeto=self.pol_veto,
-                AnaVeto=self.ana_veto,
-                CrossSectionWorkspaces="%s" % self.data_ws.getRunNumber(),
+            _xs_list: WorkspaceGroup = split_events(
+                file_path=_filename,
+                input_workspace=self.data_ws,
+                pv_polarizer_state=self.pol_state,
+                pv_analyzer_state=self.ana_state,
+                pv_polarizer_veto=self.pol_veto,
+                pv_analyzer_veto=self.ana_veto,
+                output_workspace=str(self.data_ws.getRunNumber()),
             )
             # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
             for ws in _xs_list:
@@ -321,7 +319,7 @@ class ReductionProcess:
         xs_list = [
             ws
             for ws in _xs_list
-            if not SampleLogs(ws)["cross_section_id"] == "unfiltered" and ws.getNumberEvents() > 0
+            if (SampleLogs(ws)["cross_section_id"] != "unfiltered") and (ws.getNumberEvents() > 0)
         ]
 
         # Reduce each cross-section

@@ -102,9 +102,9 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
     For this reason, we are not assuming that ws_grp is a workspace group.
     We therefore need the name of the grouping we want to associate this set with in the output script.
 
-    The script calls the following algorithms sequentially:
+    The script calls the following algorithms/functions sequentially:
         LoadEventNexus
-        MRFilterCrossSections
+        filter_events.split_events
         LoadEventNexus
         GroupWorkspaces
         MagnetismReflectometryReduction

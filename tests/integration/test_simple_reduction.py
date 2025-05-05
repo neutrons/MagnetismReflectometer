@@ -3,7 +3,7 @@ This module contains integration tests for the simple reduction of a REF_M run.
 
 The main test, `test_reduction_simple`, verifies the reduction process for 28142 by:
 1. Setting up the data server to provide the necessary data file.
-2. Extracting workspaces for each cross-section using `MRFilterCrossSections`.
+2. Extracting workspaces for each cross-section using `filter_events.split_events`.
 3. Extracting data information for the cross-section with the highest counts.
 4. Reduce using `mantid.simpleapi.MagnetismReflectometryReduction` with the extracted data information.
 5. Asserting the successful completion of the reduction process.
@@ -16,10 +16,11 @@ The test relies on the `data_server` fixture.
 # third party packages
 import pytest
 from mantid.api import WorkspaceGroup
-from mantid.simpleapi import MagnetismReflectometryReduction, MRFilterCrossSections
+from mantid.simpleapi import MagnetismReflectometryReduction, mtd
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo
+from mr_reduction.filter_events import split_events
 
 
 def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
@@ -38,16 +39,15 @@ def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
 
 @pytest.mark.datarepo()
 def test_reduction_simple(data_server):
-    file_path = data_server.path_to("REF_M_28142.nxs.h5")  # three cross-sections
+    wsg = split_events(
+        file_path=data_server.path_to("REF_M_28142.nxs.h5"),  # three cross-sections
+        output_workspace=mtd.unique_hidden_name(),
+    )
 
-    # Extract a workspace for each cross-section
-    wsg = MRFilterCrossSections(Filename=file_path)
-
-    # Extract peaks and such from the cross-section with the highest counts
-    data_info = extract_data_info(wsg)
-
+    data_info = extract_data_info(wsg)  # Extract peaks and such from the cross-section with the highest counts
     apply_norm = False
     direct_info = data_info
+
     MagnetismReflectometryReduction(
         InputWorkspace=wsg,
         NormalizationRunNumber=0,
