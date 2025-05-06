@@ -5,6 +5,7 @@ import shutil
 
 # mr_reduction imports
 import mr_reduction.mr_reduction as mr
+import numpy as np
 
 # third party imports
 import pytest
@@ -76,6 +77,29 @@ class TestReduction:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"File {file} doesn't exist"
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_28142_combined.ort"))
         questor.assert_equal(cross_sections=["Off_Off", "On_Off", "On_On"], polarizations=["pp", "mp", "mm"])
+
+    @pytest.mark.datarepo()
+    def test_check_correct_normalization(self, data_server, mock_filesystem):
+        r"""
+        This run number has events for cross sections Off_Off, On_Off, and On_On.
+        There are no other previous numbers in the runs sequence, hence files REF_M_44382_*_autoreduce.dat
+        and REF_M_44382_*_combined.dat are basically one and the same.
+
+        The test checks that the first 20 values of the reflectivity are all similar in value
+        """
+        mock_filesystem.DirectBeamFinder.return_value.search.return_value = 44380  # normalization run
+        processor = mr.ReductionProcess(
+            data_run=data_server.path_to("REF_M_44382.nxs.h5"), output_dir=mock_filesystem.tempdir
+        )
+        processor.reduce()
+        # load the On_Off and Off_Off reflectivities, and assert that the first 20 values are similar to each other
+        for cross_section in ["On_Off", "Off_Off"]:
+            reflectivities = np.loadtxt(
+                os.path.join(mock_filesystem.tempdir, f"REF_M_44382_{cross_section}_autoreduce.dat"),
+                usecols=1,
+                comments="#",
+            )
+            assert np.all((reflectivities[:20] >= 0.08) & (reflectivities[:20] <= 0.1))
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
