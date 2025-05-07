@@ -13,6 +13,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User**:
+   _ PR #54: Update the documentation with the possible configurations when using ROI1* and ROI2*
    - PR #51: Autoreduction will not save the current "REF_M_*_combined.py" script anymore
    - PR #41: bugfix for runs containing logs with time entries predating the start of the run
 
