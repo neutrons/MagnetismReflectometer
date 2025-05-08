@@ -2,14 +2,16 @@
 module to replace Mantid algorithm MRInspectData
 """
 
-import sys
-from mantid.kernel import logger
-import mantid.simpleapi
-import math
 import copy
+import math
+import sys
+from typing import List, Optional
+
 import numpy as np
-import scipy.optimize as opt
-from typing import List, Optional, Union
+from mantid import simpleapi as mtd
+from mantid.kernel import logger
+from scipy import optimize as opt
+from scipy.optimize import OptimizeWarning
 
 DEAD_PIXELS = 10
 NX_PIXELS = 304
@@ -25,7 +27,7 @@ def fit_2d_peak(workspace):
     n_y = int(workspace.getInstrument().getNumberParameter("number-of-y-pixels")[0])
 
     # Prepare data to fit
-    _integrated = mantid.simpleapi.Integration(InputWorkspace=workspace)
+    _integrated = mtd.Integration(InputWorkspace=workspace)
     signal = _integrated.extractY()
     z = np.reshape(signal, (n_x, n_y))
     x = np.arange(0, n_x)
@@ -49,8 +51,8 @@ def fit_2d_peak(workspace):
     p0 = [np.max(z), center_x, 5, center_y, 50, 0]
     try:
         gauss_coef, _ = opt.curve_fit(gauss_simple, code, data_to_fit, p0=p0, sigma=err_y)
-    except:
-        logger.notice("Could not fit simple Gaussian")
+    except (RuntimeError, ValueError, OptimizeWarning) as e:
+        logger.notice(f"Error fitting simple Gaussian: {e}")
         gauss_coef = p0
 
     # Keep track of the result
@@ -66,8 +68,8 @@ def fit_2d_peak(workspace):
     # Fit a polynomial background, as a starting point to fitting signal + background
     try:
         step_coef, _ = opt.curve_fit(poly_bck, code, data_to_fit, p0=[0, 0, 0, center_x, 0], sigma=err_y)
-    except:
-        logger.notice("Could not fit polynomial background")
+    except (RuntimeError, ValueError, OptimizeWarning) as e:
+        logger.notice(f"Error fitting polynomial background: {e}")
         step_coef = [0, 0, 0, center_x, 0]
     th = poly_bck(code, *step_coef)
     th = np.reshape(th, (n_x, n_y))
@@ -77,8 +79,8 @@ def fit_2d_peak(workspace):
     coef = [np.max(z), center_x, 5, center_y, 50, step_coef[0], step_coef[1], step_coef[2], step_coef[3], step_coef[4]]
     try:
         coef, _ = opt.curve_fit(poly_bck_signal, code, data_to_fit, p0=coef, sigma=err_y)
-    except:
-        logger.notice("Could not fit Gaussian + polynomial")
+    except (RuntimeError, ValueError, OptimizeWarning) as e:
+        logger.notice(f"Error fitting polynomial + Gaussian: {e}")
     th = poly_bck_signal(code, *coef)
     th = np.reshape(th, (n_x, n_y))
     _chi2 = chi2(th, z)
@@ -319,17 +321,19 @@ class DataInspector(object):
 
         # Read ROI 1
         roi1_valid = True
-        if "ROI1StartX" in ws.getRun():
-            roi1_x0 = ws.getRun()["ROI1StartX"].getStatistics().mean
-            roi1_y0 = ws.getRun()["ROI1StartY"].getStatistics().mean
-            if "ROI1SizeX" in ws.getRun():
-                size_x = ws.getRun()["ROI1SizeX"].getStatistics().mean
-                size_y = ws.getRun()["ROI1SizeY"].getStatistics().mean
+
+        run = ws.getRun()
+        if "ROI1StartX" in run:
+            roi1_x0 = run["ROI1StartX"].getStatistics().mean
+            roi1_y0 = run["ROI1StartY"].getStatistics().mean
+            if "ROI1SizeX" in run:
+                size_x = run["ROI1SizeX"].getStatistics().mean
+                size_y = run["ROI1SizeY"].getStatistics().mean
                 roi1_x1 = roi1_x0 + size_x
                 roi1_y1 = roi1_y0 + size_y
             else:
-                roi1_x1 = ws.getRun()["ROI1EndX"].getStatistics().mean
-                roi1_y1 = ws.getRun()["ROI1EndY"].getStatistics().mean
+                roi1_x1 = run["ROI1EndX"].getStatistics().mean
+                roi1_y1 = run["ROI1EndY"].getStatistics().mean
             if roi1_x1 > roi1_x0:
                 peak1 = [int(roi1_x0), int(roi1_x1)]
             else:
@@ -342,18 +346,18 @@ class DataInspector(object):
                 roi1_valid = False
 
             # Read ROI 2
-            if "ROI2StartX" in ws.getRun():
+            if "ROI2StartX" in run:
                 roi2_valid = True
-                roi2_x0 = ws.getRun()["ROI2StartX"].getStatistics().mean
-                roi2_y0 = ws.getRun()["ROI2StartY"].getStatistics().mean
-                if "ROI2SizeX" in ws.getRun():
-                    size_x = ws.getRun()["ROI2SizeX"].getStatistics().mean
-                    size_y = ws.getRun()["ROI2SizeY"].getStatistics().mean
+                roi2_x0 = run["ROI2StartX"].getStatistics().mean
+                roi2_y0 = run["ROI2StartY"].getStatistics().mean
+                if "ROI2SizeX" in run:
+                    size_x = run["ROI2SizeX"].getStatistics().mean
+                    size_y = run["ROI2SizeY"].getStatistics().mean
                     roi2_x1 = roi2_x0 + size_x
                     roi2_y1 = roi2_y0 + size_y
                 else:
-                    roi2_x1 = ws.getRun()["ROI2EndX"].getStatistics().mean
-                    roi2_y1 = ws.getRun()["ROI2EndY"].getStatistics().mean
+                    roi2_x1 = run["ROI2EndX"].getStatistics().mean
+                    roi2_y1 = run["ROI2EndY"].getStatistics().mean
                 if roi2_x1 > roi2_x0:
                     peak2 = [int(roi2_x0), int(roi2_x1)]
                 else:
@@ -416,7 +420,7 @@ class DataInspector(object):
         :param workspace ws: Workspace to inspect
         :param float peak_position: reflectivity peak position
         """
-        self.theta_d = 180.0 / math.pi * mantid.simpleapi.MRGetTheta(ws, SpecularPixel=peak_position, UseSANGLE=False)
+        self.theta_d = 180.0 / math.pi * mtd.MRGetTheta(ws, SpecularPixel=peak_position, UseSANGLE=False)
         return not self.theta_d > self.tolerance
 
     def determine_data_type(self, ws):
@@ -445,7 +449,7 @@ class DataInspector(object):
         # Process the ROI information
         try:
             self.process_roi(ws)
-        except:
+        except:  # noqa: E722
             logger.notice("Could not process ROI\n%s" % sys.exc_info()[1])
 
         # Keep track of whether we actually used the ROI
@@ -475,8 +479,11 @@ class DataInspector(object):
         self.background = [int(max(0, bck_range[0])), int(min(bck_range[1], NY_PIXELS))]
 
         # Computed scattering angle
-        self.calculated_scattering_angle = mantid.simpleapi.MRGetTheta(
-            ws, SpecularPixel=self.peak_position, DirectPixelOverwrite=self.dirpix_overwrite, DAngle0Overwrite=self.dangle0_overwrite
+        self.calculated_scattering_angle = mtd.MRGetTheta(
+            ws,
+            SpecularPixel=self.peak_position,
+            DirectPixelOverwrite=self.dirpix_overwrite,
+            DAngle0Overwrite=self.dangle0_overwrite,
         )
         self.calculated_scattering_angle *= 180.0 / math.pi
 
@@ -488,6 +495,7 @@ class DataInspector(object):
 
         # Write to logs
         self.log()
+
 
 def inspect_data(
     Workspace: str,
@@ -567,58 +575,106 @@ def inspect_data(
         dangle0_overwrite=DAngle0Overwrite,
     )
     # Store information in logs
-    mantid.simpleapi.AddSampleLog(
+    mtd.AddSampleLog(
         Workspace=nxs_data,
         LogName="calculated_scatt_angle",
         LogText=str(data_info.calculated_scattering_angle),
         LogType="Number",
         LogUnit="degree",
     )
-    mantid.simpleapi.AddSampleLog(Workspace=nxs_data, LogName="cross_section", LogText=nxs_data_name)
-    mantid.simpleapi.AddSampleLog(Workspace=nxs_data, LogName="use_roi_actual", LogText=str(data_info.use_roi_actual))
-    mantid.simpleapi.AddSampleLog(Workspace=nxs_data, LogName="is_direct_beam", LogText=str(data_info.is_direct_beam))
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="tof_range_min", LogText=str(data_info.tof_range[0]), LogType="Number", LogUnit="usec"
+    mtd.AddSampleLog(Workspace=nxs_data, LogName="cross_section", LogText=nxs_data_name)
+    mtd.AddSampleLog(Workspace=nxs_data, LogName="use_roi_actual", LogText=str(data_info.use_roi_actual))
+    mtd.AddSampleLog(Workspace=nxs_data, LogName="is_direct_beam", LogText=str(data_info.is_direct_beam))
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="tof_range_min",
+        LogText=str(data_info.tof_range[0]),
+        LogType="Number",
+        LogUnit="usec",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="tof_range_max", LogText=str(data_info.tof_range[1]), LogType="Number", LogUnit="usec"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="tof_range_max",
+        LogText=str(data_info.tof_range[1]),
+        LogType="Number",
+        LogUnit="usec",
     )
-    mantid.simpleapi.AddSampleLog(
+    mtd.AddSampleLog(
         Workspace=nxs_data, LogName="peak_min", LogText=str(data_info.peak_range[0]), LogType="Number", LogUnit="pixel"
     )
-    mantid.simpleapi.AddSampleLog(
+    mtd.AddSampleLog(
         Workspace=nxs_data, LogName="peak_max", LogText=str(data_info.peak_range[1]), LogType="Number", LogUnit="pixel"
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="background_min", LogText=str(data_info.background[0]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="background_min",
+        LogText=str(data_info.background[0]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="background_max", LogText=str(data_info.background[1]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="background_max",
+        LogText=str(data_info.background[1]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="low_res_min", LogText=str(data_info.low_res_range[0]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="low_res_min",
+        LogText=str(data_info.low_res_range[0]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="low_res_max", LogText=str(data_info.low_res_range[1]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="low_res_max",
+        LogText=str(data_info.low_res_range[1]),
+        LogType="Number",
+        LogUnit="pixel",
     )
     # Add process ROI information
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_peak_min", LogText=str(data_info.roi_peak[0]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_peak_min",
+        LogText=str(data_info.roi_peak[0]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_peak_max", LogText=str(data_info.roi_peak[1]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_peak_max",
+        LogText=str(data_info.roi_peak[1]),
+        LogType="Number",
+        LogUnit="pixel",
     )
 
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_low_res_min", LogText=str(data_info.roi_low_res[0]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_low_res_min",
+        LogText=str(data_info.roi_low_res[0]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_low_res_max", LogText=str(data_info.roi_low_res[1]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_low_res_max",
+        LogText=str(data_info.roi_low_res[1]),
+        LogType="Number",
+        LogUnit="pixel",
     )
 
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_background_min", LogText=str(data_info.roi_background[0]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_background_min",
+        LogText=str(data_info.roi_background[0]),
+        LogType="Number",
+        LogUnit="pixel",
     )
-    mantid.simpleapi.AddSampleLog(
-        Workspace=nxs_data, LogName="roi_background_max", LogText=str(data_info.roi_background[1]), LogType="Number", LogUnit="pixel"
+    mtd.AddSampleLog(
+        Workspace=nxs_data,
+        LogName="roi_background_max",
+        LogText=str(data_info.roi_background[1]),
+        LogType="Number",
+        LogUnit="pixel",
     )
