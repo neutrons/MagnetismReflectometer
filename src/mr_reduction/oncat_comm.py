@@ -1,7 +1,9 @@
 """
-    ONCat reduced file ingestion.
+ONCat reduced file ingestion.
 """
+
 import pyoncat
+
 
 def ingest(file_path):
     # Use PyONCat v1.3.1 or above.
@@ -18,9 +20,9 @@ def ingest(file_path):
 
     oncat = pyoncat.ONCat(
         ONCAT_URL,
-        client_id = CLIENT_ID,
-        client_secret = CLIENT_SECRET,
-        flow = pyoncat.CLIENT_CREDENTIALS_FLOW,
-        scopes = SCOPES,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        flow=pyoncat.CLIENT_CREDENTIALS_FLOW,
+        scopes=SCOPES,
     )
     oncat.Reduction.create({"location": file_path})
