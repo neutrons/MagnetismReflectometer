@@ -16,6 +16,7 @@ from scipy import ndimage
 from scipy.optimize import OptimizeWarning
 
 # mr_reduction imports
+from mr_reduction.inspect_data import inspect_data
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.types import MantidWorkspace
@@ -119,7 +120,7 @@ class DataType(IntEnum):
 
 class DataInfo:
     """
-    Class to provide a convenient interface to the meta-data extracted by Mantid algorithm MRInspectData.
+    Class to provide a convenient interface to the meta-data extracted by function `inspect_data`.
 
     The ROI is further refined.
     """
@@ -144,9 +145,9 @@ class DataInfo:
         force_low_res_roi: bool = False,
     ):
         """
-        Inspect the Processing Variables (PV's) of the input workspace with Mantid algorithm MRInspectData.
+        Inspect the Processing Variables (PV's) of the input workspace
 
-        The PV's inspected by MRInspectData are ROI1StartX, ROI1SizeX, ROI1StartY, ROI1SizeY,
+        The PV's inspected by `inspect_data` are ROI1StartX, ROI1SizeX, ROI1StartY, ROI1SizeY,
         ROI2StartX, ROI2SizeX, ROI2StartY, and ROI2SizeY.
 
         The low-resolution range after inspection is further refined by the Fitter2 class.
@@ -178,9 +179,9 @@ class DataInfo:
         low_res_roi
             The Y-Pixel-Axis, vertical, or low-resolution range. Pass a two-item list [y_min, y_max]
         force_low_res_roi
-            Override the low-resolution range extracted by MRInspectData
+            Override the low-resolution range extracted by `inspect_data`
         """
-        api.MRInspectData(
+        inspect_data(
             Workspace=ws,
             UpdatePeakRange=update_peak_range,
             UseROI=use_roi,
