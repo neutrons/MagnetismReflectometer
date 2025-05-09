@@ -6,25 +6,33 @@ Release Notes
 Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
 
 ..
-   Notes for major and minor releases. Notes for patch releases are referred.
-
-   v2.3.0
+   v2.4.0
    ------
    (date of release, format YYYY-MM-DD)
 
-   **Of interest to the User**:
-   _ PR #54: Update the documentation with the possible configurations when using ROI1* and ROI2*
-   - PR #51: Autoreduction will not save the current "REF_M_*_combined.py" script anymore
-   - PR #41: bugfix for runs containing logs with time entries predating the start of the run
+   **Of interest to the User:**
 
    **Of interest to the Developer:**
-   - PR #52: Convert Mantid algorithm MRFilterCrossSections to a module of mr_reduction
-   - PR #50: Purge the cross-section filtering table of negative relative times to the start of the run
-   - PR #45: Document how to deploy updates to the live reduction service
-   - PR #44: Documentation on how to use StartLiveData algorithm
-   - PR #43: Update livereduce.conf file
-   - PR #41: MRFilterCrossections defined as Mantid python algorithm in the source code
+   - PR #55: Refactor MRInspectData as module inspect_data
 ..
+
+
+v2.3.0
+------
+2025-05-13
+
+**Of interest to the User:**
+- PR #54: Update the documentation with the possible configurations when using ROI1* and ROI2*
+- PR #51: Autoreduction will not save the current "REF_M_*_combined.py" script anymore
+- PR #41: bugfix for runs containing logs with time entries predating the start of the run
+
+**Of interest to the Developer:**
+- PR #52: Convert Mantid algorithm MRFilterCrossSections to a module of mr_reduction
+- PR #50: Purge the cross-section filtering table of negative relative times to the start of the run
+- PR #45: Document how to deploy updates to the live reduction service
+- PR #44: Documentation on how to use StartLiveData algorithm
+- PR #43: Update livereduce.conf file
+- PR #41: MRFilterCrossections defined as Mantid python algorithm in the source code
 
 
 v2.2.0
