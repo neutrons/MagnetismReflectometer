@@ -13,6 +13,9 @@ from mantid.kernel import logger
 from scipy import optimize as opt
 from scipy.optimize import OptimizeWarning
 
+from mr_reduction.simple_utils import workspace_handle
+from mr_reduction.types import EventWorkspace, MantidWorkspace
+
 DEAD_PIXELS = 10
 NX_PIXELS = 304
 NY_PIXELS = 256
@@ -200,23 +203,26 @@ class DataInspector(object):
 
     def __init__(
         self,
-        ws,
+        input_workspace: MantidWorkspace,
         cross_section="",
-        use_roi=True,
-        update_peak_range=False,
-        use_roi_bck=False,
-        use_tight_bck=False,
-        bck_offset=3,
-        force_peak_roi=False,
-        peak_roi=[0, 0],
-        force_low_res_roi=False,
-        low_res_roi=[0, 0],
-        force_bck_roi=False,
-        bck_roi=[0, 0],
         event_threshold=10000,
         dirpix_overwrite=None,
         dangle0_overwrite=None,
+        # peak-related options
+        use_roi=True,  # use process-variable ROI1*
+        force_peak_roi=False,
+        update_peak_range=False,
+        peak_roi=[0, 0],  # pixel range along horizontal (X) axis defining the reflectivity peak
+        force_low_res_roi=False,
+        low_res_roi=[0, 0],  # pixel range along vertical (Y) axis defining the low-resolution peak
+        # background-related options
+        use_roi_bck=False,  # use process-variable ROI2*
+        force_bck_roi=False,
+        bck_roi=[0, 0],  # pixel range along horizontal (X) axis defining the background
+        use_tight_bck=False,
+        bck_offset=3,
     ):
+        ws = workspace_handle(input_workspace)  # a reference to the workspace instance
         self.cross_section = cross_section
         self.run_number = ws.getRunNumber()
         self.is_direct_beam = False
@@ -229,12 +235,12 @@ class DataInspector(object):
         self.dangle0_overwrite = dangle0_overwrite
         self.dirpix_overwrite = dirpix_overwrite
 
-        # ROI information
+        # peak ROI information
         self.roi_peak = [0, 0]
         self.roi_low_res = [0, 0]
         self.roi_background = [0, 0]
 
-        # Options to override the ROI
+        # Options to override the peak ROI
         self.force_peak_roi = force_peak_roi
         self.forced_peak_roi = _as_ints(peak_roi)
         self.force_low_res_roi = force_low_res_roi
@@ -305,114 +311,78 @@ class DataInspector(object):
         self.tof_range = [tof_min, tof_max]
         return [tof_min, tof_max]
 
-    def process_roi(self, ws):
+    def process_pv_roi(self, ws: EventWorkspace):
         """
-        Process the ROI information and determine the peak
-        range, the low-resolution range, and the background range.
+        Processes the regions of interest (ROIs) from the given event workspace and computes
+        the peak and background ROI dimensions along specified axes.
 
-        Starting in June 2018, with the DAS upgrade, the ROIs are
-        specified with a start/width rather than start/stop.
+        This method retrieves run-specific information from the workspace, including ROI start
+        positions, sizes, and endpoints, to calculate the boundaries of peak and background
+        ROIs. It initializes peak and background ROIs as empty regions and updates them based
+        on the conditions evaluated from input data. The calculated ROIs are subsequently
+        assigned to class attributes.
 
-        :param workspace ws: workspace to work with
+        Parameters
+        ----------
+        ws : EventWorkspace
+            An event workspace object from which the ROI information is extracted. Provides
+            access to run details and associated parameter statistics.
+
+        Attributes
+        ----------
+        roi_peak : list of int
+            The calculated ROI along the X-axis for the peak. Stored as a two-element list
+            [xmin, xmax] where `xmin` is the starting position and `xmax` is the end position
+            of the peak ROI along the X-axis.
+        roi_low_res : list of int
+            The calculated ROI along the Y-axis for the peak. Stored as a two-element list
+            [ymin, ymax], determining the starting and ending positions along the Y-axis.
+        roi_background : list of int
+            The calculated background ROI along the X-axis. Stored as a two-element list
+            [xmin, xmax], where the calculated region precedes the peak ROI when
+            sanity constraints are satisfied.
         """
-        roi_peak = [0, 0]
-        roi_low_res = [0, 0]
-        roi_background = [0, 0]
-
-        # Read ROI 1
-        roi1_valid = True
-
         run = ws.getRun()
+
+        # initialize the ROI information
+        peak_roi_x = [0, 0]
+        peak_roi_y = [0, 0]
+        background_roi_x = [0, 0]
+
         if "ROI1StartX" in run:
-            roi1_x0 = run["ROI1StartX"].getStatistics().mean
-            roi1_y0 = run["ROI1StartY"].getStatistics().mean
+            peak_roi_xmin = run["ROI1StartX"].getStatistics().mean
+            peak_roi_ymin = run["ROI1StartY"].getStatistics().mean
             if "ROI1SizeX" in run:
                 size_x = run["ROI1SizeX"].getStatistics().mean
                 size_y = run["ROI1SizeY"].getStatistics().mean
-                roi1_x1 = roi1_x0 + size_x
-                roi1_y1 = roi1_y0 + size_y
+                peak_roi_xmax = peak_roi_xmin + size_x
+                peak_roi_ymax = peak_roi_ymin + size_y
             else:
-                roi1_x1 = run["ROI1EndX"].getStatistics().mean
-                roi1_y1 = run["ROI1EndY"].getStatistics().mean
-            if roi1_x1 > roi1_x0:
-                peak1 = [int(roi1_x0), int(roi1_x1)]
-            else:
-                peak1 = [int(roi1_x1), int(roi1_x0)]
-            if roi1_y1 > roi1_y0:
-                low_res1 = [int(roi1_y0), int(roi1_y1)]
-            else:
-                low_res1 = [int(roi1_y1), int(roi1_y0)]
-            if peak1 == [0, 0] and low_res1 == [0, 0]:
-                roi1_valid = False
+                peak_roi_xmax = run["ROI1EndX"].getStatistics().mean
+                peak_roi_ymax = run["ROI1EndY"].getStatistics().mean
 
-            # Read ROI 2
+            if peak_roi_xmax > peak_roi_xmin and peak_roi_ymax > peak_roi_ymin:
+                peak_roi_x = [int(peak_roi_xmin), int(peak_roi_xmax)]
+                peak_roi_y = [int(peak_roi_ymin), int(peak_roi_ymax)]
+
             if "ROI2StartX" in run:
-                roi2_valid = True
-                roi2_x0 = run["ROI2StartX"].getStatistics().mean
-                roi2_y0 = run["ROI2StartY"].getStatistics().mean
+                background_roi_xmin = run["ROI2StartX"].getStatistics().mean
                 if "ROI2SizeX" in run:
                     size_x = run["ROI2SizeX"].getStatistics().mean
-                    size_y = run["ROI2SizeY"].getStatistics().mean
-                    roi2_x1 = roi2_x0 + size_x
-                    roi2_y1 = roi2_y0 + size_y
+                    background_roi_xmax = background_roi_xmin + size_x
                 else:
-                    roi2_x1 = run["ROI2EndX"].getStatistics().mean
-                    roi2_y1 = run["ROI2EndY"].getStatistics().mean
-                if roi2_x1 > roi2_x0:
-                    peak2 = [int(roi2_x0), int(roi2_x1)]
-                else:
-                    peak2 = [int(roi2_x1), int(roi2_x0)]
-                if roi2_y1 > roi2_y0:
-                    low_res2 = [int(roi2_y0), int(roi2_y1)]
-                else:
-                    low_res2 = [int(roi2_y1), int(roi2_y0)]
-                if peak2 == [0, 0] and low_res2 == [0, 0]:
-                    roi2_valid = False
-            else:
-                roi2_valid = False
-        else:
-            roi1_valid = False
-            roi2_valid = False
+                    background_roi_xmax = run["ROI2EndX"].getStatistics().mean
 
-        # Pick the ROI that describes the reflectivity peak
-        if roi1_valid and not roi2_valid:
-            roi_peak = peak1
-            roi_low_res = low_res1
-            roi_background = [0, 0]
-        elif roi2_valid and not roi1_valid:
-            roi_peak = peak2
-            roi_low_res = low_res2
-            roi_background = [0, 0]
-        elif roi1_valid and roi2_valid:
-            # If ROI 2 is within ROI 1, treat it as the peak,
-            # otherwise, use ROI 1
-            if peak1[0] >= peak2[0] and peak1[1] <= peak2[1]:
-                roi_peak = peak1
-                roi_low_res = low_res1
-                roi_background = peak2
-            elif peak2[0] >= peak1[0] and peak2[1] <= peak1[1]:
-                roi_peak = peak2
-                roi_low_res = low_res2
-                roi_background = peak1
-            else:
-                roi_peak = peak1
-                roi_low_res = low_res1
-                roi_background = [0, 0]
+                # Along the X-axis, the beginning of the background occurs before the beginning of the peak
+                if background_roi_xmin >= peak_roi_xmin:
+                    logger.warning("Process variable ROI2StartX is bigger than ROI1StartX")
+                elif background_roi_xmax > background_roi_xmin:
+                    background_roi_x = [int(background_roi_xmin), int(background_roi_xmax)]
 
-        # After all this, update the ROI according to reduction options
-        self.roi_peak = roi_peak
-        self.roi_low_res = roi_low_res
-        self.roi_background = roi_background
-
-        if self.force_peak_roi:
-            logger.notice("Forcing peak ROI: %s" % self.forced_peak_roi)
-            self.roi_peak = self.forced_peak_roi
-        if self.force_low_res_roi:
-            logger.notice("Forcing low-res ROI: %s" % self.forced_low_res_roi)
-            self.roi_low_res = self.forced_low_res_roi
-        if self.force_bck_roi:
-            logger.notice("Forcing background ROI: %s" % self.forced_bck_roi)
-            self.roi_background = self.forced_bck_roi
+        # Update the ROI attributes
+        self.roi_peak = peak_roi_x
+        self.roi_low_res = peak_roi_y
+        self.roi_background = background_roi_x
 
     def check_direct_beam(self, ws, peak_position=None):
         """
@@ -425,8 +395,7 @@ class DataInspector(object):
 
     def determine_data_type(self, ws):
         """
-        Inspect the data and determine peak locations
-        and data type.
+        Inspect the data and determine peak locations and data type.
         :param workspace ws: Workspace to inspect
         """
         # Skip empty data entries
@@ -446,11 +415,18 @@ class DataInspector(object):
         logger.notice("Run %s [%s]: Peak found %s" % (self.run_number, self.cross_section, peak))
         logger.notice("Run %s [%s]: Low-res found %s" % (self.run_number, self.cross_section, str(low_res)))
 
-        # Process the ROI information
-        try:
-            self.process_roi(ws)
-        except:  # noqa: E722
-            logger.notice("Could not process ROI\n%s" % sys.exc_info()[1])
+        # Inspect the ROI* process variables to initialize the peak and background ranges
+        self.process_pv_roi(ws)
+        # Is User overriding the any of the ROI regions?
+        if self.force_peak_roi:
+            logger.notice("Forcing peak ROI: %s" % self.forced_peak_roi)
+            self.roi_peak = self.forced_peak_roi
+        if self.force_low_res_roi:
+            logger.notice("Forcing low-res ROI: %s" % self.forced_low_res_roi)
+            self.roi_low_res = self.forced_low_res_roi
+        if self.force_bck_roi:
+            logger.notice("Forcing background ROI: %s" % self.forced_bck_roi)
+            self.roi_background = self.forced_bck_roi
 
         # Keep track of whether we actually used the ROI
         self.use_roi_actual = False
