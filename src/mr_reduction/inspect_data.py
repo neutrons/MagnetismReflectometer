@@ -417,7 +417,7 @@ class DataInspector(object):
 
         # Inspect the ROI* process variables to initialize the peak and background ranges
         self.process_pv_roi(ws)
-        # Is User overriding the any of the ROI regions?
+        # Is User overriding any of the ROI regions?
         if self.force_peak_roi:
             logger.notice("Forcing peak ROI: %s" % self.forced_peak_roi)
             self.roi_peak = self.forced_peak_roi

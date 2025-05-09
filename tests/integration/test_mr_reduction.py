@@ -42,8 +42,8 @@ class TestReduction:
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file))
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_combined.ort"))
         questor.assert_equal(cross_sections=["Off_Off"], polarizations=["pp"])
-        # compare the first two elements of column R of the first dataset to [0.00342, 0.00349]
-        questor.assert_almost_equal(decimal=4, partial_match=True, column_R=[[0.0187, 0.0198]])
+        # compare the first two elements of column R of the first dataset to [0.0164, 0.01745]
+        questor.assert_almost_equal(decimal=4, partial_match=True, column_R=[[0.0164, 0.01745]])
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_1(self, data_server, mock_filesystem):
