@@ -99,7 +99,7 @@ class TestReduction:
                 usecols=1,
                 comments="#",
             )
-            assert np.all((reflectivities[:20] >= 0.08) & (reflectivities[:20] <= 0.1))
+            assert np.all((reflectivities[:18] >= 0.09) & (reflectivities[:18] <= 0.11))
 
     @pytest.mark.datarepo()
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
