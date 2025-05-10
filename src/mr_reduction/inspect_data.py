@@ -373,11 +373,17 @@ class DataInspector(object):
                 else:
                     background_roi_xmax = run["ROI2EndX"].getStatistics().mean
 
-                # Along the X-axis, the beginning of the background occurs before the beginning of the peak
-                if background_roi_xmin >= peak_roi_xmin:
-                    logger.warning("Process variable ROI2StartX is bigger than ROI1StartX")
-                elif background_roi_xmax > background_roi_xmin:
+                # case 1: Along the X-axis, the background occurs at lower values than the peak
+                case1 = background_roi_xmax < peak_roi_xmin
+                # case 2: Along the X-axis, the peak region is inside the background region
+                case2 = background_roi_xmin < peak_roi_xmin and background_roi_xmax > peak_roi_xmax
+                if case1 or case2:
                     background_roi_x = [int(background_roi_xmin), int(background_roi_xmax)]
+                else:
+                    logger.warning(
+                        "Background region is not before the peak region "
+                        "or the peak region is not inside the background region!"
+                    )
 
         # Update the ROI attributes
         self.roi_peak = peak_roi_x
