@@ -31,7 +31,7 @@ from mantid.simpleapi import LoadNexus
 from mr_reduction.reflectivity_output import write_reflectivity
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_write_reflectivity(mock_filesystem, data_server):
     reflectivity_workspace = LoadNexus(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.dat")

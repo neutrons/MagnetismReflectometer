@@ -3,17 +3,18 @@ import itertools
 import os
 import shutil
 
-# mr_reduction imports
-import mr_reduction.mr_reduction as mr
 import numpy as np
 
 # third party imports
 import pytest
+
+# mr_reduction imports
+import mr_reduction.mr_reduction as mr
 from mr_reduction import io_orso
 
 
 class TestReduction:
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_reduce_second_peak(self, mock_filesystem, data_server):
         # direct beam for data run 29137
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 29137
@@ -45,7 +46,7 @@ class TestReduction:
         # compare the first two elements of column R of the first dataset to [0.00342, 0.00349]
         questor.assert_almost_equal(decimal=4, partial_match=True, column_R=[[0.0187, 0.0198]])
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_reduce_many_cross_sections_1(self, data_server, mock_filesystem):
         r"""
         This run number has events for cross sections Off_Off, On_Off, and On_On.
@@ -78,7 +79,7 @@ class TestReduction:
         questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, "REF_M_28142_combined.ort"))
         questor.assert_equal(cross_sections=["Off_Off", "On_Off", "On_On"], polarizations=["pp", "mp", "mm"])
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_check_correct_normalization(self, data_server, mock_filesystem):
         r"""
         This run number has events for cross sections Off_Off, On_Off, and On_On.
@@ -101,7 +102,7 @@ class TestReduction:
             )
             assert np.all((reflectivities[:20] >= 0.08) & (reflectivities[:20] <= 0.1))
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_reduce_many_cross_sections_2(self, mock_filesystem, data_server):
         r"""This run number has events for cross sections Off_Off, On_Off, and On_On
         Previous run numbers 41445 and 41446 are part of the sequence, hence files REF_M_41445_*_combined.dat
@@ -153,7 +154,7 @@ class TestReduction:
         questor.assert_equal(cross_sections=["Off_Off"], polarizations=["unpolarized"])
         questor.assert_almost_equal(decimal=3, incident_angle=[0.0273])
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_reduce_multiple_peaks(self, mock_filesystem, data_server):
         r"""Find a run with two peaks, then reduce each, then paste their reports"""
         mock_filesystem.DirectBeamFinder.return_value.search.return_value = 42534

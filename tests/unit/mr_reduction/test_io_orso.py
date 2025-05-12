@@ -9,12 +9,12 @@ import numpy as np
 # third-party imports
 import pytest
 from mantid.simpleapi import LoadNexusProcessed, mtd
-
-# mr_reduction imports
-from mr_reduction.io_orso import SequenceDataSet, concatenate_runs, save_cross_sections
 from numpy.testing import assert_almost_equal
 from orsopy.fileio.base import Column, ErrorColumn
 from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
+
+# mr_reduction imports
+from mr_reduction.io_orso import SequenceDataSet, concatenate_runs, save_cross_sections
 
 
 def assert_columns(datasets: List[OrsoDataset]):
@@ -51,7 +51,7 @@ def test_save_cross_sections_output_file_extension():
         save_cross_sections([], "output_file")
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_save_cross_sections_single_cross_section(mock_filesystem, data_server):
     """write a single cross-section workspace to an ORSO file and check its contents"""
     reflectivity_workspace = LoadNexusProcessed(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
@@ -66,7 +66,7 @@ def test_save_cross_sections_single_cross_section(mock_filesystem, data_server):
     assert_instrument_settings(datasets, thetas=[0.015], wavelengths=[2.7], polarizations=["pp"])
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     workspace_list = []
     for cross_section in ["Off_Off", "On_Off"]:
@@ -88,7 +88,7 @@ def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     assert_instrument_settings(datasets, thetas=[0.007, 0.007], wavelengths=[2.55, 2.55], polarizations=["po", "mo"])
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_runpeak_datasets():
     dataset1, dataset2 = mock.Mock(), mock.Mock()
     dataset1.info.data_set, dataset2.info.data_set = "Off_Off", "On_Off"

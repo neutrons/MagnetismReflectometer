@@ -5,7 +5,7 @@ import os
 import pytest
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_data_server(data_server):
     filepath = data_server.path_to("data_server_test.txt")
     assert "tests/mr_reduction-data/data_server_test.txt" in filepath

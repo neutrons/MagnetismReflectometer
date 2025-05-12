@@ -14,9 +14,6 @@ import pytest
 
 # third party imports
 from mantid.simpleapi import LoadEventNexus, LoadNexusProcessed, config, mtd
-
-# mr_reduction imports
-from mr_reduction.types import MantidWorkspace
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -24,10 +21,13 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.os_manager import ChromeType
 
+# mr_reduction imports
+from mr_reduction.types import MantidWorkspace
+
 this_module_path = sys.modules[__name__].__file__
 
 
-@pytest.fixture()  # scope="function"
+@pytest.fixture  # scope="function"
 def tempdir(tmpdir):
     r"""Get the path of pytest fixture tmpdir as a string"""
     return str(tmpdir)
@@ -116,7 +116,7 @@ def data_server():
         config[key] = val
 
 
-@pytest.fixture()  # scope="function"
+@pytest.fixture  # scope="function"
 def mock_filesystem(tempdir, data_server):
     r"""
     A set of mocks to redirect paths such as /SNS/REF_M/%(ipts)s/shared/autoreduce/
@@ -133,7 +133,7 @@ def mock_filesystem(tempdir, data_server):
         yield MockSetup(tempdir, mock_DirectBeamFinder)
 
 
-@pytest.fixture()
+@pytest.fixture
 def autoreduction_script(tempdir, data_server):
     """Create a temporary autoreduction script by substituting the passed `options`
     in the template autorereduction script.
@@ -231,7 +231,7 @@ def autoreduction_script(tempdir, data_server):
     return _autoreduction_script
 
 
-@pytest.fixture()
+@pytest.fixture
 def browser(tmp_path) -> Generator[WebDriver, Any, None]:
     """A headless Chromium browser for testing HTML reports containing plotly graphs.
 

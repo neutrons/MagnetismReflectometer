@@ -37,7 +37,7 @@ def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
     return DataInfo(xs_list[i_main], entry)
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_reduction_simple(data_server):
     wsg = split_events(
         file_path=data_server.path_to("REF_M_28142.nxs.h5"),  # three cross-sections

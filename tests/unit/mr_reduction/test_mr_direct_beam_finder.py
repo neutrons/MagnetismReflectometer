@@ -14,7 +14,7 @@ def ws(data_server):
 
 
 class TestDirectBeamFinder:
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_reduce_with_dirst(self, ws, tempdir: str):
         """
         This will excercise a different path in looking for direct beams.
@@ -24,7 +24,7 @@ class TestDirectBeamFinder:
         finder.db_dir = tempdir
         finder.search()
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_search_dir_json_decode_error(self, tmpdir, ws):
         # Create a temporary directory containing a malformed JSON file
         db_dir = tmpdir.mkdir("test_search_dir_json_decode_error")

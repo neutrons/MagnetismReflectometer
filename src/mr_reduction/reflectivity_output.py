@@ -35,7 +35,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
 # Autoreduced
 # Date: {time.strftime("%Y-%m-%d %H:%M:%S")}
 # Type: Specular
-# Input file indices: {','.join(runpeak_list)}
+# Input file indices: {",".join(runpeak_list)}
 # Extracted states: {cross_section}
 #
 """)
