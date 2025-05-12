@@ -6,15 +6,24 @@ Release Notes
 Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
 
 ..
-   v2.4.0
+   v2.5.0
    ------
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User:**
 
    **Of interest to the Developer:**
-   - PR #55: Refactor MRInspectData as module inspect_data
 ..
+
+
+v2.4.0
+------
+2025-05-20
+
+**Of interest to the User:**
+
+**Of interest to the Developer:**
+- PR #55: Refactor MRInspectData as module inspect_data
 
 
 v2.3.0
