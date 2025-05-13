@@ -13,6 +13,8 @@ Notes for major and minor releases. Notes for patch releases are referred to the
    **Of interest to the User:**
 
    **Of interest to the Developer:**
+   - PR #57: ROI1 is used for peak, and ROI2 for background
+   - PR #55: Refactor MRInspectData as module inspect_data
 ..
 
 
