@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+
 from mr_reduction.spin_setup import (
     REFMAnalyzerVariant,
     REFMPolarizerVariant,

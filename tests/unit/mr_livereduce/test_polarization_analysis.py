@@ -8,7 +8,7 @@ from mr_livereduce.polarization_analysis import calculate_ratios
 
 
 class TestPolarizationAnalysis:
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_simple_load(self, data_server):
         ws = LoadEventNexus(Filename=data_server.path_to("REF_M_29160.nxs.h5"))
         _, ratio1, ratio2, asym1, _ = calculate_ratios(ws, delta_wl=0.05, roi=[156, 210, 49, 170], slow_filter=True)

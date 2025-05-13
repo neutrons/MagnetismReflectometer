@@ -1,10 +1,10 @@
 # third party imports
 import pytest
 from mantid.simpleapi import AddSampleLog, CreateWorkspace, DeleteWorkspace, mtd
+from numpy.testing import assert_almost_equal
 
 # mr_reduction imports
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
-from numpy.testing import assert_almost_equal
 
 
 @pytest.fixture(scope="module")

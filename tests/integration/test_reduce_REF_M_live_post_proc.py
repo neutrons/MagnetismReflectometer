@@ -6,13 +6,13 @@ import unittest.mock as mock
 
 # third party imports
 import pytest
+from selenium.webdriver.common.by import By
 
 # mr_reduction imports
 from mr_livereduce.reduce_REF_M_live_post_proc import main
-from selenium.webdriver.common.by import By
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_main(mock_filesystem, data_server, browser, autoreduction_script):
     r"""Substitute values in the template and then run a reduction using functions defined within the template
 
@@ -89,7 +89,7 @@ def test_main(mock_filesystem, data_server, browser, autoreduction_script):
             assert os.path.isfile(os.path.join(mock_filesystem.tempdir, file)), f"{file} doesn't exist"
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_main_with_negative_relative_times(mock_filesystem, data_server, autoreduction_script):
     """
     Test the live reduction of a run with log entries that predate the start of the run.

@@ -31,7 +31,7 @@ def test_create_table():
     }
 
 
-@pytest.mark.datarepo()
+@pytest.mark.datarepo
 def test_filter_cross_sections(data_server):
     """
     Test the function that split events according to the concurrent cross section,

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from mantid.simpleapi import DeleteWorkspace, LoadEventNexus, mtd
+
 from mr_reduction.data_info import Fitter2
 
 
@@ -24,14 +25,14 @@ class TestFindPeaks:
     def is_within_range(self, contained, container):
         return container[0] <= contained[0] < contained[1] <= container[1]
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_peaks(self, workspace):
         fitter = Fitter2(workspace)
         x, y = fitter.fit_2d_peak()
         center_x = np.sum(x) / 2.0
         assert 168 < center_x < 180
 
-    @pytest.mark.datarepo()
+    @pytest.mark.datarepo
     def test_peak_with_constraints(self, workspace, workspace_39012):
         fitter = Fitter2(workspace)
 
