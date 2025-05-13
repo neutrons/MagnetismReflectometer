@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from mr_reduction.inspect_data import DataInspector
 
 
