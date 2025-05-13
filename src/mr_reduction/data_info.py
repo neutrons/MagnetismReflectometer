@@ -132,6 +132,7 @@ class DataInfo:
         self,
         ws: MantidWorkspace,
         cross_section,
+        peak_number: Optional[int] = 1,
         use_roi: bool = True,
         update_peak_range: bool = False,
         use_roi_bck: bool = False,
@@ -158,6 +159,9 @@ class DataInfo:
             The workspace to inspect and populate with logs.
         cross_section : str
             The cross-section label.
+        peak_number : int, optional
+        The peak number to process. This determines which process-variable (PV)
+        ROIs to use for peak and background calculations. Default is 1.
         use_roi
             Whether to use the region of interest (ROI). Default is True.
         update_peak_range
@@ -183,6 +187,7 @@ class DataInfo:
         """
         inspect_data(
             Workspace=ws,
+            peak_number=peak_number,
             UpdatePeakRange=update_peak_range,
             UseROI=use_roi,
             ForcePeakROI=force_peak_roi,

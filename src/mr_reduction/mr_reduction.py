@@ -228,6 +228,7 @@ class ReductionProcess:
         data_info = DataInfo(
             xs_list[i_main],
             entry,
+            peak_number=self.peak_number,
             use_roi=self.use_roi,
             update_peak_range=self.update_peak_range,
             use_roi_bck=self.use_roi_bck,
@@ -508,6 +509,7 @@ class ReductionProcess:
                         direct_info = DataInfo(
                             ws_direct,
                             norm_entry,
+                            peak_number=1,
                             use_roi=self.use_roi,
                             update_peak_range=True,  # self.update_peak_range,
                             use_roi_bck=self.use_roi_bck,

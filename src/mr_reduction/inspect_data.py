@@ -196,6 +196,12 @@ def _as_ints(a):
 class DataInspector(object):
     """
     Class to hold the relevant information from a run (scattering or direct beam).
+
+    Parameters
+    ----------
+    peak_number : int, optional
+    The peak number to process. This determines which process-variable (PV)
+    ROIs to use for peak and background calculations. Default is 1.
     """
 
     peak_range_offset = 0
@@ -204,12 +210,13 @@ class DataInspector(object):
     def __init__(
         self,
         input_workspace: MantidWorkspace,
+        peak_number: Optional[int] = 1,
         cross_section="",
         event_threshold=10000,
         dirpix_overwrite=None,
         dangle0_overwrite=None,
         # peak-related options
-        use_roi=True,  # use process-variable ROI1*
+        use_roi=True,  # use process-variable ROI1* (or ROI3* if peak_number=2)
         force_peak_roi=False,
         update_peak_range=False,
         peak_roi=[0, 0],  # pixel range along horizontal (X) axis defining the reflectivity peak
@@ -272,7 +279,7 @@ class DataInspector(object):
         self.tof_range = self.get_tof_range(ws)
         self.calculated_scattering_angle = 0.0
         self.theta_d = 0.0
-        self.determine_data_type(ws)
+        self.determine_data_type(ws, peak_number=peak_number)
 
     def log(self):
         """
@@ -311,12 +318,12 @@ class DataInspector(object):
         self.tof_range = [tof_min, tof_max]
         return [tof_min, tof_max]
 
-    def process_pv_roi(self, ws: EventWorkspace):
+    def process_pv_roi(self, ws: EventWorkspace, peak_number: Optional[int] = 1):
         """
-        Processes the regions of interest (ROIs) from the given event workspace and computes
-        the peak and background ROI dimensions along specified axes.
+        Processes the regions of interest (ROIs) processing variables (PV) from the given event workspace
+        and computes the peak and background ROI dimensions along specified axes.
 
-        This method retrieves run-specific information from the workspace, including ROI start
+        This method retrieves run-specific information from the workspace's metadata, including ROI start
         positions, sizes, and endpoints, to calculate the boundaries of peak and background
         ROIs. It initializes peak and background ROIs as empty regions and updates them based
         on the conditions evaluated from input data. The calculated ROIs are subsequently
@@ -327,7 +334,10 @@ class DataInspector(object):
         ws : EventWorkspace
             An event workspace object from which the ROI information is extracted. Provides
             access to run details and associated parameter statistics.
-
+        peak_number: int, optional
+            The peak number to be processed determines which PV to look for.
+            PVs ROI1* and ROI2* are used for peak_number=1, and PVs ROI3* and ROI4* are used for
+            peak_number=2, and so on. The default is 1.
         Attributes
         ----------
         roi_peak : list of int
@@ -349,29 +359,34 @@ class DataInspector(object):
         peak_roi_y = [0, 0]
         background_roi_x = [0, 0]
 
-        if "ROI1StartX" in run:
-            peak_roi_xmin = run["ROI1StartX"].getStatistics().mean
-            peak_roi_ymin = run["ROI1StartY"].getStatistics().mean
-            if "ROI1SizeX" in run:
-                size_x = run["ROI1SizeX"].getStatistics().mean
-                size_y = run["ROI1SizeY"].getStatistics().mean
+        peak_number = 1 if peak_number is None else peak_number  # backwards compatibility
+        peak_prefix = f"ROI{2 * peak_number - 1}"  # ROI1 for peak_number=1, ROI3 for peak_number=2, etc.
+
+        if f"{peak_prefix}StartX" in run:
+            peak_roi_xmin = run[f"{peak_prefix}StartX"].getStatistics().mean
+            peak_roi_ymin = run[f"{peak_prefix}StartY"].getStatistics().mean
+            if f"{peak_prefix}SizeX" in run:
+                size_x = run[f"{peak_prefix}SizeX"].getStatistics().mean
+                size_y = run[f"{peak_prefix}SizeY"].getStatistics().mean
                 peak_roi_xmax = peak_roi_xmin + size_x
                 peak_roi_ymax = peak_roi_ymin + size_y
             else:
-                peak_roi_xmax = run["ROI1EndX"].getStatistics().mean
-                peak_roi_ymax = run["ROI1EndY"].getStatistics().mean
+                peak_roi_xmax = run[f"{peak_prefix}EndX"].getStatistics().mean
+                peak_roi_ymax = run[f"{peak_prefix}EndY"].getStatistics().mean
 
             if peak_roi_xmax > peak_roi_xmin and peak_roi_ymax > peak_roi_ymin:
                 peak_roi_x = [int(peak_roi_xmin), int(peak_roi_xmax)]
                 peak_roi_y = [int(peak_roi_ymin), int(peak_roi_ymax)]
 
-            if "ROI2StartX" in run:
-                background_roi_xmin = run["ROI2StartX"].getStatistics().mean
-                if "ROI2SizeX" in run:
-                    size_x = run["ROI2SizeX"].getStatistics().mean
+            back_prefix = f"ROI{2 * peak_number}"  # ROI2 for peak_number=1, ROI4 for peak_number=2, etc.
+
+            if f"{back_prefix}StartX" in run:
+                background_roi_xmin = run[f"{back_prefix}StartX"].getStatistics().mean
+                if f"{back_prefix}SizeX" in run:
+                    size_x = run[f"{back_prefix}SizeX"].getStatistics().mean
                     background_roi_xmax = background_roi_xmin + size_x
                 else:
-                    background_roi_xmax = run["ROI2EndX"].getStatistics().mean
+                    background_roi_xmax = run[f"{back_prefix}EndX"].getStatistics().mean
 
                 # case 1: Along the X-axis, the background occurs at lower values than the peak
                 case1 = background_roi_xmax < peak_roi_xmin
@@ -399,10 +414,19 @@ class DataInspector(object):
         self.theta_d = 180.0 / math.pi * mtd.MRGetTheta(ws, SpecularPixel=peak_position, UseSANGLE=False)
         return not self.theta_d > self.tolerance
 
-    def determine_data_type(self, ws):
+    def determine_data_type(self, ws, peak_number: Optional[int] = 1):
         """
-        Inspect the data and determine peak locations and data type.
-        :param workspace ws: Workspace to inspect
+        Inspect and determine the type of data (direct-beam or scattering)
+        based on the peak locations and other characteristics.
+
+        Parameters
+        ----------
+        ws : EventWorkspace
+            The workspace to inspect. This contains the data and metadata needed
+            to determine the data type.
+        peak_number : int, optional
+            The peak number to process. This determines which process-variable (PV)
+            ROIs to use for peak and background calculations. Default is 1.
         """
         # Skip empty data entries
         if ws.getNumberEvents() < self.n_events_cutoff:
@@ -422,7 +446,7 @@ class DataInspector(object):
         logger.notice("Run %s [%s]: Low-res found %s" % (self.run_number, self.cross_section, str(low_res)))
 
         # Inspect the ROI* process variables to initialize the peak and background ranges
-        self.process_pv_roi(ws)
+        self.process_pv_roi(ws, peak_number=peak_number)
         # Is User overriding any of the ROI regions?
         if self.force_peak_roi:
             logger.notice("Forcing peak ROI: %s" % self.forced_peak_roi)
@@ -481,6 +505,7 @@ class DataInspector(object):
 
 def inspect_data(
     Workspace: str,
+    peak_number: Optional[int] = 1,
     UseROI: bool = True,
     UpdatePeakRange: bool = False,
     UseROIBck: bool = False,
@@ -503,6 +528,9 @@ def inspect_data(
     ----------
     Workspace : str
         Input workspace.
+    peak_number : int, optional
+        The peak number to process. This determines which process-variable (PV)
+        ROIs to use for peak and background calculations. Default is 1.
     UseROI : bool, optional
         If True, use the meta-data ROI rather than finding the ranges. Default is True.
     UpdatePeakRange : bool, optional
@@ -540,6 +568,7 @@ def inspect_data(
     nxs_data_name = str(Workspace)
     data_info = DataInspector(
         nxs_data,
+        peak_number=peak_number,
         cross_section=nxs_data_name,
         use_roi=UseROI,
         update_peak_range=UpdatePeakRange,
