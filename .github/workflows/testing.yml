@@ -26,8 +26,9 @@ jobs:
         run: |
           echo "chromium enables testing HTML reports"
           sudo apt-get update
-          sudo apt-get install -y wget gnupg2 software-properties-common
-          echo "deb [arch=amd64] http://deb.debian.org/debian unstable main" | sudo tee /etc/apt/sources.list.d/unstable.list
+          sudo apt-get install -y wget gnupg2 lsb-release software-properties-common
+          echo "deb http://deb.debian.org/debian unstable main" | sudo tee /etc/apt/sources.list.d/debian-unstable.list
+          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131
           sudo apt-get update
           sudo apt-get -t unstable install -y chromium
       - name: run unit tests
