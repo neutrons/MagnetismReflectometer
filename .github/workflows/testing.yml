@@ -26,10 +26,14 @@ jobs:
         run: |
           echo "chromium enables testing HTML reports"
           sudo apt-get update
-          sudo apt-get install --yes chromium
+          sudo apt-get install -y wget gnupg2 software-properties-common
+          echo "deb [arch=amd64] http://deb.debian.org/debian unstable main" | sudo tee /etc/apt/sources.list.d/unstable.list
+          sudo apt-get update
+          sudo apt-get -t unstable install -y chromium
       - name: run unit tests
         run: |
           echo "running unit tests"
+          python -m pytest -vvv -m "not datarepo and not sns_mounted"
           python -m pytest -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
           mv .coverage .coverage.unit
       - name: run integration tests
