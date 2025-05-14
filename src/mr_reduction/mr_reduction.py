@@ -509,7 +509,7 @@ class ReductionProcess:
                         direct_info = DataInfo(
                             ws_direct,
                             norm_entry,
-                            peak_number=1,
+                            peak_number=1,  # direct-beam runs only have one peak
                             use_roi=self.use_roi,
                             update_peak_range=True,  # self.update_peak_range,
                             use_roi_bck=self.use_roi_bck,

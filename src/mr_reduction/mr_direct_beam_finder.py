@@ -188,6 +188,7 @@ class DirectBeamFinder:
                             s2 = sample_logs.mean("S2HWidth")
                             s3 = sample_logs.mean("S3HWidth")
                         try:
+                            # assume only one peak, so that peak_number = 1. This is true for direct-beam runs.
                             data_info = DataInfo(ws, entry, peak_number=1)
                             peak_pos = (
                                 data_info.peak_position if data_info.peak_position is not None else direct_beam_pix

@@ -25,7 +25,7 @@ jobs:
       - name: Install chromium
         run: |
           echo "chromium enables testing HTML reports"
-          sudo apt-get install --yes chromium-browser
+          sudo apt-get install --yes chromium
       - name: run unit tests
         run: |
           echo "running unit tests"
