@@ -33,4 +33,4 @@ dependencies:
   - sphinx-rtd-theme
   - furo
   - pip:
-        - webdriver-manager  # helper to selenium, to obtain the latest browser driver
+      - webdriver-manager  # helper to selenium, to obtain the latest browser driver
