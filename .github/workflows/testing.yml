@@ -29,23 +29,12 @@ jobs:
       - name: run unit tests
         run: |
           echo "running unit tests"
-          which python
-          #python -m pytest -vvv -m "not datarepo and not sns_mounted"
-          #python -m pytest -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
-          #mv .coverage .coverage.unit
+          python -m pytest -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
+          mv .coverage .coverage.unit
       - name: run integration tests
         run: |
           echo "running integration tests"
-          echo "CURRENT DIRECTORY"
-          pwd
-          ls
           git submodule update --init
-          #echo "CONTENTS OF ./test/mr_reduction-data"
-          #ls /home/runner/work/MagnetismReflectometer/MagnetismReflectometer/test/mr_reduction-data
-          #echo "SHA in parent repo:"
-          #git ls-tree $(git branch --show-current) tests/mr_reduction-data
-          #echo "SHA in submodule:"
-          #git submodule status tests/mr_reduction-data
           python -m pytest -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
           mv .coverage .coverage.integration
       - name: combine coverage reports
