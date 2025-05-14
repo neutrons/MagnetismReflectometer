@@ -21,6 +21,10 @@ class TestReduction:
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_29160.nxs.h5"),
             peak_number=2,
+            force_peak_roi=True,
+            peak_roi=[158, 209],
+            force_bck_roi=True,
+            bck_roi=[30, 70],
             output_dir=mock_filesystem.tempdir,
             publish=False,  # don't upload to the livedata server
         )
