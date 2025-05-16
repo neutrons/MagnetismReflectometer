@@ -8,6 +8,8 @@ dependencies:
   - argcomplete
   - flask
   - gunicorn
+  # TODO: remove the muparser dependency once the mantidworkbench conda package is fixed
+  - muparser=2.3.4
   - mantidworkbench=6.12
   - neutrons::finddata=0.10
   - pandas
@@ -33,4 +35,4 @@ dependencies:
   - sphinx-rtd-theme
   - furo
   - pip:
-        - webdriver-manager  # helper to selenium, to obtain the latest browser driver
+      - webdriver-manager  # helper to selenium, to obtain the latest browser driver
