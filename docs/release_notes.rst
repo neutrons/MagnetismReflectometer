@@ -23,6 +23,7 @@ v2.4.0
 2025-05-20
 
 **Of interest to the User:**
+- PR #60: Update local reduction tool with ROI-related documentation
 - PR #59: Incorporate ROI3 and ROI4 to the reduction workflow
 
 **Of interest to the Developer:**
