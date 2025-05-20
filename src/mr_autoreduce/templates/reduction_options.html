@@ -35,6 +35,10 @@
             padding: 10px;
             box-sizing: border-box;
         }
+        .option-description {
+            margin-bottom: 10px;
+            color: #444;
+        }
     </style>
 </head>
 <body>
@@ -66,11 +70,10 @@ Loading the page for each run will take much longer when this option is turned o
             <label title="Check the following box if you want to use SANGLE,
 otherwise DANGLE will be used."><input type="checkbox" id="use_sangle" checked> Use SANGLE</label>
 
-            <label title="Once the reflected peak ROI is selected for each peak below,
-you can try to fine tune this ROI by fitting for a peak within that
-region and updating the ROI [both center and width] according to the
-location found. Check the box if you want to find a peak within the
-ROI and redefine the ROI afterwards."><input type="checkbox" id="fit_peak_in_roi" checked> Automated ROI</label>
+            <p class="option-description">Automated ROI: Once a peak ROI is chosen for each peak—whether automatically
+            extracted from the metadata in the events file or manually specified using the fields below—the
+            application will fit a peak shape to refine the ROI boundaries.</p>
+            <label><input type="checkbox" id="fit_peak_in_roi" checked>Automated ROI</label>
 
             <label title="Number of peaks in the run" style="font-weight:bold; font-size:1.2em;">
                 Peak count <input type="number" id="peak_count" style="width: 25px;" value="2"></label>
@@ -80,37 +83,35 @@ ROI and redefine the ROI afterwards."><input type="checkbox" id="fit_peak_in_roi
             <div class="form-section peak" id="peak1">
                 <h2>Peak #1</h2>
 
-                <label title="You can choose to replace the ROI in the data by your own range.
-Check the following box if you want to define your own ROI and
-use it for peak selection."><input type="checkbox" id="force_peak" checked> Force peak ROI</label>
+                <p class="option-description">Force peak ROI: ignore metadata <b>ROI1</b> stored in the logs
+                of the event file by defining your own <i>min</i> and <i>max</i> peak ranges</p>
+                <label><input type="checkbox" id="force_peak" checked>Force peak ROI</label>
 
                 <label>Pixel min <input type="number" id="peak_min" style="width: 50px;" value="105"></label>
 
                 <label>Pixel max <input type="number" id="peak_max" style="width: 50px;" value="120"></label>
 
-                <label title="A second ROI is available in the data file and can be used to define the background.
-Check the following box if you want to use the 2nd ROI for your background,
-otherwise a default region will be used."><input type="checkbox" id="use_roi_bck" checked> Use 2nd ROI</label>
+                <p class="option-description">Use background: use metadata <b>ROI2</b> stored in the logs of the
+                event file to automatically choose a <i>min</i> and <i>max</i> pixel region defining the background</p>
+                <label><input type="checkbox" id="use_roi_bck" checked>Use background</label>
 
-                <label title="You can choose to replace the 2nd ROI in the data by your own range.
-Check the following box if you want to define your own 2nd ROI and use it for background selection.
-The option to use the 2nd ROI has to be turned ON to use this option.">
-                    <input type="checkbox" id="force_background" checked> Force background ROI</label>
+                <p class="option-description">Force background ROI: ignore metadata <b>ROI2</b>
+                and instead choose your own <i>min</i> and <i>max</i> pixel regions defining the background</p>
+                <label><input type="checkbox" id="force_background" checked>Force background ROI</label>
 
                 <label>Bck min <input type="number" id="bck_min" style="width: 50px;" value="28"></label>
 
                 <label>Bck max <input type="number" id="bck_max" style="width: 50px;" value="80"></label>
 
-                <label title="As an alternative to using the 2nd ROI,  you can use a region around
-the reflected peak to estimate the background. Check the following box
-if you want to use the region on each side of the peak to estimate your background.">
-                    <input type="checkbox" id="use_side_bck"> Use side background</label>
+                <p class="option-description">Use side background: ignore metadata <b>ROI2</b>
+                and instead choose a region on each side of the reflected peak to estimate the background.</p>
+                <label><input type="checkbox" id="use_side_bck">Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width"></label>
 
-                <label title="Override the vertical (Y-Pixel) range in the sample logs with your own range.
-Check the following box if you want to define your own range and
-use it for peak selection."><input type="checkbox" id="force_low_res" checked> Force vertical ROI</label>
+                <p class="option-description">Force vertical ROI: ignore metadata <b>ROI1</b> and choose your own
+                <i>min</i> and <i>max</i> peak ranges along the vertical (Y-axis)</p>
+                <label><input type="checkbox" id="force_low_res" checked>Force vertical ROI</label>
 
                 <label>Pixel min <input type="number" id="low_res_min" style="width: 50px;" value="90"></label>
 
@@ -122,37 +123,35 @@ use it for peak selection."><input type="checkbox" id="force_low_res" checked> F
             <div class="form-section peak" id="peak2">
                 <h2 title="Peak 2 options ignored if Peak count is 1">Peak #2</h2>
 
-                <label title="You can choose to replace the ROI in the data by your own range.
-Check the following box if you want to define your own ROI and
-use it for peak selection."><input type="checkbox" id="force_peak_s2" checked> Force peak ROI</label>
+                <p class="option-description">Force peak ROI: ignore metadata <b>ROI3</b> stored in the logs
+                of the event file by defining your own <i>min</i> and <i>max</i> peak ranges</p>
+                <label><input type="checkbox" id="force_peak_s2" checked> Force peak ROI</label>
 
                 <label>Pixel min <input type="number" id="peak_min_s2" style="width: 50px;" value="160"></label>
 
                 <label>Pixel max <input type="number" id="peak_max_s2" style="width: 50px;" value="172"></label>
 
-                <label title="A second ROI is available in the data file and can be used to define the background.
-Check the following box if you want to use the 2nd ROI for your background,
-otherwise a default region will be used."><input type="checkbox" id="use_roi_bck_s2" checked> Use 2nd ROI</label>
+                <p class="option-description">Use background: use metadata <b>ROI4</b> stored in the logs of the
+                event file to automatically choose a <i>min</i> and <i>max</i> pixel region defining the background</p>
+                <label><input type="checkbox" id="use_roi_bck_s2" checked>Use background</label>
 
-                <label title="You can choose to replace the 2nd ROI in the data by your own range.
-Check the following box if you want to define your own 2nd ROI and use it for background selection.
-The option to use the 2nd ROI has to be turned ON to use this option.">
-                    <input type="checkbox" id="force_background_s2" checked> Force background ROI</label>
+                <p class="option-description">Force background ROI: ignore metadata <b>ROI4</b>
+                and instead choose your own <i>min</i> and <i>max</i> pixel regions defining the background</p>
+                <label><input type="checkbox" id="force_background_s2" checked>Force background ROI</label>
 
                 <label>Bck min <input type="number" id="bck_min_s2" style="width: 50px;" value="30"></label>
 
                 <label>Bck max <input type="number" id="bck_max_s2" style="width: 50px;" value="70"></label>
 
-                <label title="As an alternative to using the 2nd ROI,  you can use a region around
-the reflected peak to estimate the background. Check the following box
-if you want to use the region on each side of the peak to estimate your background.">
-                    <input type="checkbox" id="use_side_bck_s2"> Use side background</label>
+                <p class="option-description">Use side background: ignore metadata <b>ROI4</b> and instead choose
+                a region on each side of the reflected peak to estimate the background.</p>
+                <label><input type="checkbox" id="use_side_bck_s2">Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s2"></label>
 
-                <label title="Override the vertical (Y-Pixel) range in the sample logs with your own range.
-Check the following box if you want to define your own range and
-use it for peak selection."><input type="checkbox" id="force_low_res_s2" checked> Force vertical ROI</label>
+                <p class="option-description">Force vertical ROI: ignore metadata <b>ROI3</b> and choose your own
+                <i>min</i> and <i>max</i> peak ranges along the vertical (Y-axis)</p>
+                <label><input type="checkbox" id="force_low_res_s2" checked>Force vertical ROI</label>
 
                 <label>Pixel min <input type="number" id="low_res_min_s2" style="width: 50px;" value="125"></label>
 
@@ -164,37 +163,35 @@ use it for peak selection."><input type="checkbox" id="force_low_res_s2" checked
             <div class="form-section peak" id="peak3">
                 <h2 title="Peak 3 options ignored if Peak count is smaller than three">Peak #3</h2>
 
-                <label title="You can choose to replace the ROI in the data by your own range.
-Check the following box if you want to define your own ROI and
-use it for peak selection."><input type="checkbox" id="force_peak_s3" checked> Force peak ROI</label>
+                <p class="option-description">Force peak ROI: ignore metadata <b>ROI5</b> stored in the logs
+                of the event file by defining your own <i>min</i> and <i>max</i> peak ranges</p>
+                <label><input type="checkbox" id="force_peak_s3" checked> Force peak ROI</label>
 
                 <label>Pixel min <input type="number" id="peak_min_s3" style="width: 50px;" value="160"></label>
 
                 <label>Pixel max <input type="number" id="peak_max_s3" style="width: 50px;" value="180"></label>
 
-                <label title="A second ROI is available in the data file and can be used to define the background.
-Check the following box if you want to use the 2nd ROI for your background,
-otherwise a default region will be used."><input type="checkbox" id="use_roi_bck_s3" checked> Use 2nd ROI</label>
+                <p class="option-description">Use background: use metadata <b>ROI6</b> stored in the logs of the
+                event file to automatically choose a <i>min</i> and <i>max</i> pixel region defining the background</p>
+                <label><input type="checkbox" id="use_roi_bck_s3" checked>Use background</label>
 
-                <label title="You can choose to replace the 2nd ROI in the data by your own range.
-Check the following box if you want to define your own 2nd ROI and use it for background selection.
-The option to use the 2nd ROI has to be turned ON to use this option.">
-                    <input type="checkbox" id="force_background_s3" checked> Force background ROI</label>
+                <p class="option-description">Force background ROI: ignore metadata <b>ROI6</b>
+                and instead choose your own <i>min</i> and <i>max</i> pixel regions defining the background</p>
+                <label><input type="checkbox" id="force_background_s3" checked>Force background ROI</label>
 
                 <label>Bck min <input type="number" id="bck_min_s3" style="width: 50px;" value="30"></label>
 
                 <label>Bck max <input type="number" id="bck_max_s3" style="width: 50px;" value="70"></label>
 
-                <label title="As an alternative to using the 2nd ROI,  you can use a region around
-the reflected peak to estimate the background. Check the following box
-if you want to use the region on each side of the peak to estimate your background.">
-                    <input type="checkbox" id="use_side_bck_s3"> Use side background</label>
+                <p class="option-description">Use side background: ignore metadata <b>ROI6</b> and instead choose
+                a region on each side of the reflected peak to estimate the background.</p>
+                <label><input type="checkbox" id="use_side_bck_s3">Use side background</label>
 
                 <label>Pixels on each side <input type="number" style="width: 40px;" id="bck_width_s3"></label>
 
-                <label title="Override the vertical (Y-Pixel) range in the sample logs with your own range.
-Check the following box if you want to define your own range and
-use it for peak selection."><input type="checkbox" id="force_low_res_s3"> Force vertical ROI</label>
+                <p class="option-description">Force vertical ROI: ignore metadata <b>ROI5</b> and choose your own
+                <i>min</i> and <i>max</i> peak ranges along the vertical (Y-axis)</p>
+                <label><input type="checkbox" id="force_low_res_s3">Force vertical ROI</label>
 
                 <label>Pixel min <input type="number" id="low_res_min_s3" style="width: 50px;" value="175"></label>
 

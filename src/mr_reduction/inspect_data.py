@@ -272,8 +272,7 @@ class DataInspector(object):
         # Width of the background on each side of the peak
         self.bck_offset = bck_offset
 
-        # Update the specular peak range after finding the peak
-        # within the ROI
+        # Update the specular peak range after finding the peak within the ROI
         self.update_peak_range = update_peak_range
 
         self.tof_range = self.get_tof_range(ws)
@@ -461,22 +460,21 @@ class DataInspector(object):
         # Keep track of whether we actually used the ROI
         self.use_roi_actual = False
 
-        # If we were asked to use the ROI but no peak is in it, use the peak we found
-        # If we were asked to use the ROI and there's a peak in it, use the ROI
-        if self.use_roi and not self.update_peak_range and not self.roi_peak == [0, 0]:
-            logger.notice("Using ROI peak range: [%s %s]" % (self.roi_peak[0], self.roi_peak[1]))
-            self.use_roi_actual = True
-            peak = copy.copy(self.roi_peak)
-            if not self.roi_low_res == [0, 0]:
-                low_res = copy.copy(self.roi_low_res)
-            if not self.roi_background == [0, 0]:
-                bck_range = copy.copy(self.roi_background)
-        elif self.use_roi and self.update_peak_range and not self.roi_peak == [0, 0]:
-            logger.notice("Using fit peak range: [%s %s]" % (peak[0], peak[1]))
-            if not self.roi_low_res == [0, 0]:
-                low_res = copy.copy(self.roi_low_res)
-            if not self.roi_background == [0, 0]:
-                bck_range = copy.copy(self.roi_background)
+        if self.use_roi and (self.roi_peak != [0, 0]):
+            if self.update_peak_range is False:
+                logger.notice("Using ROI peak range: [%s %s]" % (self.roi_peak[0], self.roi_peak[1]))
+                self.use_roi_actual = True
+                peak = copy.copy(self.roi_peak)
+                if not self.roi_low_res == [0, 0]:
+                    low_res = copy.copy(self.roi_low_res)
+                if not self.roi_background == [0, 0]:
+                    bck_range = copy.copy(self.roi_background)
+            else:
+                logger.notice("Using fit peak range: [%s %s]" % (peak[0], peak[1]))
+                if not self.roi_low_res == [0, 0]:
+                    low_res = copy.copy(self.roi_low_res)
+                if not self.roi_background == [0, 0]:
+                    bck_range = copy.copy(self.roi_background)
 
         # Store the information we found
         self.peak_position = (peak[1] + peak[0]) / 2.0

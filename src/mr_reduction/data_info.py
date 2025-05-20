@@ -217,7 +217,7 @@ class DataInfo:
         # Processing options
         # Use the ROI rather than finding the ranges
         self.use_roi = use_roi
-        self.use_roi_actual = self.use_roi and not update_peak_range
+        self.use_roi_actual = self.use_roi and (update_peak_range is False)  # use the actual ROI from the sample logs
         sample_logs = SampleLogs(ws)
         self.calculated_scattering_angle = sample_logs["calculated_scatt_angle"]
         self.tof_range = [sample_logs["tof_range_min"], sample_logs["tof_range_max"]]
@@ -252,7 +252,7 @@ class DataInfo:
             low_res_max = sample_logs["low_res_max"]
             self.use_roi_actual = sample_logs["use_roi_actual"].lower() == "true"
 
-        if self.use_roi and not update_peak_range:
+        if self.use_roi and (update_peak_range is False):
             if force_peak_roi:
                 peak_min = peak_roi[0]
                 peak_max = peak_roi[1]
