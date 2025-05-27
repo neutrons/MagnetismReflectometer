@@ -12,9 +12,11 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the User:**
 
+   - PR #
+
    **Of interest to the Developer:**
-   - PR #57: ROI1 is used for peak, and ROI2 for background
-   - PR #55: Refactor MRInspectData as module inspect_data
+
+   - PR #
 ..
 
 
@@ -23,23 +25,28 @@ v2.4.0
 2025-05-20
 
 **Of interest to the User:**
+
 - PR #60: Update local reduction tool with ROI-related documentation
 - PR #59: Incorporate ROI3 and ROI4 to the reduction workflow
 
 **Of interest to the Developer:**
-- PR #55: Refactor MRInspectData as module inspect_data
 
+- PR #57: ROI1 is used for peak, and ROI2 for background
+- PR #55: Refactor MRInspectData as module inspect_data
+- PR #55: Refactor MRInspectData as module inspect_data
 
 v2.3.0
 ------
 2025-05-13
 
 **Of interest to the User:**
+
 - PR #54: Update the documentation with the possible configurations when using ROI1* and ROI2*
 - PR #51: Autoreduction will not save the current "REF_M_*_combined.py" script anymore
 - PR #41: bugfix for runs containing logs with time entries predating the start of the run
 
 **Of interest to the Developer:**
+
 - PR #52: Convert Mantid algorithm MRFilterCrossSections to a module of mr_reduction
 - PR #50: Purge the cross-section filtering table of negative relative times to the start of the run
 - PR #45: Document how to deploy updates to the live reduction service
