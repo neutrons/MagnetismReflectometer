@@ -1,0 +1,35 @@
+# Branch `dev` allows us to inject it into the conda environment file:
+#  - pip:
+#    - git+https://github.com/neutrons/MagnetismReflectometer.git@dev#egg=mr_reduction
+# However, because the `.submodules` file is missing, pip will not attempt to install the submodules.
+name: Branch dev in sync to branch next
+
+on:
+  push:
+    branches:
+      - next
+
+jobs:
+  sync_deploy_dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed to switch branches
+          ref: next       # Explicitly specify the branch to check out
+
+      - name: Configure git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Create dev branch
+        run: |
+          git checkout -B dev
+
+          # Remove submodule-related stuff
+          git rm -rf .gitmodules tests/mr_reduction-data || true
+          git commit -am "Sync from next without submodules" || echo "No changes"
+
+          git push origin dev --force
