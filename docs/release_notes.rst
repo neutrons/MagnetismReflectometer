@@ -6,7 +6,7 @@ Release Notes
 Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
 
 ..
-   v2.5.0
+   v2.6.0
    ------
    (date of release, format YYYY-MM-DD)
 
@@ -16,13 +16,24 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
 
-   - PR #64 Remove `is_polarized_dataset` from `io_orso.py`
+   - PR #
 ..
 
+v2.5.0
+------
+2025-06-10
+
+**Of interest to the User:**
+
+- PR #
+
+**Of interest to the Developer:**
+
+- PR #64 Remove `is_polarized_dataset` from `io_orso.py`
 
 v2.4.0
 ------
-2025-05-20
+2025-06-03
 
 **Of interest to the User:**
 
