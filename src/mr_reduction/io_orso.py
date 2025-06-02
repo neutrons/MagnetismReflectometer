@@ -124,6 +124,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         reduction_timestamp=_reduction_timestamp(reduction_history),
         creator_name="ORNL/SNS/REF_M",
         creator_affiliation="Oak Ridge National Laboratory",
+        enable_instrument_settings=True,
     )
 
     #

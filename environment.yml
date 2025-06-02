@@ -1,16 +1,15 @@
 name: mr_reduction
 channels:
-  - mantid/label/main
+  - mantid-ornl
   - conda-forge
   - oncat
+  - mantid
 dependencies:
   - python>=3.10
   - argcomplete
   - flask
   - gunicorn
-  # TODO: remove the muparser dependency once the mantidworkbench conda package is fixed
-  - muparser=2.3.4
-  - mantidworkbench=6.12
+  - mantidworkbench>=6.12.0.2
   - neutrons::finddata=0.10
   - pandas
   - pip
