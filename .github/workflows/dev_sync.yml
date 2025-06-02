@@ -17,6 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Needed to switch branches
+          ref: next       # Explicitly specify the branch to check out
 
       - name: Configure git
         run: |
