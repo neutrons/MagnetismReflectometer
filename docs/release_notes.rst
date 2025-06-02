@@ -16,7 +16,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
 
-   - PR #
+   - PR #64 Remove `is_polarized_dataset` from `io_orso.py`
 ..
 
 
