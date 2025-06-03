@@ -470,13 +470,13 @@ class Report:
             if self.plot_2d:
                 x_tof_plot = _plot2d(
                     z=signal,
-                    y=tof_axis,
-                    x=list(range(signal.shape[0])),
-                    x_range=scatt_peak,
-                    x_bck_range=self.data_info.background,
-                    y_range=None,
-                    x_label="X pixel",
-                    y_label="TOF (ms)",
+                    y=list(range(signal.shape[0])),
+                    x=tof_axis,
+                    x_range=None,
+                    y_range=scatt_peak,
+                    y_bck_range=self.data_info.background,
+                    x_label="TOF (ms)",
+                    y_label="X pixel",
                     title="r%s [%s]" % (self.data_info.run_number, cross_section),
                 )
         except:  # noqa E722
@@ -548,7 +548,7 @@ class Report:
         except:  # noqa E722
             self.log("  - Could not generate TOF distribution")
 
-        return [xy_plot, peak_pixels, low_res_profile, x_tof_plot, tof_dist]
+        return [xy_plot, x_tof_plot, peak_pixels, low_res_profile, tof_dist]
 
 
 def _plot2d(
@@ -588,6 +588,12 @@ def _plot2d(
     x_flat, y_flat, z_flat = x_grid.flatten(), y_grid.flatten(), z.flatten()
     threshold = 0.01 * np.max(z_flat)
     mask = np.isfinite(z_flat) & (z_flat > threshold)  # Keep only significant values (exclude NaN, -inf, inf)
+
+    # This is a temporary fix
+    if len(z_flat) != len(x_flat):
+        z_flat = np.resize(z_flat, (len(x_flat)))
+        mask = np.resize(mask, (len(x_flat)))
+
     x_sparse, y_sparse, z_sparse = x_flat[mask], y_flat[mask], z_flat[mask]
 
     # Round the remaining values to a certain number of decimal places, for instance 0.003455245 to 0.0034.
