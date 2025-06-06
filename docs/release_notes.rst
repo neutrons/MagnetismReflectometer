@@ -25,7 +25,7 @@ v2.5.0
 
 **Of interest to the User:**
 
-- PR #
+- PR #66 X-TOF plot now shows up second and axes are flipped
 
 **Of interest to the Developer:**
 
