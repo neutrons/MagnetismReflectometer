@@ -466,18 +466,20 @@ class Report:
             )
             signal = np.transpose(np.log10(direct_summed.extractY()))
             tof_axis = direct_summed.extractX()[0] / 1000.0
+            tof_axis = (tof_axis[:-1] + tof_axis[1:]) / 2.0  # average TOF values
 
             if self.plot_2d:
                 x_tof_plot = _plot2d(
                     z=signal,
-                    y=list(range(signal.shape[0])),
-                    x=tof_axis,
-                    x_range=None,
-                    y_range=scatt_peak,
-                    y_bck_range=self.data_info.background,
-                    x_label="TOF (ms)",
-                    y_label="X pixel",
+                    y=tof_axis,
+                    x=list(range(signal.shape[1])),
+                    x_range=scatt_peak,
+                    x_bck_range=self.data_info.background,
+                    y_range=None,
+                    x_label="X pixel",
+                    y_label="TOF (ms)",
                     title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                    swap_axes=False,
                 )
         except:  # noqa E722
             self.log("  - Could not generate X-TOF plot")
@@ -562,6 +564,7 @@ def _plot2d(
     title="",
     x_bck_range=None,
     y_bck_range=None,
+    swap_axes=False,
 ):
     """
     Generate a 2D plot
@@ -583,17 +586,18 @@ def _plot2d(
         [1, "rgb(128,0,0)"],
     ]
 
+    if swap_axes:
+        x, y = y, x
+        z = z.T
+        x_range, y_range = y_range, x_range
+        x_bck_range, y_bck_range = y_bck_range, x_bck_range
+        x_label, y_label = y_label, x_label
+
     # Eliminate items in array Z that are not finite and below a certain threshold
     x_grid, y_grid = np.meshgrid(x, y)
     x_flat, y_flat, z_flat = x_grid.flatten(), y_grid.flatten(), z.flatten()
     threshold = 0.01 * np.max(z_flat)
     mask = np.isfinite(z_flat) & (z_flat > threshold)  # Keep only significant values (exclude NaN, -inf, inf)
-
-    # This is a temporary fix
-    if len(z_flat) != len(x_flat):
-        z_flat = np.resize(z_flat, (len(x_flat)))
-        mask = np.resize(mask, (len(x_flat)))
-
     x_sparse, y_sparse, z_sparse = x_flat[mask], y_flat[mask], z_flat[mask]
 
     # Round the remaining values to a certain number of decimal places, for instance 0.003455245 to 0.0034.
@@ -617,6 +621,12 @@ def _plot2d(
         colorscale=colorscale,
     )
 
+    x_range_color = "rgba(152, 0, 0, .8)"
+    y_range_color = "rgba(0, 128, 0, 1)"
+    if swap_axes:
+        x_range_color = "rgba(0, 128, 0, 1)"
+        y_range_color = "rgba(152, 0, 0, .8)"
+
     # Set the color scale limits
     data = [heatmap]
     if x_range is not None:
@@ -625,7 +635,7 @@ def _plot2d(
             x=[x_range[0], x_range[0]],
             y=[min(y), max(y)],
             marker=dict(
-                color="rgba(152, 0, 0, .8)",
+                color=x_range_color,
             ),
         )
         x_right = go.Scatter(
@@ -633,7 +643,7 @@ def _plot2d(
             x=[x_range[1], x_range[1]],
             y=[min(y), max(y)],
             marker=dict(
-                color="rgba(152, 0, 0, .8)",
+                color=x_range_color,
             ),
         )
         data.append(x_left)
@@ -665,7 +675,7 @@ def _plot2d(
             y=[y_range[0], y_range[0]],
             x=[min(x), max(x)],
             marker=dict(
-                color="rgba(0, 128, 0, 1)",
+                color=y_range_color,
             ),
         )
         y_right = go.Scatter(
@@ -673,7 +683,7 @@ def _plot2d(
             y=[y_range[1], y_range[1]],
             x=[min(x), max(x)],
             marker=dict(
-                color="rgba(0, 128, 0, 1)",
+                color=y_range_color,
             ),
         )
         data.append(y_left)
