@@ -12,7 +12,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the User:**
 
-   - PR #
+   - PR #66 X-TOF plot now shows up second and axes are flipped
 
    **Of interest to the Developer:**
 
@@ -25,7 +25,7 @@ v2.5.0
 
 **Of interest to the User:**
 
-- PR #66 X-TOF plot now shows up second and axes are flipped
+- PR #
 
 **Of interest to the Developer:**
 
