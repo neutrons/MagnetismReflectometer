@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import sys
+import traceback
 from typing import List
 import warnings
 
@@ -148,9 +149,9 @@ def main():
         cmd = f"/SNS/software/nses/bin/confirm-data -s Yes BL-4A {ipts_number} 1 Auto"
         print(cmd)
         os.system(cmd)
-    except:
+    except Exception as e:
         print("Could not set data availability")
-        print(sys.exc_info()[1])
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
