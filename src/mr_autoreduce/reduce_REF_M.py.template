@@ -6,6 +6,7 @@ from collections import namedtuple
 import logging
 import os
 import re
+import subprocess
 import sys
 import traceback
 from typing import List
@@ -143,15 +144,16 @@ def main():
     upload_html_report(reports, publish=(not args.no_publish), run_number=run_number, report_file=file_path)
 
     # Check if the auto-reduce data has been saved to the canonical IPTS-XXXXX/shared/autoreduce directory
+    ipts = re.search(r'IPTS-\d+', args.events_file).group(0)  # extract 'IPTS-31954' from the events file
+    ipts_number = ipts.split('-')[1]
     try:
-        ipts = re.search(r'IPTS-\d+', args.events_file).group(0)  # extract 'IPTS-31954' from the events file
-        ipts_number = ipts.split('-')[1]
         cmd = f"/SNS/software/nses/bin/confirm-data -s Yes BL-4A {ipts_number} 1 Auto"
         print(cmd)
-        os.system(cmd)
-    except Exception as e:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
         print("Could not set data availability")
         traceback.print_exc()
+        sys.exit(e.returncode)
 
 
 if __name__ == "__main__":
