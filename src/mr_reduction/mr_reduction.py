@@ -303,7 +303,7 @@ class ReductionProcess:
 
         if self.data_ws.getNumberEvents() < REFLECTED_BEAM_EVTS_MIN:
             raise ValueError(
-                f"Insufficent Number of Reflected Beam Events: {self.data_ws.getNumberEvents()} "
+                f"Insufficent number of reflected beam events: {self.data_ws.getNumberEvents()} "
                 f"(Minimum of {REFLECTED_BEAM_EVTS_MIN} events required)"
             )
 

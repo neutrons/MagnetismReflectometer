@@ -226,7 +226,7 @@ class TestReduction:
             questor.assert_equal(cross_sections=["Off_Off", "On_Off"], polarizations=["po", "mo"])
 
     def test_reduce_ValueError_insufficient_event_count(self):
-        r"""Test that the minumum number of events is enforced"""
+        r"""Test that the minimum number of events is enforced"""
 
         # create an empty events workspace
         ws = CreateSampleWorkspace(WorkspaceType="Event", NumEvents=0)
@@ -243,12 +243,12 @@ class TestReduction:
         )
 
         # call the process and catch the expected exception
-        with pytest.raises(ValueError, match="Insufficent Number of Reflected Beam Events") as e:
+        with pytest.raises(ValueError, match="Insufficent number of reflected beam events") as e:
             processor.reduce()
 
         # some sanity checks
         assert e.type is ValueError
-        assert str(e.value).startswith("Insufficent Number of Reflected Beam Events")
+        assert str(e.value).startswith("Insufficent number of reflected beam events")
 
 
 if __name__ == "__main__":
