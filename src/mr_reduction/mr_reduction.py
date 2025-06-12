@@ -301,10 +301,10 @@ class ReductionProcess:
         if self.data_ws is None:
             self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
 
-        if self.data_ws.getNumberEvents() < REFLECTED_BEAM_EVTS_MIN:
+        if self.data_ws.getNumberEvents() < self.min_number_events:
             raise ValueError(
-                f"Insufficent number of reflected beam events: {self.data_ws.getNumberEvents()} "
-                f"(Minimum of {REFLECTED_BEAM_EVTS_MIN} events required)"
+                f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
+                f"(Minimum of {self.min_number_events} events required)"
             )
 
         self.run_number = int(self.data_ws.getRunNumber())

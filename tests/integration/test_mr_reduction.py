@@ -243,12 +243,8 @@ class TestReduction:
         )
 
         # call the process and catch the expected exception
-        with pytest.raises(ValueError, match="Insufficent number of reflected beam events") as e:
+        with pytest.raises(ValueError, match="Insufficient number of reflected beam events"):
             processor.reduce()
-
-        # some sanity checks
-        assert e.type is ValueError
-        assert str(e.value).startswith("Insufficent number of reflected beam events")
 
 
 if __name__ == "__main__":
