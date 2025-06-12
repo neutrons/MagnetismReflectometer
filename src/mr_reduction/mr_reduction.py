@@ -41,6 +41,7 @@ from mr_reduction.types import MantidWorkspace, WorkspaceGroup
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
+REFLECTED_BEAM_EVTS_MIN = 200
 
 
 class ReductionProcess:
@@ -50,7 +51,7 @@ class ReductionProcess:
 
     tolerance = 0.02
     # Minimum number of events needed to go ahead with the reduction
-    min_number_events = 200
+    min_number_events = REFLECTED_BEAM_EVTS_MIN
     pol_state = POL_STATE
     pol_veto = POL_VETO
     ana_state = ANA_STATE
@@ -299,6 +300,13 @@ class ReductionProcess:
         # if self.data_ws is not None and self.use_slow_flipper_log:
         if self.data_ws is None:
             self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
+
+        if self.data_ws.getNumberEvents() < self.min_number_events:
+            raise ValueError(
+                f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
+                f"(Minimum of {self.min_number_events} events required)"
+            )
+
         self.run_number = int(self.data_ws.getRunNumber())
 
         if self.use_slow_flipper_log:

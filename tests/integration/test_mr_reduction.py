@@ -8,6 +8,9 @@ import numpy as np
 # third party imports
 import pytest
 
+# mantid imports
+from mantid.simpleapi import AddSampleLog, CreateSampleWorkspace
+
 # mr_reduction imports
 import mr_reduction.mr_reduction as mr
 from mr_reduction import io_orso
@@ -221,6 +224,27 @@ class TestReduction:
             # inquire the combined ORSO files
             questor = io_orso.Questor(filepath=os.path.join(mock_filesystem.tempdir, f"REF_M_42535_{sn}_combined.ort"))
             questor.assert_equal(cross_sections=["Off_Off", "On_Off"], polarizations=["po", "mo"])
+
+    def test_reduce_ValueError_insufficient_event_count(self):
+        r"""Test that the minimum number of events is enforced"""
+
+        # create an empty events workspace
+        ws = CreateSampleWorkspace(WorkspaceType="Event", NumEvents=0)
+
+        # add some mr_red required sample logs
+        AddSampleLog(ws, "Polarizer", LogText="0", LogType="Number")
+        AddSampleLog(ws, "Analyzer", LogText="0", LogType="Number")
+
+        # instantiate the process
+        processor = mr.ReductionProcess(
+            data_run="44470",  # run that motivated this test
+            data_ws=ws,
+            publish=False,  # don't upload to the livedata server
+        )
+
+        # call the process and catch the expected exception
+        with pytest.raises(ValueError, match="Insufficient number of reflected beam events"):
+            processor.reduce()
 
 
 if __name__ == "__main__":
