@@ -6,19 +6,35 @@ Release Notes
 Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
 
 ..
-   v2.6.0
+   v2.8.0
    ------
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User:**
 
-   - PR #68 An informative exception is now raised when a file with an insufficient number of events is attempted to be reduced
-   - PR #66 X-TOF plot now shows up second and axes are flipped
+   - PR #
 
    **Of interest to the Developer:**
 
    - PR #
 ..
+
+v2.7.0
+------
+2025-06-24
+
+**Of interest to the User:**
+
+- PR #68 Informative exception raised when a file with an insufficient number of events is attempted to be reduced
+
+
+v2.6.0
+------
+2025-06-17
+
+**Of interest to the User:**
+
+- PR #66 X-TOF plot now shows up second and axes are flipped
 
 v2.5.0
 ------
