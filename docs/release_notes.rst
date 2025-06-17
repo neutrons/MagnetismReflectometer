@@ -12,7 +12,9 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the User:**
 
-   - PR #
+   - PR #69 Removes `Show 2D Plots` option and instead always generates them. Displays a message on errors.
+   - PR #68 An informative exception is now raised when a file with an insufficient number of events is attempted to be reduced
+   - PR #66 X-TOF plot now shows up second and axes are flipped
 
    **Of interest to the Developer:**
 

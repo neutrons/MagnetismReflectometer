@@ -13,7 +13,6 @@ def test_template(data_server, tempdir):
     r"""Substitute values in the templates as in done in the post-processing agent"""
     # Options for all peaks in the run
     common = {
-        "plot_in_2D": True,
         "use_const_q": True,
         "q_step": -0.02,
         "use_sangle": True,
@@ -79,7 +78,6 @@ def test_template(data_server, tempdir):
         # assert common options
         assert opts.peak_count == common["peak_count"], "peak_count differs"
         for a, b in [  # template and reduction keys don't have the same name
-            ("plot_2d", "plot_in_2D"),
             ("const_q_binning", "use_const_q"),
             ("q_step", "q_step"),
             ("use_sangle", "use_sangle"),

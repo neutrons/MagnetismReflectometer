@@ -135,7 +135,6 @@ class TestReduction:
             bck_offset=10,
             publish=False,  # don't upload to the livedata server
         )
-        processor.plot_2d = True
 
         # autoreduced files from previous runs, to be stitched to profile from 41447
         for run, suffix in itertools.product([41445, 41446], ["Off_Off_autoreduce.dat", "partial.py"]):
@@ -193,7 +192,6 @@ class TestReduction:
                 bck_offset=10,
                 publish=False,  # don't upload to the livedata server
             )
-            processor.plot_2d = True
             processor.reduce()
 
         # assert reduction files have been produced for run 42537

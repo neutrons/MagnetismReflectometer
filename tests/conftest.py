@@ -160,7 +160,6 @@ def autoreduction_script(tempdir, data_server):
         # Options to reduce the two peaks of run 41447
         #
         common = {  # options for all peaks
-            "plot_in_2D": True,
             "use_const_q": False,
             "q_step": -0.022,
             "use_sangle": False,

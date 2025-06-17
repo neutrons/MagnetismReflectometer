@@ -59,10 +59,6 @@
         <div class="form-section">
             <h2>Options for all peaks</h2>
 
-            <label title="Check the following box to see 2D plots on the monitor.
-Loading the page for each run will take much longer when this option is turned on.">
-                <input type="checkbox" id="plot_in_2D" checked> Show 2D plots</label>
-
             <label><input type="checkbox" id="use_const_q"> Use constant-Q binning</label>
 
             <label>Q step <input type="number" id="q_step" step="0.01" style="width: 65px;" value="-0.02"></label>
@@ -249,7 +245,6 @@ otherwise DANGLE will be used."><input type="checkbox" id="use_sangle" checked> 
             const formValues = {
                 events_file: document.getElementById('events_file').value,
                 outdir: document.getElementById('outdir').value,
-                plot_in_2D: document.getElementById('plot_in_2D').checked,
                 use_const_q: document.getElementById('use_const_q').checked,
                 q_step: document.getElementById('q_step').value,
                 use_sangle: document.getElementById('use_sangle').checked,

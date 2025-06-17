@@ -182,12 +182,9 @@ class Report:
     Take the output of the reduction and generate diagnostics plots, and a block of meta data.
     """
 
-    def __init__(
-        self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True, logfile=None, plot_2d=False
-    ):
+    def __init__(self, workspace, data_info, direct_info, reflectivity_ws, force_plot=True, logfile=None):
         """
         :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
-        :param bool plot_2d: if True, 2D plots will be part of the report
         """
         logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type.name, str(reflectivity_ws)))
         self.data_info = data_info
@@ -200,7 +197,6 @@ class Report:
             self.number_events = 0
             self.cross_section = ""
         self.has_reflectivity = reflectivity_ws is not None
-        self.plot_2d = plot_2d
         self.plots = []
         self.script = ""
         self.report = ""
@@ -428,22 +424,22 @@ class Report:
 
         # X-Y plot
         xy_plot = None
-        if self.plot_2d:
-            try:
-                integrated = Integration(workspace)
-                signal = np.log10(integrated.extractY())
-                z = np.reshape(signal, (n_x, n_y))
-                xy_plot = _plot2d(
-                    z=z.T,
-                    x=list(range(n_x)),
-                    y=list(range(n_y)),
-                    x_range=scatt_peak,
-                    y_range=scatt_low_res,
-                    x_bck_range=self.data_info.background,
-                    title="r%s [%s]" % (self.data_info.run_number, cross_section),
-                )
-            except:  # noqa E722
-                self.log("  - Could not generate XY plot")
+        try:
+            integrated = Integration(workspace)
+            signal = np.log10(integrated.extractY())
+            z = np.reshape(signal, (n_x, n_y))
+            xy_plot = _plot2d(
+                z=z.T,
+                x=list(range(n_x)),
+                y=list(range(n_y)),
+                x_range=scatt_peak,
+                y_range=scatt_low_res,
+                x_bck_range=self.data_info.background,
+                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+            )
+        except:  # noqa E722
+            self.log("  - Could not generate XY plot")
+            xy_plot = _plotText("Could not generate XY plot", "r%s [%s]" % (self.data_info.run_number, cross_section))
 
         self.log("  - generating X-TOF plot")
         # X-TOF plot
@@ -468,21 +464,23 @@ class Report:
             tof_axis = direct_summed.extractX()[0] / 1000.0
             tof_axis = (tof_axis[:-1] + tof_axis[1:]) / 2.0  # average TOF values
 
-            if self.plot_2d:
-                x_tof_plot = _plot2d(
-                    z=signal,
-                    y=tof_axis,
-                    x=list(range(signal.shape[1])),
-                    x_range=scatt_peak,
-                    x_bck_range=self.data_info.background,
-                    y_range=None,
-                    x_label="X pixel",
-                    y_label="TOF (ms)",
-                    title="r%s [%s]" % (self.data_info.run_number, cross_section),
-                    swap_axes=False,
-                )
+            x_tof_plot = _plot2d(
+                z=signal,
+                y=tof_axis,
+                x=list(range(signal.shape[1])),
+                x_range=scatt_peak,
+                x_bck_range=self.data_info.background,
+                y_range=None,
+                x_label="X pixel",
+                y_label="TOF (ms)",
+                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                swap_axes=False,
+            )
         except:  # noqa E722
             self.log("  - Could not generate X-TOF plot")
+            x_tof_plot = _plotText(
+                "Could not generate X-TOF plot", "r%s [%s]" % (self.data_info.run_number, cross_section)
+            )
 
         self.log("  - generating X count distribution")
         # Count per X pixel
@@ -503,6 +501,9 @@ class Report:
             )
         except:  # noqa E722
             self.log("  - Could not generate X count distribution")
+            peak_pixels = _plotText(
+                "Could not generate X count distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+            )
 
         self.log("  - generating Y count distribution")
         # Count per Y pixel
@@ -532,6 +533,9 @@ class Report:
             )
         except:  # noqa E722
             self.log("  - Could not generate Y count distribution")
+            low_res_profile = _plotText(
+                "Could not generate Y count distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+            )
 
         # TOF distribution
         tof_dist = None
@@ -549,6 +553,9 @@ class Report:
             )
         except:  # noqa E722
             self.log("  - Could not generate TOF distribution")
+            tof_dist = _plotText(
+                "Could not generate TOF distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+            )
 
         return [xy_plot, x_tof_plot, peak_pixels, low_res_profile, tof_dist]
 
@@ -972,3 +979,38 @@ def plot1d(
     fig = go.Figure(data=data, layout=layout)
     plot_div = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
     return plot_div
+
+
+def _plotText(text, title=""):
+    r"""
+    Displays an informative message as a plot
+
+    :param: text: str, the text to be displayed
+    :param: title: str, the title of the plot
+    :return: py.plot, the plot
+    """
+
+    layout = go.Layout(
+        annotations=[
+            dict(
+                text=text,
+                font=dict(size=13, color="red"),
+                xref="paper",  # `paper` sets relative coordinates
+                yref="paper",
+                align="center",
+                x=0.5,
+                y=0.5,
+                showarrow=False,
+            )
+        ],
+        autosize=True,
+        title=title,
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        showlegend=False,
+    )
+
+    fig = go.Figure(layout=layout)
+    plot = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+
+    return plot
