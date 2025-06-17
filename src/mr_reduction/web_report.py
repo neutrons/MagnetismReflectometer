@@ -995,7 +995,7 @@ def _plotText(text, title=""):
             dict(
                 text=text,
                 font=dict(size=13, color="red"),
-                xref="paper",
+                xref="paper",  # `paper` sets relative coordinates
                 yref="paper",
                 align="center",
                 x=0.5,
