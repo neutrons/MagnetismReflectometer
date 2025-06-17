@@ -27,6 +27,10 @@ v2.7.0
 
 - PR #68 Informative exception raised when a file with an insufficient number of events is attempted to be reduced
 
+**Of interest to the Developer:**
+
+- PR #70 use of mantidworkbench conda package is replaced with mantid
+
 
 v2.6.0
 ------
