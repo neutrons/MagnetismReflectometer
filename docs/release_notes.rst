@@ -16,7 +16,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
 
-   - PR #
+   - PR #70 use of mantidworkbench conda package is replaced with mantid
 ..
 
 v2.7.0
@@ -26,11 +26,6 @@ v2.7.0
 **Of interest to the User:**
 
 - PR #68 Informative exception raised when a file with an insufficient number of events is attempted to be reduced
-
-**Of interest to the Developer:**
-
-- PR #70 use of mantidworkbench conda package is replaced with mantid
-
 
 v2.6.0
 ------
