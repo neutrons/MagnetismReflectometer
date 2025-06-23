@@ -6,20 +6,32 @@ Release Notes
 Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
 
 ..
-   v2.8.0
+   v2.9.0
    ------
    (date of release, format YYYY-MM-DD)
 
    **Of interest to the User:**
 
-   - PR #69 Removes `Show 2D Plots` option and instead always generates them. Displays a message on errors.
-   - PR #68 An informative exception is now raised when a file with an insufficient number of events is attempted to be reduced
-   - PR #66 X-TOF plot now shows up second and axes are flipped
+   - PR #
 
    **Of interest to the Developer:**
 
-   - PR #70 use of mantidworkbench conda package is replaced with mantid
+   - PR #
 ..
+
+
+v2.8.0
+------
+2025-07-01
+
+**Of interest to the User:**
+
+- PR #69 Removes `Show 2D Plots` option and instead always generates them. Displays a message on errors.
+
+**Of interest to the Developer:**
+
+- PR #70 use of mantidworkbench conda package is replaced with mantid
+
 
 v2.7.0
 ------
@@ -29,6 +41,7 @@ v2.7.0
 
 - PR #68 Informative exception raised when a file with an insufficient number of events is attempted to be reduced
 
+
 v2.6.0
 ------
 2025-06-17
@@ -36,6 +49,7 @@ v2.6.0
 **Of interest to the User:**
 
 - PR #66 X-TOF plot now shows up second and axes are flipped
+
 
 v2.5.0
 ------
@@ -48,6 +62,7 @@ v2.5.0
 **Of interest to the Developer:**
 
 - PR #64 Remove `is_polarized_dataset` from `io_orso.py`
+
 
 v2.4.0
 ------
@@ -63,6 +78,7 @@ v2.4.0
 - PR #57: ROI1 is used for peak, and ROI2 for background
 - PR #55: Refactor MRInspectData as module inspect_data
 - PR #55: Refactor MRInspectData as module inspect_data
+
 
 v2.3.0
 ------
