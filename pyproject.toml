@@ -1,47 +1,50 @@
+########################
+### Project Metadata ###
+########################
+
 [project]
 name = "mr_reduction"
 description = "Magnetism Reflectometer Automated Reduction"
 dynamic = ["version"]
 requires-python = ">=3.10"
-dependencies = [
-  # list all runtime dependencies here
-]
 license = { text = "MIT" }
+readme = "README.md"
+keywords = ["neutrons", "quicknxs", "magnetic reflectivity"]
 
 [project.urls]
 homepage = "https://github.com/neutrons/MagnetismReflectometer/"
+repository = "https://github.com/neutrons/MagnetismReflectometer/"
+documentation = "https://mr-reduction.readthedocs.io/en/latest/"
+
+[project.scripts]
+nexus_to_orso = "mr_reduction.scripts.nexus_to_orso:main"
+
+
+####################
+### Build config ###
+####################
 
 [build-system]
-requires = [
-  "setuptools >= 40.6.0",
-  "wheel",
-  "toml",
-  "versioningit"
-]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
+requires = ["hatchling", "versioningit"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-exclude = ["tests*", "scripts*", "docs*", "notebooks*"]
+[tool.hatch.version]
+source = "versioningit"
 
-[tool.setuptools.package-data]
-"*" = ["*.yml","*.yaml","*.ini", "*sh", "*.html", "*.template"]
+[tool.hatch.build]
+artifacts = ["*.yml", "*.yaml", "*.ini", "*sh", "*.html", "*.template"]
 
-[tool.black]
-line-length = 119
+[tool.hatch.build.hooks.versioningit-onbuild]
+source-file = "src/mr_reduction/_version.py"
+build-file = "mr_reduction/_version.py"
+replacement = '"{next_version}"'
 
-[tool.ruff]
-line-length = 119
-exclude = ["src/mr_autoreduce/reduce_REF_M.py.template"]
-# https://beta.ruff.rs/docs/rules/
-lint.select = ["A", "ARG", "BLE", "E", "F", "I", "PT"]
-# Ignore the following rules:
-#   F401: wild imports and unknown names
-lint.ignore = ["F403", "F405", "F401"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/mr_reduction"]
 
 [tool.versioningit.vcs]
 method = "git"
-default-tag = "1.0.0"
+default-tag = "2.0.0"
 
 [tool.versioningit.next-version]
 method = "minor"
@@ -54,28 +57,153 @@ distance-dirty = "{next_version}.dev{distance}+d{build_date:%Y%m%d%H%M}"
 [tool.versioningit.write]
 file = "src/mr_reduction/_version.py"
 
-[project.scripts]
-nexus_to_orso = "mr_reduction.scripts.nexus_to_orso:main"
+###################
+### Pixi config ###
+###################
+
+[tool.pixi.workspace]
+name = "mr_reduction"
+platforms = ["linux-64"]
+channels = [
+  "conda-forge",
+  "mantid-ornl",
+  "mantid",
+  "oncat",
+  "neutrons",
+  "https://prefix.dev/pixi-build-backends",
+]
+# Required until the build feature becomes stable
+preview = ["pixi-build"]
+
+[tool.pixi.package]
+name = "mr_reduction"
+version = "0.0.0"
+
+[tool.pixi.package.build]
+backend = { name = "pixi-build-python", version = "0.1.*" }
+
+[tool.pixi.package.host-dependencies]
+hatchling = "*"
+versioningit = "*"
+
+[tool.pixi.dependencies]
+argcomplete = "*"
+finddata = "==0.10"
+flask = "*"
+gunicorn = "*"
+mantid = ">=6.12.0.2"
+pandas = "*"
+plotly = "*"
+pyoncat = "*"
+versioningit = "*"
+
+[tool.pixi.pypi-dependencies]
+webdriver-manager = "*"
+
+### Environments and features ###
+
+[tool.pixi.environments]
+default = { features = [
+  "dev",
+  "docs",
+  "test",
+  "build",
+], solve-group = "default" }
+docs = { features = ["dev", "docs"], no-default-feature = true }
+build = { features = ["build"], no-default-feature = true }
+
+[tool.pixi.feature.build.dependencies]
+anaconda-client = ">=1.13.0"
+check-wheel-contents = ">=0.6.2"
+versioningit = ">=3.2.0"
+
+[tool.pixi.feature.build.pypi-dependencies]
+toml-cli = "*"
+
+[tool.pixi.feature.dev.dependencies]
+git-lfs = ">=3.7.0"
+mypy = ">=1.16.1"
+pip = ">=25.1.1"
+pip-audit = ">=2.9.0"
+pre-commit = ">=4.2.0"
+ruff = "*"
+versioningit = ">=3.2.0"
+
+[tool.pixi.feature.docs.dependencies]
+sphinx = ">=8"
+sphinx_rtd_theme = ">=3.0.1"
+
+[tool.pixi.feature.test.dependencies]
+selenium = ">=4.34.0"
+furo = ">=2024.8.6"
+pytest = ">=8.4.l1"
+pytest-cov = ">=6.2.1"
+pytest-xdist = ">=3.7.0"
+
+[tool.pixi.tasks]
+autoreduce = { cmd = "cp -f src/mr_autoreduce/reduce_REF_M.py* /SNS/REF_M/shared/autoreduce", description = "Copy autoreduce script and template to /SNS/REF_M/shared/autoreduce" }
+livereduce = { cmd = "cp -f src/mr_livereduce/*.py /SNS/REF_M/shared/livereduce", description = "Copy livereduce scripts to /SNS/REF_M/shared/livereduce" }
+# Documentation
+build-docs = { cmd = 'sphinx-build -b html docs docs/_build/html', description = "Build documentation" }
+test-docs = { cmd = "sphinx-build -M doctest docs docs/_build/html", description = "Test building the documentation" }
+# Testing
+test = { description = "Run the test suite", cmd = "pytest" }
+# Packaging
+conda-build-command = { cmd = "pixi build", description = "Wrapper for building the conda package - used by `conda-build`" }
+conda-build = { description = "Build the conda package", depends-on = [
+  "sync-version",
+  "conda-build-command",
+  "reset-version",
+] }
+conda-publish = { cmd = "anaconda upload *.conda", description = "Publish the .conda package to anaconda.org", depends-on = [
+  "conda-build",
+] }
+# Misc
+audit-deps = { cmd = "pip-audit --local -s osv", description = "Audit the package dependencies for vulnerabilities" }
+clean = { cmd = 'rm -rf .mypy_cache .pytest_cache .ruff_cache **/*.egg-info **/dist **/__pycache__ **/_version.py', description = "Clean up various caches and build artifacts" }
+clean-conda = { cmd = "rm -f *.conda", description = "Clean the local .conda build artifacts" }
+clean-docs = { cmd = "rm -rf docs/_build", description = "Clean up documentation build artifacts" }
+clean-all = { description = "Clean all artifacts", depends-on = [
+  "clean",
+  "clean-conda",
+  "clean-docs",
+] }
+sync-version = { cmd = 'version=$(python -m versioningit); toml set tool.pixi.package.version "$version" --toml-path pyproject.toml', description = "Sync pyproject.toml version with Git version" }
+reset-version = { cmd = "toml set tool.pixi.package.version \"0.0.0\" --toml-path pyproject.toml", description = "Reset the package version to 0.0.0" }
+
+
+##########################
+### Pytest and CodeCov ###
+##########################
+
+[tool.coverage.run]
+source = ["src/mr_reduction"]
+omit = ["tests/*"]
 
 [tool.pytest.ini_options]
-pythonpath = [
-  ".", "src", "scripts"
-]
+pythonpath = [".", "src", "scripts"]
 testpaths = ["tests"]
 python_files = ["test*.py"]
-norecursedirs = [".git", "tmp*", "_tmp*", "__pycache__", "*dataset*", "*data_set*"]
+norecursedirs = [
+  ".git",
+  "tmp*",
+  "_tmp*",
+  "__pycache__",
+  "*dataset*",
+  "*data_set*",
+]
 markers = [
-    "datarepo: using repository mr_reduction-data",
-    "sns_mounted: requires the /SNS filesystem"
+  "datarepo: using repository mr_reduction-data",
+  "sns_mounted: requires the /SNS filesystem",
 ]
 
-[tool.pylint]
-max-line-length = 119
-disable = ["too-many-locals",
-           "too-many-statements",
-           "too-many-instance-attributes",
-           "too-many-arguments",
-           "duplicate-code"
-]
+########################
+### Ruff and linting ###
+########################
 
-# Add additional 3rd party tool configuration here as needed
+[tool.ruff]
+line-length = 119
+exclude = ["src/mr_autoreduce/reduce_REF_M.py.template"]
+# https://beta.ruff.rs/docs/rules/
+lint.select = ["A", "ARG", "BLE", "E", "F", "I", "PT"]
+lint.ignore = ["F403", "F405", "F401"]

@@ -16,7 +16,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
 
-   - PR #
+   - PR #72 Convert to pixi from conda
 ..
 
 

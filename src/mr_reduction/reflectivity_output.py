@@ -1,4 +1,3 @@
-# pylint: disable=too-many-locals, too-many-branches, invalid-name
 """
 Write reflectivity output file
 """

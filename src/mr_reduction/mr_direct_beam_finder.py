@@ -1,4 +1,3 @@
-# pylint: disable=bare-except, invalid-name, too-many-nested-blocks, too-many-arguments, too-many-instance-attributes, too-many-locals, too-few-public-methods
 """
 Find a suitable direct beam file for a data set.
 """
