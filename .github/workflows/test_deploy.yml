@@ -1,9 +1,10 @@
-name: conda packaging and deployment
+name: testing
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
-    branches: [qa, main]
+    branches: [next, qa, main]
     tags: ['v*']
 
 jobs:
@@ -21,16 +22,39 @@ jobs:
           channels: mantid/label/main,conda-forge,defaults
           miniforge-version: latest
           environment-file: environment.yml
+      - name: Install chromium
+        run: |
+          echo "chromium enables testing HTML reports"
+          sudo apt-get install --yes chromium-browser
+      - name: run unit tests
+        run: |
+          echo "running unit tests"
+          python -m pytest -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
+          mv .coverage .coverage.unit
+      - name: run integration tests
+        run: |
+          echo "running integration tests"
+          git submodule update --init
+          python -m pytest -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
+          mv .coverage .coverage.integration
+      - name: combine coverage reports
+        run: |
+          coverage combine  # merge all .coverage.* files into .coverage
+      - name: upload coverage to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: build conda package
         run: |
           # set up environment
           cd conda.recipe
           echo "versioningit $(versioningit ../)"
-          # build the package
+          # conda channels could have been defined in the conda-incubator, but you can copy/paste the lines
+          # below to build the conda package in your local machine
           CHANNELS="--channel mantid-ornl --channel mantid --channel conda-forge --channel oncat --channel neutrons"
           VERSION=$(versioningit ../) conda mambabuild $CHANNELS --output-folder . .
           conda verify noarch/mr_reduction*.tar.bz2
-      - name: upload conda package to anaconda
+      - name: upload conda package to anaconda for tags only
         shell: bash -l {0}
         if: startsWith(github.ref, 'refs/tags/v')
         env:
