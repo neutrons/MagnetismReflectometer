@@ -36,5 +36,5 @@ Developer Guide
 
 Deployment
 ----------
-The configuration file under `mr_livereduce/livereduce.conf` needs to be place under `/etc` on
+The configuration file under ``mr_livereduce/livereduce.conf`` needs to be place under ``/etc`` on
 the live reduction node.

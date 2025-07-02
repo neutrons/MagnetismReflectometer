@@ -5,9 +5,9 @@ Developing
 
 Directory Tree
 --------------
- - Code under `mr_reduction/` is common reduction code.
- - Code under `mr_autoreduce/` is the top-level code used by the post-processing.
- - Code under `mr_livereduce/` is the top-level code for live reduction.
+ - Code under ``mr_reduction/`` is common reduction code.
+ - Code under ``mr_autoreduce/`` is the top-level code used by the post-processing.
+ - Code under ``mr_livereduce/`` is the top-level code for live reduction.
 
 
 Setup Local Development Environment
@@ -25,7 +25,7 @@ The ``pyproject.toml`` contains all of the dependencies for both the developer a
 Update file ``pyproject.toml`` if dependencies are added to the package.
 
 
-From here, several tasks, such as building the documentation or running tests can be carried out with `pixi` tasks at the top of the repository.
+From here, several tasks, such as building the documentation or running tests can be carried out with ``pixi`` tasks at the top of the repository.
 For a list of available pixi tasks, run:
 
 .. code-block:: bash
@@ -37,8 +37,8 @@ Development procedure
 ---------------------
 
 1. A developer is assigned with a task during neutron status meeting and changes the task's status to **In Progress**.
-2. The developer creates a branch off *next* and completes the task in this branch.
-3. The developer creates a pull request (PR) off *next*.
+2. The developer creates a branch off ``next`` and completes the task in this branch.
+3. The developer creates a pull request (PR) off ``next``.
 4. Any new features or bugfixes must be covered by new and/or refactored automated tests.
 5. The developer asks for another developer as a reviewer to review the PR.
    A PR can only be approved and merged by the reviewer.
@@ -59,8 +59,8 @@ To initialize or update the data repository, after installing your pixi environm
    $ pixi shell
    $ git submodule update --init
 
-This will either clone `mr_reduction-data` into `/path/to/MagnetismReflectometer/tests/mr_reduction-data` or
-bring the `mr_reduction-data`'s refspec in sync with the refspec listed within file `/path/to/mr_reduction/.gitmodules`.
+This will either clone ``mr_reduction-data`` into ``/path/to/MagnetismReflectometer/tests/mr_reduction-data`` or
+bring the ``mr_reduction-data``'s refspec in sync with the refspec listed within file ``/path/to/mr_reduction/.gitmodules``.
 
 An intro to Git LFS in the context of the Neutron Data Project is found in the
 `Confluence pages <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/19103745/Using+git-lfs+for+test+data>`_
@@ -70,7 +70,7 @@ An intro to Git LFS in the context of the Neutron Data Project is found in the
 Running tests
 -------------
 
-After activating your pixi environment for development, one can run three types of tests with `pytest`:
+After activating your pixi environment for development, one can run three types of tests with ``pytest``:
 
 - tests that do not require any input data files
 - tests requiring input data files from the data repository (see above)
@@ -102,7 +102,7 @@ To build the documentation locally, simply use the included ``pixi`` task:
    $ pixi run build-docs
 
 After this, point your browser to
-`file:///path/to/mr_reduction/docs/build/html/index.html`
+``file:///path/to/mr_reduction/docs/build/html/index.html``
 
 
 Creating a stable release
