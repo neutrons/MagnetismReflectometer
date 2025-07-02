@@ -133,6 +133,7 @@ sphinx = ">=8"
 sphinx_rtd_theme = ">=3.0.1"
 
 [tool.pixi.feature.test.dependencies]
+codecov = ">=2.1.13"
 selenium = ">=4.34.0"
 furo = ">=2024.8.6"
 pytest = ">=8.4.l1"
