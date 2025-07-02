@@ -16,7 +16,7 @@ Notes for major and minor releases. Notes for patch releases are referred to the
 
    **Of interest to the Developer:**
 
-   - PR #72 Convert to pixi from conda
+   - PR #
 ..
 
 
@@ -30,7 +30,8 @@ v2.9.0
 
 **Of interest to the Developer:**
 
-- PR #73: merge deploy and testing
+- PR #73: Merge deploy and testing workflows
+- PR #72: Convert to pixi from conda
 
 v2.8.0
 ------

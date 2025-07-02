@@ -11,7 +11,6 @@ User Guide
    :titlesonly:
 
    /user/multiple_peaks
-   /user/conda_environments
    /user/reduce
    /user/roi
    /user/polarization
