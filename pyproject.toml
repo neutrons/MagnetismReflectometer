@@ -97,6 +97,7 @@ pyoncat = "*"
 versioningit = "*"
 
 [tool.pixi.pypi-dependencies]
+mr_reduction = { path = ".", editable = true }
 webdriver-manager = "*"
 
 ### Environments and features ###
