@@ -5,7 +5,7 @@ Reduction
 
 Manual Reduction
 ----------------
-Terminal command ``reduce_REF_M`` is available on the conda environments ``mr_reduction-qa`` and ``mr_reduction``.
+Terminal command ``reduce_REF_M`` is available on the pixi environments ``mr_reduction-qa`` and ``mr_reduction``.
 Running this command starts a simple web application to configure reduction of a single experiment.
 
 Developers or power users running their own pixi environment by cloning the repository,

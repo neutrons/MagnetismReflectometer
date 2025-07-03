@@ -11,23 +11,24 @@ Deployment
 
 The steps to fully deploy the live reduction system are:
 
-- Update conda environment ``mr_reduction`` or ``mr_reduction-qa`` by deploying a new version.
-  If we are testing a new feature, we'll be deploying the conda environment ``mr_reduction-qa``.
-- It may be necessary to update file /etc/livereduce.conf with the new version of the conda environment.
+- Update pixi environment ``mr_reduction`` or ``mr_reduction-qa`` by deploying a new version.
+  If we are testing a new feature, we'll be deploying the pixi environment ``mr_reduction-qa``.
+- It may be necessary to update file /etc/livereduce.conf with the new version of the pixi environment.
   Contact Linux-support for this because the file is managed by the configuration management tool "puppet".
   Let them know what the contents of the file should be.
-- After the conda environment is updated, manually copy the post-processing file:
+- After the pixi environment is updated, manually copy the post-processing file:
 
 .. code-block:: bash
 
-   $> cp /opt/anaconda/envs/mr_reduction-qa/lib/python3.10/site-packages/mr_livereduce/reduce_REF_M_live_post_proc.py /SNS/REF_M/shared/livereduce/
+   $ cp /usr/local/pixi/mr_reduction-qa/.pixi/envs/default/lib/python3.10/site-packages/mr_livereduce/reduce_REF_M_live_post_proc.py \
+      /SNS/REF_M/shared/livereduce/
 
 This should be enough, as the livereuduction service will automatically pick up the new post-processing script.
 If after a few minutes, there seem to be no changes in the web monitor, try restarting the service:
 
 .. code-block:: bash
 
-   $> sudo systemctl restart livereduce
+   $ sudo systemctl restart livereduce
 
 
 Testing the Post-Processing Script with StartLiveData
@@ -45,12 +46,14 @@ please read the
 `Live Data User Interface webpage <https://docs.mantidproject.org/v4.0.0/tutorials/mantid_basic_course/live_data_analysis/03_live_data_user_interface.html>`_
 where you can find descriptions for most of its options.
 
-In our case, you need to first activate the conda environment ``mr_reduction`` and then start Mantid's workbench
+In our case, you need to first activate the pixi environment ``mr_reduction`` and then start Mantid's workbench
 
 .. code-block:: bash
 
-   $> conda activate mr_reduction
-   (mr_reduction)$> workbench
+   $ pixi shell --manifest-path /usr/local/pixi/mr_reduction
+
+   (mr_reduction)
+   $ workbench
 
 Open the settings (File -> Settings) and under tab ``General``,
 set ``Facility`` to ``SNS`` and ``Default Instrument`` to ``REF_M``.

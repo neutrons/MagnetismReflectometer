@@ -40,7 +40,7 @@ source-file = "src/mr_reduction/_version.py"
 build-file = "mr_reduction/_version.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mr_reduction"]
+packages = ["src/mr_reduction", "src/mr_autoreduce", "src/mr_livereduce"]
 
 [tool.versioningit.vcs]
 method = "git"
@@ -84,7 +84,6 @@ backend = { name = "pixi-build-python", version = "0.1.*" }
 
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
-versioningit = "*"
 
 [tool.pixi.dependencies]
 argcomplete = "*"
@@ -95,10 +94,9 @@ mantid = ">=6.12.0.2"
 pandas = "*"
 plotly = "*"
 pyoncat = "*"
-versioningit = "*"
 
 [tool.pixi.pypi-dependencies]
-mr_reduction = { path = ".", editable = true }
+mr_reduction = { path = "."}#, editable = true }
 webdriver-manager = "*"
 
 ### Environments and features ###
@@ -128,7 +126,6 @@ pip = ">=25.1.1"
 pip-audit = ">=2.9.0"
 pre-commit = ">=4.2.0"
 ruff = "*"
-versioningit = ">=3.2.0"
 
 [tool.pixi.feature.docs.dependencies]
 sphinx = ">=8"
