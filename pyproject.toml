@@ -84,6 +84,7 @@ backend = { name = "pixi-build-python", version = "0.1.*" }
 
 [tool.pixi.package.host-dependencies]
 hatchling = "*"
+versioningit = "*"
 
 [tool.pixi.dependencies]
 argcomplete = "*"
@@ -96,7 +97,7 @@ plotly = "*"
 pyoncat = "*"
 
 [tool.pixi.pypi-dependencies]
-mr_reduction = { path = "."}#, editable = true }
+mr_reduction = { path = ".", editable = true }
 webdriver-manager = "*"
 
 ### Environments and features ###
