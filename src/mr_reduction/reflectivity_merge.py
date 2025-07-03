@@ -1,4 +1,3 @@
-# pylint: disable=bare-except, invalid-name, too-many-arguments
 """
 Merging tools for REF_M
 """

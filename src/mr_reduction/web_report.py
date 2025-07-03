@@ -1,4 +1,3 @@
-# pylint: disable=bare-except,dangerous-default-value, too-many-instance-attributes, too-many-arguments
 """
 Report class sed to populate the web monitor
 """

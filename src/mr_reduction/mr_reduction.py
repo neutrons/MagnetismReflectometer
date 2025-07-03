@@ -1,5 +1,3 @@
-# pylint: disable=bare-except, dangerous-default-value, wrong-import-position, wrong-import-order, too-many-arguments, too-many-instance-attributes
-# pylint: disable=bare-except, dangerous-default-value, wrong-import-position, wrong-import-order, too-many-arguments, too-many-instance-attributes
 """
 Reduction for MR
 """
