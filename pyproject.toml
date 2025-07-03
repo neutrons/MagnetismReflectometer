@@ -18,6 +18,7 @@ documentation = "https://mr-reduction.readthedocs.io/en/latest/"
 
 [project.scripts]
 nexus_to_orso = "mr_reduction.scripts.nexus_to_orso:main"
+reduce_REF_M = "mr_autoreduce.reduce_REF_M_run:main"
 
 
 ####################
