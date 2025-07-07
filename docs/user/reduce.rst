@@ -23,7 +23,7 @@ can invoke the webapp by running script ``src/mr_autoreduce/reduce_REF_M_run.sh`
    [2024-07-09 11:20:06 -0400] [278702] [INFO] Using worker: sync
    [2024-07-09 11:20:06 -0400] [278707] [INFO] Booting worker with pid: 278707
 
-As the printout suggest, open a tab in your browser and enter address ``http://127.0.0.1:5000/``.
+As the printout suggests, open a tab in your browser and enter address ``http://127.0.0.1:5000/``.
 This webapp allows one to reduce a single run by entering the Nexus events file, entering the directory
 storing the reduced files, and selecting reduction options.
 Hovering over the bold-face text items will show explanatory tooltips.
