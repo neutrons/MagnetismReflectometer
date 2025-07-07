@@ -11,7 +11,6 @@ User Guide
    :titlesonly:
 
    /user/multiple_peaks
-   /user/conda_environments
    /user/reduce
    /user/roi
    /user/polarization
@@ -37,5 +36,5 @@ Developer Guide
 
 Deployment
 ----------
-The configuration file under `mr_livereduce/livereduce.conf` needs to be place under `/etc` on
+The configuration file under ``mr_livereduce/livereduce.conf`` needs to be place under ``/etc`` on
 the live reduction node.

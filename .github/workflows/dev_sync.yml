@@ -1,8 +1,8 @@
-# Branch `dev` allows us to inject it into the conda environment file:
-#  - pip:
-#    - git+https://github.com/neutrons/MagnetismReflectometer.git@dev#egg=mr_reduction
-# However, because the `.submodules` file is missing, pip will not attempt to install the submodules.
 name: Branch dev in sync to branch next
+
+description: |
+  The `dev` branch is just `next` without the `.gitmodules` file, to allow for deploying
+  this package from source without attempting to also clone the test data repository.
 
 on:
   push:

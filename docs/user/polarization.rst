@@ -16,12 +16,12 @@ this direction.
    :width: 400
 
 
-Processing variables (PV) `Polarizer` and `Analyzer` indicate whether any of these spin selectors has been
-installed and are in use. Given a particular `Polarizer`, PV `PolarizerState` indicates the selected
-"up" or "down" state. PV variable `AnalyzerState` plays an analogous role for the analyzer.
+Processing variables (PV) ``Polarizer`` and ``Analyzer`` indicate whether any of these spin selectors has been
+installed and are in use. Given a particular ``Polarizer``, PV ``PolarizerState`` indicates the selected
+"up" or "down" state. PV variable ``AnalyzerState`` plays an analogous role for the analyzer.
 
-The following tables summarize the possible values of `Polarizer` and `Analyzer` along with corresponding
-`PolarizerState` and `AnalyzerState` values. Lastly, the table also shows the corresponding
+The following tables summarize the possible values of ``Polarizer`` and ``Analyzer`` along with corresponding
+``PolarizerState`` and ``AnalyzerState`` values. Lastly, the table also shows the corresponding
 ORSO polarization value that is used when saving the reduced data to ORSO format
 
 +-----------------------+-------------------+-------------------------+

@@ -5,12 +5,12 @@ Reduction
 
 Manual Reduction
 ----------------
-Terminal command `reduce_REF_M` is available on the conda environments `mr_reduction-qa` and `mr_reduction`.
+Terminal command ``reduce_REF_M`` is available on the pixi environments ``mr_reduction-qa`` and ``mr_reduction``.
 Running this command starts a simple web application to configure reduction of a single experiment.
 
-Developers or power users running their own conda environment from `environment.yml`,
-and having installed the package in editable mode,
-can invoke the webapp by running script `src/mr_autoreduce/reduce_REF_M_run.sh`
+Developers or power users running their own pixi environment by cloning the repository,
+and installing by running ``pixi install``
+can invoke the webapp by running script ``src/mr_autoreduce/reduce_REF_M_run.sh``
 
  .. code-block:: bash
 
@@ -23,7 +23,7 @@ can invoke the webapp by running script `src/mr_autoreduce/reduce_REF_M_run.sh`
    [2024-07-09 11:20:06 -0400] [278702] [INFO] Using worker: sync
    [2024-07-09 11:20:06 -0400] [278707] [INFO] Booting worker with pid: 278707
 
-As the printout suggest, open a tab in your browser and enter address `http://127.0.0.1:5000/`.
+As the printout suggests, open a tab in your browser and enter address ``http://127.0.0.1:5000/``.
 This webapp allows one to reduce a single run by entering the Nexus events file, entering the directory
 storing the reduced files, and selecting reduction options.
 Hovering over the bold-face text items will show explanatory tooltips.
@@ -46,13 +46,13 @@ click on **View Report** for a summary of the results.
 
    Report for the manual reduction.
 
-The report shown is HTML file `/tmp/test_webform/REF_M_REF_M_41445.html`, where `/tmp/test_webform/` is the
+The report shown is HTML file ``/tmp/test_webform/REF_M_REF_M_41445.html``, where ``/tmp/test_webform/`` is the
 output directory we selected.
 
 Notice how the report shows the superposition of reflectivity curves for runs 41445, 41446, and 41447. This
-will happen if reduced files for runs 41446 and 41447 are found either in the output directory `/tmp/test_webform`
+will happen if reduced files for runs 41446 and 41447 are found either in the output directory ``/tmp/test_webform``
 or the canonical output directory for autoreduction of runs corresponding to run 41445 which in this
-case is `/SNS/REF_M/IPTS-21391/shared/autoreduce/`. Runs 41445, 41446, and 41447 correspond to experiments
+case is ``/SNS/REF_M/IPTS-21391/shared/autoreduce/``. Runs 41445, 41446, and 41447 correspond to experiments
 taken on the same peak but with a different incidence angle.
 
 
@@ -140,17 +140,17 @@ leaving a clearer view of the stitching for the "Off_Off" cross-section.
    :width: 400
 
 In the output directory,
-the files containing the reflectivity curves in ASCII format are `REF_M_*_autoreduce.dat`
-for individual runs and `REF_M_*_combined.dat` for stitched runs.
+the files containing the reflectivity curves in ASCII format are ``REF_M_*_autoreduce.dat``
+for individual runs and ``REF_M_*_combined.dat`` for stitched runs.
 
 
 Automated Reduction
 -------------------
 
 The set of reduction options available in the manual reduction is also available in
-`https://monitor.sns.gov/reduction/ref_m/`. Updating these options ensure that auto-reduction
+``https://monitor.sns.gov/reduction/ref_m/``. Updating these options ensure that auto-reduction
 of future experiment will employ the new options.
-Auto-reduced files are saved under directory `/SNS/REF_M/IPTS-XYZ/shared/autoreduce/`, where `XYZ` corresponds
+Auto-reduced files are saved under directory ``/SNS/REF_M/IPTS-XYZ/shared/autoreduce/``, where ``XYZ`` corresponds
 to the IPTS number associated to whatever run number is to be auto-reduced.
 
 Output Files
@@ -177,13 +177,13 @@ which for run peak turn out to be "Off_Off" and "On_Off".
   hence is endowed with the combined file.
 - **REF_M_42535_1_combined.ort**: combined reflectivities for all cross-sections for all runs
   in the same run-sequence as 42535 (ORSO ASCII format).
-- **REF_M_42535_1_combined.py**: paste scripts `REF_M_*_partial.py` for all runs in the same run-sequence
+- **REF_M_42535_1_combined.py**: paste scripts ``REF_M_*_partial.py`` for all runs in the same run-sequence
   as 42535.
-- **REF_M_42535_1_tunable_combined.py**: same as `REF_M_42535_1_combined.py`, but the reduction workflow of
+- **REF_M_42535_1_tunable_combined.py**: same as ``REF_M_42535_1_combined.py``, but the reduction workflow of
   each run is grouped into two functions, one splitting the events according to the cross-section and the
   other to calculate the reflectivity curve for each cross-section.
 - **REF_M_42535_1.json**: a small "database" file storing the path to the nexus file as well as the names
-  of the cross-section reflectivity files `REF_M_42535_1_*_autoreduce.dat`.
+  of the cross-section reflectivity files ``REF_M_42535_1_*_autoreduce.dat``.
 
 .. _using_reduce_script/live_reduction:
 
@@ -207,20 +207,19 @@ and runs it in a separate python interpreter process as
    RunPythonScript(InputWorkspace=input,
                    Filename="/SNS/REF_M/shared/livereduce/reduce_REF_M_live_post_proc.py")
 
-where `input` is the `EventWorkspace <https://docs.mantidproject.org/nightly/concepts/EventWorkspace.html>`_
-containing the events accumulated up to the time when script `reduce_REF_M_live_post_proc.py` is run.
-Package `mr_reduction.mr_livereduce` contains script
+where ``input`` is the `EventWorkspace <https://docs.mantidproject.org/nightly/concepts/EventWorkspace.html>`_
+containing the events accumulated up to the time when script ``reduce_REF_M_live_post_proc.py`` is run.
+Package ``mr_reduction.mr_livereduce`` contains script
 `reduce_REF_M_live_post_proc.py <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/reduce_REF_M_live_post_proc.py>`_
-which specifies all the steps for successful reduction of the accumulated events workspace `input`.
+which specifies all the steps for successful reduction of the accumulated events workspace ``input``.
 
 Live-reduction is very similar to auto-reduction, thus script
 `reduce_REF_M_live_post_proc.py <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/reduce_REF_M_live_post_proc.py>`_
-reuses
-much of the functionality encoded in the template auto-reduction script
+reuses much of the functionality encoded in the template auto-reduction script
 `mr_reduction.mr_autoreduce.reduce_REF_M.py.template <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_autoreduce/reduce_REF_M.py.template>`_.
-When the live-reduction script is deployed as `/SNS/REF_M/shared/livereduce/reduce_REF_M_live_post_proc.py`
+When the live-reduction script is deployed as ``/SNS/REF_M/shared/livereduce/reduce_REF_M_live_post_proc.py``
 and invoked as above, the script imports the deployed auto-reduction script
-`/SNS/REF_M/shared/autoreduce/reduce_REF_M.py` as if it were a python module.
+``/SNS/REF_M/shared/autoreduce/reduce_REF_M.py`` as if it were a python module.
 This way the functions defined in the auto-reduction script can be reused in the live-reduction script.
 
 The output of the live-reduction script is virtually identical to that of the auto-reduction script,
