@@ -6,8 +6,6 @@ on:
   push:
     branches: [next, qa, main]
     tags: ["v*"]
-  release:
-    types: [published]
 
 env:
   PKG_NAME: mr_reduction
