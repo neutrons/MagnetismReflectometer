@@ -24,31 +24,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - name: Setup Pixi
-      #   uses: prefix-dev/setup-pixi@v0.8.10
-      #   with:
-      #     pixi-version: v0.49.0
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@v0.8.10
+        with:
+          pixi-version: v0.49.0
 
-      # - name: Install chromium
-      #   run: |
-      #     echo "chromium enables testing HTML reports"
-      #     sudo apt-get install --yes chromium-browser
+      - name: Install chromium
+        run: |
+          echo "chromium enables testing HTML reports"
+          sudo apt-get install --yes chromium-browser
 
-      # - name: Run unit tests
-      #   run: |
-      #     pixi run test -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
-      #     mv .coverage .coverage.unit
+      - name: Run unit tests
+        run: |
+          pixi run test -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
+          mv .coverage .coverage.unit
 
-      # - name: Run integration tests
-      #   run: |
-      #     git submodule update --init
-      #     pixi run test -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
-      #     mv .coverage .coverage.integration
+      - name: Run integration tests
+        run: |
+          git submodule update --init
+          pixi run test -vv -m "datarepo" --cov=src --cov-report=xml  --cov-report=term-missing tests/
+          mv .coverage .coverage.integration
 
-      # - name: Upload coverage to codecov
-      #   uses: codecov/codecov-action@v5
-      #   with:
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   ##############################
   ### Package and Deployment ###
@@ -92,7 +92,7 @@ jobs:
           path: /tmp/local-channel/linux-64
 
       - name: Verify conda package
-        uses: glass-ships/conda-verify@main
+        uses: neutrons/conda-verify@main
         with:
           local-channel: /tmp/local-channel
           package-name: ${{ env.PKG_NAME }}
