@@ -81,8 +81,8 @@ jobs:
           package-name: ${{ env.PKG_NAME }}
           extra-channels: mantid-ornl mantid neutrons oncat
           extra-commands: |
-            python -c "import mantid"
-            python -c "import pyoncat"
+            pixi run python -c "import mantid"
+            pixi run python -c "import pyoncat"
 
   publish:
     runs-on: ubuntu-24.04
