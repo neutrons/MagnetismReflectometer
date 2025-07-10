@@ -50,6 +50,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+
   ##############################
   ### Package and Deployment ###
   ##############################
@@ -84,6 +85,16 @@ jobs:
             pixi run python -c "import mantid"
             pixi run python -c "import pyoncat"
 
+      # Upload the conda package for job "publish" to use later
+      - name: upload conda package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-conda-package
+          path: ${{ env.PKG_NAME }}-*.conda
+
+
+  # Publish the package as a separate job so that the Github Actions webpage
+  # shows it as a separate step in the CI workflow
   publish:
     runs-on: ubuntu-24.04
     needs: [tests, build]
