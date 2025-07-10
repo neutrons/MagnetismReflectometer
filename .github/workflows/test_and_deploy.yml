@@ -73,7 +73,8 @@ jobs:
       - name: Build conda package
         run: |
           pixi run conda-build
-          mkdir -p /tmp/local-channel/linux-64 && cp ${{ env.PKG_NAME }}-*.conda /tmp/local-channel/linux-64/
+          mkdir -p /tmp/local-channel/linux-64
+          cp ${{ env.PKG_NAME }}-*.conda /tmp/local-channel/linux-64/
 
       - name: Verify Conda Package
         uses: neutrons/conda-verify@main
@@ -89,6 +90,7 @@ jobs:
       # Upload the conda package for job "publish" to use later
       - name: upload conda package as artifact
         uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           name: artifact-conda-package
           path: ${{ env.PKG_NAME }}-*.conda
