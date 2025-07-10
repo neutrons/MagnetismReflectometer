@@ -29,6 +29,6 @@ repos:
     hooks:
       - id: pixi-lock-check
         name: pixi-lock-check
-        entry: bash -c "pixi lock --check"
+        entry: bash -c "/home/jbq/.pixi/bin/pixi lock --check"
         stage: pre-push
         language: system
