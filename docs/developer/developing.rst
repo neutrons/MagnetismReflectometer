@@ -107,6 +107,6 @@ After this, point your browser to
 
 Creating a stable release
 -------------------------
-- Follow the `Software Maturity Model <https://ornl-neutrons.atlassian.net/wiki/spaces/NDPD/pages/23363585/Software+Maturity+Model>`_
+- Follow the `Software Release Process <https://ornl-neutrons.atlassian.net/wiki/x/AYBkAQ>`_
   for continuous versioning, as well as creating Candidate and Production releases.
 - Update the :ref:`Release Notes <release_notes>` with major fixes, updates and additions since last stable release.
