@@ -3,35 +3,8 @@
 Release Notes
 =============
 
-Notes for major and minor releases. Notes for patch releases are referred to the next minor release.
-
-..
-   v2.10.0
-   -------
-   (date of release, format YYYY-MM-DD)
-
-   **Of interest to the User:**
-
-   - PR #
-
-   **Of interest to the Developer:**
-
-   - PR #
-..
-
-
-v2.9.0
-------
-2025-16-01
-
-**Of interest to the User:**
-
-- PR #
-
-**Of interest to the Developer:**
-
-- PR #73: Merge deploy and testing workflows
-- PR #72: Convert to pixi from conda
+For release notes after `v2.8.0`,
+see the `GitHub release notes <https://github.com/neutrons/MagnetismReflectometer/releases>`_.
 
 v2.8.0
 ------
