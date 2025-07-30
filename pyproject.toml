@@ -57,6 +57,7 @@ distance-dirty = "{next_version}.dev{distance}"
 [tool.versioningit.write]
 file = "src/mr_reduction/_version.py"
 
+
 ###################
 ### Pixi config ###
 ###################
@@ -67,7 +68,6 @@ platforms = ["linux-64"]
 channels = [
   "conda-forge",
   "mantid-ornl",
-  "mantid",
   "oncat",
   "neutrons",
   "https://prefix.dev/pixi-build-backends",
@@ -88,10 +88,10 @@ versioningit = "*"
 
 [tool.pixi.dependencies]
 argcomplete = "*"
+mantid = "==6.12.0.2"
 finddata = "==0.10"
 flask = "*"
 gunicorn = "*"
-mantid = ">=6.12.0.2"
 pandas = "*"
 plotly = "*"
 pyoncat = "*"
@@ -100,7 +100,20 @@ pyoncat = "*"
 mr_reduction = { path = ".", editable = true }
 webdriver-manager = "*"
 
-### Environments and features ###
+# Conda packages (no PyPi) to be enumerated within the conda package to be built.
+[tool.pixi.package.run-dependencies]
+mantid = "==6.12.0.2"
+finddata = "==0.10"
+flask = "*"
+gunicorn = "*"
+pandas = "*"
+plotly = "*"
+pyoncat = "*"
+
+
+######################################
+### Pixi Environments and features ###
+######################################
 
 [tool.pixi.environments]
 default = { features = [
