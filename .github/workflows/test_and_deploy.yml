@@ -79,10 +79,10 @@ jobs:
       - name: Verify Conda Package
         uses: neutrons/conda-verify@main
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           local-channel: /tmp/local-channel
           package-name: ${{ env.PKG_NAME }}
-          extra-channels: mantid-ornl mantid neutrons oncat
+          extra-channels: mantid neutrons oncat
           extra-commands: |
             pixi run python -c "import mantid"
             pixi run python -c "import pyoncat"
