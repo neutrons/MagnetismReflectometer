@@ -54,7 +54,7 @@ you can use an IDE like PyCharm or VSCode to run the autoreduction script
 while having the ability to set breakpoints whithin the modules of package ``mr_reduction``,
 even if you have read-only access.
 This is the scenario if debugging in one of the analysis machines with pixi environment
-``/usr/local/pixi/mr_reduction-dev/.pixi/envs/default/lib/python3.10/site-packages/mr_reduction``.
+``/usr/local/pixi/mr_reduction-dev/.pixi/envs/default/lib/python3.11/site-packages/mr_reduction``.
 Alternatively, you can set up your own ``mr_reduction`` pixi environment in your home directory
 so that you can edit the modules and introduce ``pdb.set_trace()`` statements.
 

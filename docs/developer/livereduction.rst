@@ -20,7 +20,7 @@ The steps to fully deploy the live reduction system are:
 
 .. code-block:: bash
 
-   $ cp /opt/anaconda/envs/mr_reduction-qa/lib/python3.10/site-packages/mr_livereduce/reduce_REF_M_live_post_proc.py /SNS/REF_M/shared/livereduce/
+   $ cp /opt/anaconda/envs/mr_reduction-qa/lib/python3.11/site-packages/mr_livereduce/reduce_REF_M_live_post_proc.py /SNS/REF_M/shared/livereduce/
 
 This should be enough, as the livereuduction service will automatically pick up the new post-processing script.
 If after a few minutes, there seem to be no changes in the web monitor, try restarting the service:
