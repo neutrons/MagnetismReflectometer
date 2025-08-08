@@ -84,8 +84,9 @@ jobs:
           package-name: ${{ env.PKG_NAME }}
           extra-channels: mantid neutrons oncat
           extra-commands: |
-            pixi run python -c "import mantid"
-            pixi run python -c "import pyoncat"
+            which python
+            python -c "import mantid"
+            python -c "import pyoncat"
 
       # Upload the conda package for job "publish" to use later
       - name: upload conda package as artifact
