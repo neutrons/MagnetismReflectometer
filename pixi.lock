@@ -276,7 +276,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/muparser-2.3.4-h27087fc_0.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mypy-1.17.0-py311h49ec1c0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mypy_extensions-1.1.0-pyha770c72_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/narwhals-2.0.1-pyhe01879c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/nbformat-5.10.4-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ncurses-6.5-h2d0b736_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/nodeenv-1.9.1-pyhd8ed1ab_1.conda
@@ -299,7 +298,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/pip-audit-2.9.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pip-requirements-parser-32.0.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/platformdirs-4.3.8-pyhe01879c_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/plotly-6.2.0-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/plotly-5.24.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/pluggy-1.6.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ply-3.11-pyhd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/poco-1.14.2-h0a6e815_0.conda
@@ -364,6 +363,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-qthelp-2.0.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/sphinxcontrib-serializinghtml-1.1.10-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tbb-2022.2.0-hb60516a_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/tenacity-9.1.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_hd72426e_102.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/toml-0.10.2-pyhd8ed1ab_1.conda
@@ -2473,8 +2473,8 @@ packages:
   timestamp: 1733255681319
 - pypi: ./
   name: mr-reduction
-  version: 2.11.0.dev2
-  sha256: 9683b2e7c8b8d5d89c66a0b97735ec216e734ea198aff4d5f13457e0b51e7992
+  version: 2.12.0.dev1
+  sha256: 7623c469ce68e4b03ab70b478c1a2351337213657bd7fd76525d30ba5e71f09a
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/msgpack-python-1.1.1-py311hd18a35c_0.conda
@@ -2561,17 +2561,6 @@ packages:
   - pkg:pypi/mypy-extensions?source=hash-mapping
   size: 11766
   timestamp: 1745776666688
-- conda: https://conda.anaconda.org/conda-forge/noarch/narwhals-2.0.1-pyhe01879c_0.conda
-  sha256: 167ed2f6100909830863531faa2dce250eedee78f2d64c4e5506dc3f3ae3c354
-  md5: 5f0dea40791cecf0f82882b9eea7f7c1
-  depends:
-  - python >=3.9
-  - python
-  license: MIT
-  purls:
-  - pkg:pypi/narwhals?source=hash-mapping
-  size: 240527
-  timestamp: 1753814733349
 - conda: https://conda.anaconda.org/conda-forge/noarch/nbformat-5.10.4-pyhd8ed1ab_1.conda
   sha256: 7a5bd30a2e7ddd7b85031a5e2e14f290898098dc85bea5b3a5bf147c25122838
   md5: bbe1963f1e47f594070ffe87cdf612ea
@@ -2951,21 +2940,21 @@ packages:
   - pkg:pypi/platformdirs?source=hash-mapping
   size: 23531
   timestamp: 1746710438805
-- conda: https://conda.anaconda.org/conda-forge/noarch/plotly-6.2.0-pyhd8ed1ab_0.conda
-  sha256: d72d601e09722c434871c29a102202178fe1fcf031c6290e10fb4a756c1944a3
-  md5: 8a9590843af49b36f37ac3dbcf5fc3d9
+- conda: https://conda.anaconda.org/conda-forge/noarch/plotly-5.24.1-pyhd8ed1ab_1.conda
+  sha256: d1bbf2d80105bfc8a7ed9817888f4a1686ed393d6435572921add09cc9347c1c
+  md5: 71ac632876630091c81c50a05ec5e030
   depends:
-  - narwhals >=1.15.1
   - packaging
   - python >=3.9
+  - tenacity >=6.2.0
   constrains:
   - ipywidgets >=7.6
   license: MIT
   license_family: MIT
   purls:
   - pkg:pypi/plotly?source=hash-mapping
-  size: 5187885
-  timestamp: 1751025216667
+  size: 8022748
+  timestamp: 1733733328161
 - conda: https://conda.anaconda.org/conda-forge/noarch/pluggy-1.6.0-pyhd8ed1ab_0.conda
   sha256: a8eb555eef5063bbb7ba06a379fa7ea714f57d9741fe0efdb9442dbbc2cccbcc
   md5: 7da7ccd349dbf6487a7778579d2bb971
@@ -3999,6 +3988,17 @@ packages:
   purls: []
   size: 182946
   timestamp: 1753179082550
+- conda: https://conda.anaconda.org/conda-forge/noarch/tenacity-9.1.2-pyhd8ed1ab_0.conda
+  sha256: fd9ab8829947a6a405d1204904776a3b206323d78b29d99ae8b60532c43d6844
+  md5: 5d99943f2ae3cc69e1ada12ce9d4d701
+  depends:
+  - python >=3.9
+  license: Apache-2.0
+  license_family: APACHE
+  purls:
+  - pkg:pypi/tenacity?source=hash-mapping
+  size: 25364
+  timestamp: 1743640859268
 - conda: https://conda.anaconda.org/conda-forge/noarch/threadpoolctl-3.6.0-pyhecae5ae_0.conda
   sha256: 6016672e0e72c4cf23c0cf7b1986283bd86a9c17e8d319212d78d8e9ae42fdfd
   md5: 9d64911b31d57ca443e9f1e36b04385f

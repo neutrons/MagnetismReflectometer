@@ -93,7 +93,7 @@ finddata = "==0.10"
 flask = "*"
 gunicorn = "*"
 pandas = "*"
-plotly = "*"
+plotly = { version = "==5.24.1", channel = "conda-forge" } # <6.0 required for browser to display figures
 pyoncat = "*"
 
 [tool.pixi.pypi-dependencies]
@@ -107,7 +107,7 @@ finddata = "==0.10"
 flask = "*"
 gunicorn = "*"
 pandas = "*"
-plotly = "*"
+plotly = { version = "==5.24.1", channel = "conda-forge" } # <6.0 required for browser to display figures
 pyoncat = "*"
 
 
