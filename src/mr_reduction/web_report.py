@@ -10,7 +10,8 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import plotly.graph_objs as go
-import plotly.offline as py
+import plotly.offline as pyo
+import requests
 
 # third party imports
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
@@ -19,6 +20,50 @@ from requests import Response
 # mr_reduction imports
 from mr_reduction.data_info import DataType
 from mr_reduction.simple_utils import SampleLogs
+
+
+def html_wrapper(report: str) -> str:
+    """Wraps a report (set of <dvi> elements) in a complete HTML document
+
+    Adds the javascript engine (PlotLy.js) address, HTML head, and body tags.
+
+    Parameters
+    ----------
+    report : str
+        The HTML content to be wrapped. This should contain on or more <div> elements and possibly
+        summary <table> elements.
+
+    Returns
+    -------
+    str
+        A complete HTML document as a string, with the provided report content embedded within the body.
+    """
+    js_version = pyo.get_plotlyjs_version()
+    url = f"https://cdn.plot.ly/plotly-{js_version}.js"
+    try:
+        response = requests.head(url, timeout=5)
+        assert response.status_code == 200
+    except (requests.RequestException, AssertionError):
+        logger.error(f"Plotly.js version {js_version} not found, using version 3.0.0 instead")
+        url = "https://cdn.plot.ly/plotly-3.0.0.js"
+
+    prefix = f"""<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Plotly Chart</title>
+        <script src="{url}"></script>
+    </head>
+    <body>
+
+    """
+    suffix = """
+
+    </body>
+    </html>
+    """
+    return prefix + report + suffix
 
 
 def upload_html_report(
@@ -58,25 +103,8 @@ def upload_html_report(
     report_composite = _merge(html_report)
 
     if bool(report_file) is True and isinstance(report_file, str):
-        # add the javascript engine so that the report can be displayed in a web browser
-        prefix = """<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Plotly Chart</title>
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        </head>
-        <body>
-
-        """
-        suffix = """
-
-        </body>
-        </html>
-        """
         with open(report_file, "w") as f:
-            f.write(prefix + report_composite + suffix)
+            f.write(html_wrapper(report_composite))
 
     if publish is False:
         return None
@@ -748,7 +776,7 @@ def _plot2d(
         yaxis=y_layout,
     )
     fig = go.Figure(data=data, layout=layout)
-    return py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
 
 def _plot1d(
@@ -883,7 +911,7 @@ def _plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    return py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
 
 def plot1d(
@@ -976,7 +1004,7 @@ def plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    plot_div = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot_div = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
     return plot_div
 
 
@@ -1010,6 +1038,6 @@ def _plotText(text, title=""):
     )
 
     fig = go.Figure(layout=layout)
-    plot = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
     return plot
