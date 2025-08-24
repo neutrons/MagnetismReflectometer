@@ -354,16 +354,7 @@ class ReductionProcess:
 
         # Generate report and script
         logger.notice("Processing collection of %s reports" % len(report_list))
-        try:
-            html_report, _ = process_collection(
-                summary_content=ref_plot,
-                report_list=report_list,
-                publish=self.publish,
-                run_number=str(self.run_number),
-            )
-        except:  # noqa E722
-            html_report = ""
-            self.log("Could not process reports %s" % sys.exc_info()[1])
+        html_report, _ = process_collection(summary_content=ref_plot, report_list=report_list)
 
         if self.logfile:
             self.logfile.close()

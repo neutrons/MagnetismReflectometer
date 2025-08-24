@@ -14,7 +14,7 @@ import warnings
 
 # third-party imports
 from mr_reduction.mr_reduction import ReductionProcess
-from mr_reduction.web_report import upload_html_report
+from mr_reduction.web_report import save_report, upload_report
 
 warnings.simplefilter('ignore')
 CONDA_ENV = 'mr_reduction'
@@ -54,7 +54,7 @@ def reduction_user_options():
         q_step=float(${q_step}),
         use_sangle = _as_bool(${use_sangle}),
         update_peak_range=_as_bool(${fit_peak_in_roi}),
-        publish = False  # uploading to livedata server to be done later by `upload_html_report()`
+        publish = False  # uploading to livedata server to be done later by `upload_report()`
     )
 
     # Options for Peak 1
@@ -124,8 +124,6 @@ def parse_command_arguments():
     parser = argparse.ArgumentParser(description='Autoreduction script for REF_M')
     parser.add_argument('events_file', type=str, help='Path to the Nexus events file.')
     parser.add_argument('outdir', type=str, help='Output directory path.')
-    parser.add_argument('--report_file', type=str, help='Save the HTML report to file. If only the file name is given,'
-                                                        'the file is saved in the output directory')
     parser.add_argument('--no_publish', action='store_true', help='Do not upload HTML report to the livedata server.')
     return parser.parse_args()
 
@@ -135,12 +133,11 @@ def main():
     args = parse_command_arguments()
     reports = reduce_events_file(args.events_file, args.outdir)
 
-    # If saving the report to file, find if we should save to the output directory
-    file_path = args.report_file
-    if file_path and os.path.basename(file_path) == file_path:
-        file_path = os.path.join(args.outdir, file_path)
+    # Save to disk and (optionally) upload the HTML report
     run_number = re.search(r'REF_M_(\d+)', args.events_file).group(1)
-    upload_html_report(reports, publish=(not args.no_publish), run_number=run_number, report_file=file_path)
+    save_report(reports, os.path.join(args.outdir, f'REF_M_{run_number}.html'))  # save HTML report
+    if not args.no_publish:
+        upload_report(reports, run_number=run_number)
 
     # Check if the auto-reduce data has been saved to the canonical IPTS-XXXXX/shared/autoreduce directory
     ipts = re.search(r'IPTS-\d+', args.events_file).group(0)  # extract 'IPTS-31954' from the events file
