@@ -2473,8 +2473,8 @@ packages:
   timestamp: 1733255681319
 - pypi: ./
   name: mr-reduction
-  version: 2.12.0.dev1
-  sha256: 7623c469ce68e4b03ab70b478c1a2351337213657bd7fd76525d30ba5e71f09a
+  version: 2.12.0rc1
+  sha256: 8ff2bc96cc69613d81eea425e9d3dc5dbd9d52e4fc253b69977ac02d5ea20a67
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/msgpack-python-1.1.1-py311hd18a35c_0.conda
