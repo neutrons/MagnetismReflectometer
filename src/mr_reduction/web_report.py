@@ -10,21 +10,94 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import plotly.graph_objs as go
-import plotly.offline as py
+import plotly.offline as pyo
+import requests
 
 # third party imports
+from finddata.publish_plot import publish_plot
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 from requests import Response
+from requests import head as requests_head
 
 # mr_reduction imports
 from mr_reduction.data_info import DataType
 from mr_reduction.simple_utils import SampleLogs
 
 
-def upload_html_report(
-    html_report: Union[str, List[str]], publish=True, run_number: Union[str, int] = None, report_file=None
-) -> Optional[Response]:
-    r"""Upload html report to the livedata server
+def html_wrapper(report: Union[str, None]) -> str:
+    """Wraps a report (set of <dvi> elements) in a complete HTML document
+
+    Adds the javascript engine (PlotLy.js) address, HTML head, and body tags.
+
+    Parameters
+    ----------
+    report : str
+        The HTML content to be wrapped. This should contain on or more <div> elements and possibly
+        summary <table> elements.
+
+    Returns
+    -------
+    str
+        A complete HTML document as a string, with the provided report content embedded within the body.
+    """
+    js_version = pyo.get_plotlyjs_version()
+    url = f"https://cdn.plot.ly/plotly-{js_version}.js"
+    try:
+        response = requests_head(url, timeout=5)
+        assert response.status_code == 200
+    except (requests.RequestException, AssertionError):
+        logger.error(f"Plotly.js version {js_version} not found, using version 3.0.0 instead")
+        url = "https://cdn.plot.ly/plotly-3.0.0.js"
+
+    prefix = f"""<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Plotly Chart</title>
+        <script src="{url}"></script>
+    </head>
+    <body>
+
+    """
+    suffix = """
+
+    </body>
+    </html>
+    """
+    report = "" if report is None else report
+    return prefix + report + suffix  # allow for report being `None`
+
+
+def _concatenate_reports(reports: List[str]) -> str:
+    if isinstance(reports, (list, tuple)):
+        composite = "\n".join([str(report) for report in reports])
+    else:
+        composite = str(reports)
+    return composite
+
+
+def save_report(html_report: Union[str, List[str]], report_file: str):
+    """Save report to a local file
+
+    If `html_report` contains more than one report, then merge them.
+
+    Parameters
+    ----------
+    html_report : str, List[str]
+        One or more compendium of <div> and <table> elements. Has all the information from reducing a run,
+        possibly including reports from more than one peak when the run contains many peaks. This could happen
+        if the experiment contained more than one sample, each reflecting at a different angle.
+    report_file : str
+        File path where the report will be saved as an HTML file.
+    """
+    report_composite = _concatenate_reports(html_report)
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write(html_wrapper(report_composite))
+
+
+def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int]) -> Optional[Response]:
+    r"""Upload report to the livedata server
 
     If `html_report` contains more than one report, then merge them.
 
@@ -34,8 +107,6 @@ def upload_html_report(
         one or more compendium of <div> and <table> elements. Has all the information from reducing a run,
         possibly including reports from more than one peak when the run contains many peaks. This could happen
         if the experiment contained more than one sample, each reflecting at a different angle.
-    publish: bool
-        Upload the report to the livedata server
     run_number: str, int
         Run number (e.g. '123435'). Required if `publish` is True
     report_file: Optional[str]
@@ -47,62 +118,11 @@ def upload_html_report(
         `Response` object returned by the livedata server, or `None` if the function is unable to do find the
         library to generate the `request.post()`
     """
-
-    def _merge(reports):
-        if isinstance(reports, (list, tuple)):
-            composite = "\n".join([str(report) for report in reports])
-        else:
-            composite = str(reports)
-        return composite
-
-    report_composite = _merge(html_report)
-
-    if bool(report_file) is True and isinstance(report_file, str):
-        # add the javascript engine so that the report can be displayed in a web browser
-        prefix = """<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Plotly Chart</title>
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        </head>
-        <body>
-
-        """
-        suffix = """
-
-        </body>
-        </html>
-        """
-        with open(report_file, "w") as f:
-            f.write(prefix + report_composite + suffix)
-
-    if publish is False:
-        return None
-
-    if run_number is None:
-        logger.error("Could not publish web report. No run number provided")
-        return None
-
-    # Depending on where we run, we might get our publisher from different places, or not at all.
-    _publisher_found = False
-    try:  # version on autoreduce
-        from postprocessing.publish_plot import publish_plot
-
-        _publisher_found = True
-    except ImportError:  # version on instrument computers
-        from finddata.publish_plot import publish_plot
-
-        _publisher_found = True
-    if _publisher_found:
-        return publish_plot("REF_M", run_number, files={"file": report_composite})
-    else:
-        logger.error(f"Could not publish web report: {sys.exc_info()[1]}")
-        return None
+    report_composite = _concatenate_reports(html_report)
+    return publish_plot("REF_M", run_number, files={"file": report_composite})
 
 
-def process_collection(summary_content=None, report_list=[], publish=True, run_number=None) -> Tuple[str, str]:
+def process_collection(summary_content=None, report_list=None) -> Tuple[str, str]:
     r"""Process a collection of HTML reports into on final HTML report
 
     Parameters
@@ -111,8 +131,6 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
             HTML content to be displayed at the top of the report
         report_list: List[mr_reduction.web_report.Report]
             List of HTML contents to be appended at the bottom of the page
-        publish: bool
-            If True, the report will be sent to the live data server
         run_number: str
             run number to associate this report with
 
@@ -122,6 +140,8 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
         plot_html str: HTML
         script str: python script
     """
+    if report_list is None:
+        report_list = []
     logger.notice("Processing... %s" % len(report_list))
     plot_html = "<div></div>"
     script = ""
@@ -143,37 +163,7 @@ def process_collection(summary_content=None, report_list=[], publish=True, run_n
         plot_html += "</table>\n"
         plot_html += "<hr>\n"
 
-    # Send to the web monitor as needed
-    if publish:
-        if run_number is None and report_list:
-            run_number = report_list[0].data_info.run_number
-        upload_html_report(plot_html, run_number=run_number)
-
     return plot_html, script
-
-
-def paste_collection_reports(collection_reports, run_number, publish=False) -> str:
-    r"""Paste together (just one after the other) a collection of reports as produced
-    by function `process_collection`, and publish to the livedata server if so requested.
-
-    Parameters
-    ----------
-    collection_reports: List[str]
-        List of reports, the output of a series of calls to `process_collection`
-    run_number: str
-        Run number, should be the same for all reports
-    publish: bool
-        If `True`, attempt to send the report to the livedata server
-
-    Returns
-    -------
-    str
-        The collection of reports, all pasted togeter one after the other
-    """
-    composite = "\n".join(collection_reports)
-    if publish is True:
-        upload_html_report(composite, run_number=run_number)
-    return composite
 
 
 class Report:
@@ -748,7 +738,7 @@ def _plot2d(
         yaxis=y_layout,
     )
     fig = go.Figure(data=data, layout=layout)
-    return py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
 
 def _plot1d(
@@ -883,7 +873,7 @@ def _plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    return py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
 
 def plot1d(
@@ -976,7 +966,7 @@ def plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    plot_div = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot_div = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
     return plot_div
 
 
@@ -1010,6 +1000,6 @@ def _plotText(text, title=""):
     )
 
     fig = go.Figure(layout=layout)
-    plot = py.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
 
     return plot

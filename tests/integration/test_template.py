@@ -40,13 +40,13 @@ def test_template(mock_filesystem, data_server, autoreduction_script):
     # We don't invoke the reduction script as a shell command because we need mock_filesystem.
     # Instead, we import functions from it
     with add_to_sys_path(os.path.dirname(reduction_script)):
-        from reduce_REF_M import reduce_events_file, upload_html_report  # script being used as a module
+        from reduce_REF_M import reduce_events_file, save_report  # script being used as a module
 
         events_file = data_server.path_to("REF_M_42537.nxs.h5")
         outdir = mock_filesystem.tempdir  # instead of /SNS/IPTS-31954/shared/autoreduce/
         reports = reduce_events_file(events_file, outdir)  # reduce the two peaks and generate HTML reports
         report_file = os.path.join(mock_filesystem.tempdir, "report.html")
-        upload_html_report(reports, publish=False, report_file=report_file)  # save reports to a files
+        save_report(reports, report_file)  # save reports to a files
 
     # assert the HTML report has been created
     assert os.path.isfile(report_file)

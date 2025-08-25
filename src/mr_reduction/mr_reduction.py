@@ -291,82 +291,74 @@ class ReductionProcess:
         self.log("\n\n---------- %s" % time.ctime())
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
-        # if self.data_ws is not None and self.use_slow_flipper_log:
-        if self.data_ws is None:
-            self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
-
-        if self.data_ws.getNumberEvents() < self.min_number_events:
-            raise ValueError(
-                f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
-                f"(Minimum of {self.min_number_events} events required)"
-            )
-
-        self.run_number = int(self.data_ws.getRunNumber())
-
-        if self.use_slow_flipper_log:
-            _xs_list: WorkspaceGroup = self.slow_filter_cross_sections(self.data_ws)
-        else:
-            _xs_list: WorkspaceGroup = split_events(
-                file_path=_filename,
-                input_workspace=self.data_ws,
-                pv_polarizer_state=self.pol_state,
-                pv_analyzer_state=self.ana_state,
-                pv_polarizer_veto=self.pol_veto,
-                pv_analyzer_veto=self.ana_veto,
-                output_workspace=str(self.data_ws.getRunNumber()),
-            )
-            # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
-            for ws in _xs_list:
-                if "cross_section_id" not in ws.getRun():
-                    ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
-        xs_list = [
-            ws
-            for ws in _xs_list
-            if (SampleLogs(ws)["cross_section_id"] != "unfiltered") and (ws.getNumberEvents() > 0)
-        ]
-
-        # Reduce each cross-section
-        report_list = self.reduce_workspace_group(xs_list)
-
-        # Generate stitched plot
-        ref_plot = None
         try:
-            run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
-            matched_run_list, scaling_factor_list, stitched_filepath_list = combined_curves(
-                run=run_peak_number, ipts=self.ipts, ar_dir=self.output_dir
-            )
-            if self.live is False:
-                self.json_info = combined_catalog_info(
-                    matched_run_list,
-                    self.ipts,
-                    stitched_filepath_list,
-                    ar_dir=self.output_dir,
-                    run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
+            # if self.data_ws is not None and self.use_slow_flipper_log:
+            if self.data_ws is None:
+                self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
+
+            if self.data_ws.getNumberEvents() < self.min_number_events:
+                raise ValueError(
+                    f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
+                    f"(Minimum of {self.min_number_events} events required)"
                 )
-            self.log("Matched runs: %s" % str(matched_run_list))
-            # plotly figures for the reflectivity profile of each cross section, and embed them in an <div> container
-            ref_plot = plot_combined(matched_run_list, scaling_factor_list, self.output_dir, publish=False)
-            self.log("Generated reflectivity: %s" % len(str(ref_plot)))
-        except:  # noqa E722
-            self.log("Could not generate combined curve")
-            self.log(str(sys.exc_info()[1]))
-            logger.error(str(sys.exc_info()[1]))
 
-        # Generate report and script
-        logger.notice("Processing collection of %s reports" % len(report_list))
-        try:
-            html_report, _ = process_collection(
-                summary_content=ref_plot,
-                report_list=report_list,
-                publish=self.publish,
-                run_number=str(self.run_number),
-            )
-        except:  # noqa E722
-            html_report = ""
-            self.log("Could not process reports %s" % sys.exc_info()[1])
+            self.run_number = int(self.data_ws.getRunNumber())
 
-        if self.logfile:
-            self.logfile.close()
+            if self.use_slow_flipper_log:
+                _xs_list: WorkspaceGroup = self.slow_filter_cross_sections(self.data_ws)
+            else:
+                _xs_list: WorkspaceGroup = split_events(
+                    file_path=_filename,
+                    input_workspace=self.data_ws,
+                    pv_polarizer_state=self.pol_state,
+                    pv_analyzer_state=self.ana_state,
+                    pv_polarizer_veto=self.pol_veto,
+                    pv_analyzer_veto=self.ana_veto,
+                    output_workspace=str(self.data_ws.getRunNumber()),
+                )
+                # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
+                for ws in _xs_list:
+                    if "cross_section_id" not in ws.getRun():
+                        ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
+            xs_list = [
+                ws
+                for ws in _xs_list
+                if (SampleLogs(ws)["cross_section_id"] != "unfiltered") and (ws.getNumberEvents() > 0)
+            ]
+
+            # Reduce each cross-section
+            report_list = self.reduce_workspace_group(xs_list)
+
+            # Generate stitched plot
+            ref_plot = None
+            try:
+                run_peak_number = str(RunPeakNumber(self.run_number, self.peak_number))
+                matched_run_list, scaling_factor_list, stitched_filepath_list = combined_curves(
+                    run=run_peak_number, ipts=self.ipts, ar_dir=self.output_dir
+                )
+                if self.live is False:
+                    self.json_info = combined_catalog_info(
+                        matched_run_list,
+                        self.ipts,
+                        stitched_filepath_list,
+                        ar_dir=self.output_dir,
+                        run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
+                    )
+                self.log("Matched runs: %s" % str(matched_run_list))
+                # plotly figures for the reflectivity profile of each cross section, and embed in an <div> container
+                ref_plot = plot_combined(matched_run_list, scaling_factor_list, self.output_dir, publish=False)
+                self.log("Generated reflectivity: %s" % len(str(ref_plot)))
+            except:  # noqa E722
+                self.log("Could not generate combined curve")
+                self.log(str(sys.exc_info()[1]))
+                logger.error(str(sys.exc_info()[1]))
+
+            logger.notice("Processing collection of %s reports" % len(report_list))
+            html_report, _ = process_collection(summary_content=ref_plot, report_list=report_list)
+        finally:
+            if self.logfile:
+                self.logfile.close()
+
         return html_report
 
     def reduce_workspace_group(self, xs_list: List[MantidWorkspace]):

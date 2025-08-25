@@ -160,6 +160,7 @@ After successful completion of the autoreduction, the following files are genera
 Belows is a list for run peak 42535_1. The particular cross-sections will depend on the instrument settings,
 which for run peak turn out to be "Off_Off" and "On_Off".
 
+- **REF_M_42351.html**: HTML report summarizing the results of the auto-reduction.
 - **REF_M_42535_1_Off_Off_autoreduce.dat**:  reflectivity curve for the "Off_Off" cross-section.
 - **REF_M_42535_1_Off_Off_autoreduce.nxs.h5**: reflectivity curve for the "Off_Off" cross-section (Nexus format)
   with all sample-logs of the original Nexus events file.
@@ -223,7 +224,7 @@ and invoked as above, the script imports the deployed auto-reduction script
 This way the functions defined in the auto-reduction script can be reused in the live-reduction script.
 
 The output of the live-reduction script is virtually identical to that of the auto-reduction script,
-namely a series of reduced files and an HTML report that is uploaded to the
+namely a series of reduced files and an HTML report that is saved to the output directory and uploaded to the
 `live data server <https://github.com/neutrons/live_data_server?tab=readme-ov-file>`_
 and available in the `monitor web page <https://monitor.sns.gov/dasmon/ref_m/>`_.
 The only difference is that the live-reduction report contains two graphs missing in the autor-reduction report.

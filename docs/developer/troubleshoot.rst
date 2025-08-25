@@ -40,7 +40,7 @@ and prevent the HTML report to be uploaded to the livedata server, run:
    $ pixi shell --manifest-path /usr/local/pixi/mr_reduction  # or mr_reduction-dev
 
    (mr_reduction)
-   $ python reduce_REF_M.py /SNS/REF_M/IPTS-34262/nexus/REF_M_43834.nxs.h5 ./output --report_file REF_M_43834.html --no_publish
+   $ python reduce_REF_M.py /SNS/REF_M/IPTS-34262/nexus/REF_M_43834.nxs.h5 ./output --no_publish
 
 For an explanation of the autoreduction script arguments, type:
 
