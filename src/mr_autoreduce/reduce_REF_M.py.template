@@ -131,6 +131,7 @@ def parse_command_arguments():
 def main():
     r"""Autoreduce a single events file and upload the HTML report to the livedata server"""
     args = parse_command_arguments()
+    os.makedirs(args.outdir, exist_ok=True)
     reports = reduce_events_file(args.events_file, args.outdir)
 
     # Save to disk and (optionally) upload the HTML report

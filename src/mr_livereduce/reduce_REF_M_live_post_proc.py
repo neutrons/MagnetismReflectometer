@@ -145,6 +145,8 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
     if outdir is None:
         ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
         outdir = f"/SNS/REF_M/{ipts}/shared/autoreduce/"
+    else:
+        os.makedirs(outdir, exist_ok=True)
 
     live_report = [header_report(input_workspace)]
     with add_to_sys_path(GLOBAL_AR_DIR):  # "/SNS/REF_M/shared/autoreduce"

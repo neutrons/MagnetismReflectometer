@@ -12,11 +12,12 @@ import numpy as np
 import plotly.graph_objs as go
 import plotly.offline as pyo
 import requests
-from finddata.publish_plot import publish_plot
 
 # third party imports
+from finddata.publish_plot import publish_plot
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 from requests import Response
+from requests import head as requests_head
 
 # mr_reduction imports
 from mr_reduction.data_info import DataType
@@ -42,7 +43,7 @@ def html_wrapper(report: Union[str, None]) -> str:
     js_version = pyo.get_plotlyjs_version()
     url = f"https://cdn.plot.ly/plotly-{js_version}.js"
     try:
-        response = requests.head(url, timeout=5)
+        response = requests_head(url, timeout=5)
         assert response.status_code == 200
     except (requests.RequestException, AssertionError):
         logger.error(f"Plotly.js version {js_version} not found, using version 3.0.0 instead")
@@ -91,7 +92,7 @@ def save_report(html_report: Union[str, List[str]], report_file: str):
         File path where the report will be saved as an HTML file.
     """
     report_composite = _concatenate_reports(html_report)
-    with open(report_file, "w") as f:
+    with open(report_file, "w", encoding="utf-8") as f:
         f.write(html_wrapper(report_composite))
 
 
@@ -121,7 +122,7 @@ def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int
     return publish_plot("REF_M", run_number, files={"file": report_composite})
 
 
-def process_collection(summary_content=None, report_list=[]) -> Tuple[str, str]:
+def process_collection(summary_content=None, report_list=None) -> Tuple[str, str]:
     r"""Process a collection of HTML reports into on final HTML report
 
     Parameters
@@ -139,6 +140,8 @@ def process_collection(summary_content=None, report_list=[]) -> Tuple[str, str]:
         plot_html str: HTML
         script str: python script
     """
+    if report_list is None:
+        report_list = []
     logger.notice("Processing... %s" % len(report_list))
     plot_html = "<div></div>"
     script = ""

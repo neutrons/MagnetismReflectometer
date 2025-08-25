@@ -106,7 +106,7 @@ def test_reduce_REF_M_run(mock_filesystem, data_server):
         reduce_single_run(values)
 
     # assert the HTML report has been created
-    assert os.path.isfile(os.path.join(mock_filesystem.tempdir, f"REF_M_{run_number(values['events_file'])}.html"))
+    assert os.path.isfile(os.path.join(mock_filesystem.tempdir, f"{run_number(values['events_file'])}.html"))
 
     # assert reduction files have been produced for run 42537
     for sn in (1, 2):  # peak number

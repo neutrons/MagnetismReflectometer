@@ -49,7 +49,7 @@ def reduce_single_run(opts):
             from reduce_REF_M import reduce_events_file, save_report
 
             reports = reduce_events_file(opts["events_file"], opts["outdir"])
-            report_file = os.path.join(opts["outdir"], f"REF_M_{run_number(opts['events_file'])}.html")
+            report_file = os.path.join(opts["outdir"], f"{run_number(opts['events_file'])}.html")
             save_report(reports, report_file)
     return {"report_file": report_file}
 
