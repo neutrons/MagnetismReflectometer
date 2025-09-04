@@ -22,7 +22,7 @@ from mr_livereduce.polarization_analysis import calculate_ratios
 from mr_reduction.settings import GLOBAL_AR_DIR
 from mr_reduction.simple_utils import SampleLogs, add_to_sys_path, workspace_handle
 from mr_reduction.types import MantidWorkspace
-from mr_reduction.web_report import _plot1d
+from mr_reduction.web_report import _plot1d, save_report, upload_report
 
 GLOBAL_LR_DIR = "/SNS/REF_M/shared/livereduce"
 
@@ -150,11 +150,8 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
 
     live_report = [header_report(input_workspace)]
     with add_to_sys_path(GLOBAL_AR_DIR):  # "/SNS/REF_M/shared/autoreduce"
-        from reduce_REF_M import (  # import from the autoreduction script reduce_REF_M.py
-            reduce_events,
-            save_report,
-            upload_report,
-        )
+        # import from the autoreduction script reduce_REF_M.py
+        from reduce_REF_M import reduce_events
 
         # rebin the input workspace to a fixed binning of 50 microseconds
         try:
