@@ -124,7 +124,7 @@ while script `livereduce_watchdog.sh <https://github.com/neutrons/MagnetismRefle
 is to be deployed in directory ``/SNS/REF_M/shared/livereduce/watchdog/``.
 When the watchdog detects no updates in the log file, it restarts ``livereduce.service``
 while saving the last 20 lines of ``/var/log/SNS_applications/livereduce.log`` in
-``/SNS/REF_M/shared/livereduce/watchdog/livereduce_watchdog.log``.
+``/var/log/SNS_applications/livereduce_watchdog.log``.
 
 
 Troubleshooting
