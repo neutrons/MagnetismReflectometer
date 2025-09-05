@@ -3,7 +3,7 @@
 # --- CONFIG ---
 WATCHDOG_TARGET="/var/log/SNS_applications/livereduce.log"
 SERVICE="livereduce.service"
-INTERVAL=60         # how often (in seconds) we check the file, in seconds
+INTERVAL=60         # how often we check the file, in seconds
 THRESHOLD=300       # inactivity threshold in seconds
 
 WATCHDOG_LOG="/var/log/SNS_applications/livereduce_watchdog.log"
