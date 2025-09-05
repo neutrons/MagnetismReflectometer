@@ -164,7 +164,7 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
                 api.SaveNexus(InputWorkspace=input_workspace, Filename=file_path)
                 error_message += f"\nSaved input_workspace to {file_path}\n"
             except Exception as exception:  # noqa E722
-                error_message += f"\nUnable to save input_workspace {exception}\n{traceback.format_exc()} \n"
+                error_message += f"\nUnable to save input_workspace: {exception}\n{traceback.format_exc()} \n"
             report = [f"<div><pre>{error_message}</pre></div>\n"]
             api.logger.error(error_message)
             live_report += report
