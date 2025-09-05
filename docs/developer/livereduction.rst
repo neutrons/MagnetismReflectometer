@@ -109,6 +109,24 @@ where ``XXXX`` is the IPTS number of the current experiment.
 In addition, log file ``livereduce_REF_M.log`` is created under ``/tmp/my_livereduce``.
 Errors may be written here and also in the ``Messages`` area of the workbench.
 
+Live Reduction Watchdog
+-----------------------
+The live reduction service is in turn monitored by another service,
+namely `livereduce_watchdog.service <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/livereduce_watchdog.service>`_.
+The watchdog is meant to be a temporary patch against the observed stallings of ``livereduce.service``.
+It was observed that even if ``livereduce.service`` is running, it may not be actually doing anything.
+The watchdog checks every few seconds if the log file ``/var/log/SNS_applications/livereduce.log``
+has been recently updated. This log is regularly written to by ``livereduce.service``
+and no updates is a robust indication that ``livereduce.service`` is stalling.
+
+Service file ``livereduce_watchdog.service`` is to be deployed in the machine running ``livereduce.service``,
+while script `livereduce_watchdog.sh <https://github.com/neutrons/MagnetismReflectometer/blob/next/src/mr_livereduce/livereduce_watchdog.sh>`_
+is to be deployed in directory ``/SNS/REF_M/shared/livereduce/watchdog/``.
+When the watchdog detects no updates in the log file, it restarts ``livereduce.service``
+while saving the last 20 lines of ``/var/log/SNS_applications/livereduce.log`` in
+``/var/log/SNS_applications/livereduce_watchdog.log``.
+
+
 Troubleshooting
 ---------------
 
