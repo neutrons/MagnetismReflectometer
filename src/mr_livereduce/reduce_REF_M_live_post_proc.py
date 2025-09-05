@@ -154,6 +154,7 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
         from reduce_REF_M import reduce_events
 
         # rebin the input workspace to a fixed binning of 50 microseconds
+        events_binned = None
         try:
             events_binned = rebin_tof(input_workspace)
         except Exception as exception:  # noqa E722
@@ -168,30 +169,33 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
             api.logger.error(error_message)
             live_report += report
 
-        # reduce the accumulated events and generate a report containing plots for the reflectivity curves
-        try:
-            report: List[str] = reduce_events(
-                workspace=events_binned, outdir=outdir, logfile=os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log")
-            )
-        except Exception as exception:  # noqa E722
-            # collect error message and save the accumulated events to a file for debugging
-            error_message = f"\nERROR in Post-Processing.reduce_events(): {exception}\n{traceback.format_exc()}"
-            file_path = os.path.join(GLOBAL_LR_DIR, "accumulated.nxs")
-            api.SaveNexus(InputWorkspace=events_binned, Filename=file_path)
-            error_message += f"\nSaved accumulated events to {file_path}\n"
-            report = [f"<div><pre>{error_message}</pre></div>\n"]
-            api.logger.error(error_message)
-        live_report += report
+        if events_binned is not None:
+            # reduce the accumulated events and generate a report containing plots for the reflectivity curves
+            try:
+                report: List[str] = reduce_events(
+                    workspace=events_binned, outdir=outdir, logfile=os.path.join(GLOBAL_LR_DIR, "livereduce_REF_M.log")
+                )
+            except Exception as exception:  # noqa E722
+                # collect error message and save the accumulated events to a file for debugging
+                error_message = f"\nERROR in Post-Processing.reduce_events(): {exception}\n{traceback.format_exc()}"
+                file_path = os.path.join(GLOBAL_LR_DIR, "accumulated.nxs")
+                api.SaveNexus(InputWorkspace=events_binned, Filename=file_path)
+                error_message += f"\nSaved accumulated events to {file_path}\n"
+                report = [f"<div><pre>{error_message}</pre></div>\n"]
+                api.logger.error(error_message)
+            live_report += report
 
-        # add the polarization report to the live report
-        try:
-            report: str = polarization_report(events_binned)
-        except Exception as exception:  # noqa E722
-            # collect error message
-            error_message = f"ERROR in Post-Processing.polarization_report(): {exception}\n{traceback.format_exc()}"
-            report: str = f"<div><pre>{error_message}</pre></div>\n"
-            api.logger.error(error_message)
-        live_report.append(report)
+            # add the polarization report to the live report
+            try:
+                report: str = polarization_report(events_binned)
+            except Exception as exception:  # noqa E722
+                # collect error message
+                error_message = (
+                    f"ERROR in Post-Processing.polarization_report(): {exception}\n{traceback.format_exc()}"
+                )
+                report: str = f"<div><pre>{error_message}</pre></div>\n"
+                api.logger.error(error_message)
+            live_report.append(report)
 
         # Save to disk and (optionally) upload the HTML report
         save_report(live_report, os.path.join(outdir, f"REF_M_{run_number}.html"))  # save HTML report
