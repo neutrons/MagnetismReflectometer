@@ -6,7 +6,7 @@
 name = "mr_reduction"
 description = "Magnetism Reflectometer Automated Reduction"
 dynamic = ["version"]
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 license = { text = "MIT" }
 readme = "README.md"
 keywords = ["neutrons", "quicknxs", "magnetic reflectivity"]
