@@ -83,6 +83,7 @@ version = "0.0.0"
 backend = { name = "pixi-build-python", version = "0.1.*" }
 
 [tool.pixi.package.host-dependencies]
+python = ">=3.11,<3.12"
 hatchling = "*"
 versioningit = "*"
 
