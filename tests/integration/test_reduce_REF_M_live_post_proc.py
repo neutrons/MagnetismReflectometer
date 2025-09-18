@@ -43,14 +43,12 @@ def test_main(mock_filesystem, data_server, browser, autoreduction_script):
     # reduce_REF_M.py we just created
     #
     accumulation_workspace = data_server.load_events("REF_M_42537.nxs.h5")
-    report_file = os.path.join(mock_filesystem.tempdir, "report.html")  # HTML report file
     with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
         with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
             main(
                 accumulation_workspace,
                 outdir=mock_filesystem.tempdir,  # instead of /SNS/IPTS-31954/shared/autoreduce/
                 publish=False,  # don't upload the HTML report to the livedata server
-                report_file=report_file,
             )
 
     #
@@ -58,6 +56,7 @@ def test_main(mock_filesystem, data_server, browser, autoreduction_script):
     #
 
     # assert the HTML report can be rendered by a headless Chromium browser
+    report_file = os.path.join(mock_filesystem.tempdir, "REF_M_42537.html")  # HTML report file
     browser.get(f"file://{report_file}")
     plotly_divs = browser.find_elements(By.CLASS_NAME, "plotly-graph-div")
     assert len(plotly_divs) > 0, "No Plotly figures were rendered in the report."
@@ -104,14 +103,12 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
     # reduce_REF_M.py we just created
     #
     accumulation_workspace = data_server.load_nexus_processed("REF_M_44316.nxs")
-    report_file = os.path.join(mock_filesystem.tempdir, "report.html")  # HTML report file
     with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
         with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
             main(
                 accumulation_workspace,
                 outdir=mock_filesystem.tempdir,  # instead of /SNS/IPTS-31954/shared/autoreduce/
                 publish=False,  # don't upload the HTML report to the livedata server
-                report_file=report_file,
             )
 
     # assert all output files have been produced for run 44316 once reduction is complete
@@ -131,7 +128,7 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
     ]:
         file_path = os.path.join(mock_filesystem.tempdir, f"REF_M_44316{suffix}")
         output_files.append(file_path)
-    for file_name in ["livereduce_REF_M.log", "reduce_REF_M.py", "report.html"]:
+    for file_name in ["livereduce_REF_M.log", "reduce_REF_M.py", "REF_M_44316.html"]:
         file_path = os.path.join(mock_filesystem.tempdir, file_name)
         output_files.append(file_path)
     for file_path in output_files:

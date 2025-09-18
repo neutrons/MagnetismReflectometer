@@ -1,15 +1,11 @@
-# standard imports
 import functools
 import sys
 from collections import namedtuple
 from collections.abc import Mapping
 from contextlib import contextmanager
-from typing import Optional
 
-# third party imports
 from mantid.simpleapi import mtd
 
-# mr_reduction imports
 from mr_reduction.types import MantidWorkspace
 
 

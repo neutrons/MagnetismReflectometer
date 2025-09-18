@@ -1,6 +1,9 @@
+import logging
+
 # third-party imports
 import pytest
-from mantid.simpleapi import LoadNexus, mtd
+from mantid.simpleapi import LoadEventNexus, LoadNexus, logger, mtd
+from mantid.utils.logging import capture_logs
 
 # mr_reduction imports
 from mr_reduction.filter_events import create_table, filter_cross_sections
@@ -31,16 +34,28 @@ def test_create_table():
     }
 
 
-@pytest.mark.datarepo
-def test_filter_cross_sections(data_server):
-    """
-    Test the function that split events according to the concurrent cross section,
-    using a run with logs containing entries with a time stamp that predates the start time or the run.
-    """
-    workspace = LoadNexus(Filename=data_server.path_to("REF_M_44316.nxs"), OutputWorkspace=mtd.unique_hidden_name())
-    workspace_group = filter_cross_sections(workspace, output_workspace="44316")
-    assert list(workspace_group.getNames()) == ["44316_Off_Off", "44316_On_Off"]
-    assert [workspace.getNumberEvents() for workspace in workspace_group] == [289972, 281213]
+class TestFilterCrossSections:
+    @pytest.mark.datarepo
+    def test_filter(self, data_server):
+        """
+        Test the function that split events according to the concurrent cross section,
+        using a run with logs containing entries with a time stamp that predates the start time or the run.
+        """
+        workspace = LoadNexus(
+            Filename=data_server.path_to("REF_M_44316.nxs"), OutputWorkspace=mtd.unique_hidden_name()
+        )
+        workspace_group = filter_cross_sections(workspace, output_workspace="44316")
+        assert list(workspace_group.getNames()) == ["44316_Off_Off", "44316_On_Off"]
+        assert [workspace.getNumberEvents() for workspace in workspace_group] == [289972, 281213]
+
+    @pytest.mark.datarepo
+    def test_no_veto_logs(self, data_server):
+        workspace = LoadEventNexus(
+            Filename=data_server.path_to("REF_M_45129.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
+        )
+        with capture_logs(level="warning") as messages:
+            filter_cross_sections(workspace, output_workspace="45129")
+            assert "Polarizer veto log 'SF1_Veto' not found in sample logs" in messages.getvalue()
 
 
 if __name__ == "__main__":

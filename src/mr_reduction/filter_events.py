@@ -256,20 +256,24 @@ def filter_cross_sections(
 
         # SF1 VETO
         if pv_polarizer_veto != "":
-            splitws, _ = GenerateEventsFilter(
-                InputWorkspace=events_workspace,
-                LogName=pv_polarizer_veto,
-                MinimumLogValue=0.99,
-                MaximumLogValue=1.01,
-                TimeTolerance=0,
-                OutputWorkspace="filter",
-                InformationWorkspace="filter_info",
-                LogBoundary="Left",
-                UnitOfTime="Seconds",
-            )
-            time_dict = splitws.toDict()
-            change_list.extend(extract_times(time_dict["start"], is_start=True, is_veto1=True))
-            change_list.extend(extract_times(time_dict["stop"], is_start=False, is_veto1=True))
+            if pv_polarizer_veto in sample_logs:
+                splitws, _ = GenerateEventsFilter(
+                    InputWorkspace=events_workspace,
+                    LogName=pv_polarizer_veto,
+                    MinimumLogValue=0.99,
+                    MaximumLogValue=1.01,
+                    TimeTolerance=0,
+                    OutputWorkspace="filter",
+                    InformationWorkspace="filter_info",
+                    LogBoundary="Left",
+                    UnitOfTime="Seconds",
+                )
+                time_dict = splitws.toDict()
+                change_list.extend(extract_times(time_dict["start"], is_start=True, is_veto1=True))
+                change_list.extend(extract_times(time_dict["stop"], is_start=False, is_veto1=True))
+            else:
+                # Data Acquisition System may fail to record this log
+                logger.warning(f"Polarizer veto log '{pv_polarizer_veto}' not found in sample logs")
 
     if analyzer > 0:
         # SF2 ON
@@ -306,20 +310,24 @@ def filter_cross_sections(
 
         # SF2 VETO
         if not pv_analyzer_veto == "":
-            splitws, _ = GenerateEventsFilter(
-                InputWorkspace=events_workspace,
-                LogName=pv_analyzer_veto,
-                MinimumLogValue=0.99,
-                MaximumLogValue=1.01,
-                TimeTolerance=0,
-                OutputWorkspace="filter",
-                InformationWorkspace="filter_info",
-                LogBoundary="Left",
-                UnitOfTime="Seconds",
-            )
-            time_dict = splitws.toDict()
-            change_list.extend(extract_times(time_dict["start"], is_start=True, is_veto2=True))
-            change_list.extend(extract_times(time_dict["stop"], is_start=False, is_veto2=True))
+            if pv_analyzer_veto in sample_logs:
+                splitws, _ = GenerateEventsFilter(
+                    InputWorkspace=events_workspace,
+                    LogName=pv_analyzer_veto,
+                    MinimumLogValue=0.99,
+                    MaximumLogValue=1.01,
+                    TimeTolerance=0,
+                    OutputWorkspace="filter",
+                    InformationWorkspace="filter_info",
+                    LogBoundary="Left",
+                    UnitOfTime="Seconds",
+                )
+                time_dict = splitws.toDict()
+                change_list.extend(extract_times(time_dict["start"], is_start=True, is_veto2=True))
+                change_list.extend(extract_times(time_dict["stop"], is_start=False, is_veto2=True))
+            else:
+                # Data Acquisition System may fail to record this log
+                logger.warning(f"Analyzer veto log '{pv_analyzer_veto}' not found in sample logs")
 
     start_time = events_workspace.run().startTime().totalNanoseconds()
 
