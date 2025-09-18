@@ -48,6 +48,7 @@ class TestFilterCrossSections:
         assert list(workspace_group.getNames()) == ["44316_Off_Off", "44316_On_Off"]
         assert [workspace.getNumberEvents() for workspace in workspace_group] == [289972, 281213]
 
+    @pytest.mark.datarepo
     def test_no_veto_logs(self, data_server):
         workspace = LoadEventNexus(
             Filename=data_server.path_to("REF_M_45129.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
