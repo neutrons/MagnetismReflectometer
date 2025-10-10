@@ -67,7 +67,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     theta_in_degrees = reflected_options.tth * math.pi / 360.0
     theta = np.full(len(q), theta_in_degrees)
     data_columns.add_column(
-        name="theta", unit=MantidORSODataColumns.Unit.Degrees, physical_quantity="theta", data=theta
+        name="theta", unit=MantidORSODataColumns.Unit.Degrees, physical_quantity="incident_angle", data=theta
     )
 
     theta_error = theta * (q_error / q)
