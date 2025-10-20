@@ -14,7 +14,7 @@ import plotly.offline as pyo
 import requests
 
 # third party imports
-from finddata.publish_plot import publish_plot
+from plot_publisher import publish_plot
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 from requests import Response
 from requests import head as requests_head
