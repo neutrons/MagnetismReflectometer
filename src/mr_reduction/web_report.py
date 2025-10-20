@@ -8,16 +8,13 @@ import sys
 import time
 from typing import List, Optional, Tuple, Union
 
+# third party imports
 import numpy as np
 import plotly.graph_objs as go
 import plotly.offline as pyo
 import requests
-
-# third party imports
-from finddata.publish_plot import publish_plot
 from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
-from requests import Response
-from requests import head as requests_head
+from plot_publisher import publish_plot
 
 # mr_reduction imports
 from mr_reduction.data_info import DataType
@@ -43,7 +40,7 @@ def html_wrapper(report: Union[str, None]) -> str:
     js_version = pyo.get_plotlyjs_version()
     url = f"https://cdn.plot.ly/plotly-{js_version}.js"
     try:
-        response = requests_head(url, timeout=5)
+        response = requests.head(url, timeout=5)
         assert response.status_code == 200
     except (requests.RequestException, AssertionError):
         logger.error(f"Plotly.js version {js_version} not found, using version 3.0.0 instead")
@@ -96,7 +93,7 @@ def save_report(html_report: Union[str, List[str]], report_file: str):
         f.write(html_wrapper(report_composite))
 
 
-def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int]) -> Optional[Response]:
+def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int]) -> Optional[requests.Response]:
     r"""Upload report to the livedata server
 
     If `html_report` contains more than one report, then merge them.

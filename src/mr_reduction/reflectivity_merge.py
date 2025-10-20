@@ -522,8 +522,8 @@ def plot_combined(matched_runs, scaling_factors, ar_dir, publish=True):
         # Depending on where we run, we might get our publisher from different places, or not at all.
         try:  # version on autoreduce
             from postprocessing.publish_plot import plot1d
-        except ImportError:  # version on instrument computers
-            from finddata.publish_plot import plot1d
+        except ImportError:  # version on instrument computers and standard installations
+            from plot_publisher import plot1d
         if data_names:
             return plot1d(
                 RunPeakNumber(matched_runs[-1]).run_number,
