@@ -12,10 +12,10 @@ import numpy as np
 import plotly.graph_objs as go
 import plotly.offline as pyo
 import requests
+from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 
 # third party imports
 from plot_publisher import publish_plot
-from mantid.simpleapi import GeneratePythonScript, Integration, Rebin, RefRoi, SumSpectra, Transpose, logger
 from requests import Response
 from requests import head as requests_head
 
