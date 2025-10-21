@@ -88,7 +88,7 @@ Note that some tests also require Google Chrome to be installed for ``selenium``
 Coverage reports
 ----------------
 
-GitHuh actions create reports for unit and integration tests, then combine into one report and upload it to
+GitHub Actions create reports for unit and integration tests, then combine into one report and upload it to
 `Codecov <https://app.codecov.io/gh/neutrons/mr_reduction>`_.
 
 
@@ -109,7 +109,7 @@ To test code snippets in the documentation, run the task ``test-docs``:
 
 .. code-block:: bash
 
-   pixi run test-docs
+   $ pixi run test-docs
 
 Creating a stable release
 -------------------------

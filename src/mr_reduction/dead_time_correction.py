@@ -20,7 +20,7 @@ def apply_dead_time_correction(
     paralyzable_deadtime: bool,
     deadtime_value: float,
     deadtime_tof_step: float,
-    deadtime_tof_range: tuple[float, float] = None,
+    deadtime_tof_range: tuple[float, float] | None = None,
     error_ws: EventWorkspace | None = None,
 ) -> EventWorkspace:
     """Apply dead time correction, and ensure that it is done only once per workspace.
@@ -45,17 +45,18 @@ def apply_dead_time_correction(
     EventWorkspace
         The input workspace with events weighted by the deadtime correction
     """
-    if "dead_time_applied" not in ws.getRun():
-        corr_ws = mantid_algorithm_exec(
-            SingleReadoutDeadTimeCorrection,
+    if not ws.getRun().hasProperty("dead_time_applied"):
+        algo_kwargs = dict(
             InputWorkspace=ws,
             InputErrorEventsWorkspace=error_ws,
             Paralyzable=paralyzable_deadtime,
             DeadTime=deadtime_value,
             TOFStep=deadtime_tof_step,
-            TOFRange=deadtime_tof_range,
             OutputWorkspace="corr",
         )
+        if deadtime_tof_range is not None:
+            algo_kwargs["TOFRange"] = deadtime_tof_range
+        corr_ws = mantid_algorithm_exec(SingleReadoutDeadTimeCorrection, **algo_kwargs)
         ws = api.Multiply(ws, corr_ws, OutputWorkspace=str(ws))
         api.AddSampleLog(Workspace=ws, LogName="dead_time_applied", LogText="1", LogType="Number")
     return ws
@@ -79,11 +80,11 @@ class SingleReadoutDeadTimeCorrection(PythonAlgorithm):
     def PyInit(self):
         self.declareProperty(
             IEventWorkspaceProperty("InputWorkspace", "", Direction.Input),
-            "Input workspace use to compute dead time correction",
+            "Input workspace used to compute dead time correction",
         )
         self.declareProperty(
             IEventWorkspaceProperty("InputErrorEventsWorkspace", "", Direction.Input, PropertyMode.Optional),
-            "Input workspace with error events use to compute dead time correction",
+            "Input workspace with error events used to compute dead time correction",
         )
         self.declareProperty("DeadTime", 4.2, doc="Dead time in microseconds")
         self.declareProperty(

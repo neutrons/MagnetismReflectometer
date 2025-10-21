@@ -29,6 +29,11 @@ def test_apply_dead_time_correction(monkeypatch, data_server, temp_workspace_nam
     assert ws_sum.readY(0).sum() == pytest.approx(correction_factor * number_events)
     assert "dead_time_applied" in ws.getRun().keys()
 
+    # verify that the correction is only applied once
+    assert mock_mantid_exec.call_count == 1
+    dtc.apply_dead_time_correction(ws, paralyzable_deadtime=True, deadtime_value=4.2, deadtime_tof_step=100.0)
+    assert mock_mantid_exec.call_count == 1
+
 
 @pytest.mark.datarepo
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@ from mantid.api import PythonAlgorithm
 from mantid.dataobjects import EventWorkspace
 
 
-def mantid_algorithm_exec(algorithm_class: PythonAlgorithm, **kwargs) -> EventWorkspace | None:
+def mantid_algorithm_exec(algorithm_class: type[PythonAlgorithm], **kwargs) -> EventWorkspace | None:
     """Helper function for executing a Mantid-style algorithm.
 
     Parameters
