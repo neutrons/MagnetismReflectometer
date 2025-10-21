@@ -1,6 +1,5 @@
-import pytest
 import mantid.simpleapi as api
-from mantid.api import PythonAlgorithm
+import pytest
 from mantid.api import (
     IEventWorkspaceProperty,
     MatrixWorkspaceProperty,

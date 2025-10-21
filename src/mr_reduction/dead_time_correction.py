@@ -16,12 +16,12 @@ from mr_reduction.mantid_algorithm_utils import mantid_algorithm_exec
 
 
 def apply_dead_time_correction(
-        ws: EventWorkspace,
-        paralyzable_deadtime: bool,
-        deadtime_value: float,
-        deadtime_tof_step: float,
-        deadtime_tof_range: tuple[float, float] = None,
-        error_ws: EventWorkspace | None = None
+    ws: EventWorkspace,
+    paralyzable_deadtime: bool,
+    deadtime_value: float,
+    deadtime_tof_step: float,
+    deadtime_tof_range: tuple[float, float] = None,
+    error_ws: EventWorkspace | None = None,
 ) -> EventWorkspace:
     """Apply dead time correction, and ensure that it is done only once per workspace.
 
