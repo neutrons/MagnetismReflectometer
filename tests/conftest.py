@@ -24,6 +24,8 @@ from webdriver_manager.core.os_manager import ChromeType
 # mr_reduction imports
 from mr_reduction.types import MantidWorkspace
 
+pytest_plugins = ["mantid.fixtures"]
+
 this_module_path = sys.modules[__name__].__file__
 
 
