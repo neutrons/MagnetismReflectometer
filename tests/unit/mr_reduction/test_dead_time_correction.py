@@ -31,13 +31,30 @@ def test_apply_dead_time_correction(monkeypatch, data_server, temp_workspace_nam
 
 
 @pytest.mark.datarepo
-@pytest.mark.parametrize(("is_paralyzable", "sum_expected"), [(False, 334.571733), (True, 334.572514)])
-def test_single_readout_deadtime_correction(is_paralyzable, sum_expected, data_server, temp_workspace_name):
+@pytest.mark.parametrize(
+    ("is_paralyzable", "load_error_events", "sum_expected"),
+    [
+        (False, False, 334.571733),
+        (True, False, 334.572514),
+        (False, True, 334.710516),
+    ],
+)
+def test_single_readout_deadtime_correction(
+    is_paralyzable, load_error_events, sum_expected, data_server, temp_workspace_name
+):
     """Test of the dead-time correction algorithm SingleReadoutDeadTimeCorrection."""
     ws = api.LoadEventNexus(Filename=data_server.path_to("REF_M_44382.nxs.h5"), OutputWorkspace=temp_workspace_name())
+
+    ws_error_events = None
+    if load_error_events:
+        ws_error_events = api.LoadErrorEventsNexus(
+            Filename=data_server.path_to("REF_M_44382.nxs.h5"), OutputWorkspace=temp_workspace_name()
+        )
+
     corr_ws = mantid_algorithm_exec(
         dtc.SingleReadoutDeadTimeCorrection,
         InputWorkspace=ws,
+        InputErrorEventsWorkspace=ws_error_events,
         Paralyzable=is_paralyzable,
         OutputWorkspace="dead_time_corr",
     )
