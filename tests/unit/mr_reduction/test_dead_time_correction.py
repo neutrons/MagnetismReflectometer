@@ -31,7 +31,7 @@ def test_apply_dead_time_correction(monkeypatch, data_server, temp_workspace_nam
 
 
 @pytest.mark.datarepo
-@pytest.mark.parametrize("is_paralyzable, sum_expected", [(False, 334.571733), (True, 334.572514)])
+@pytest.mark.parametrize(("is_paralyzable", "sum_expected"), [(False, 334.571733), (True, 334.572514)])
 def test_single_readout_deadtime_correction(is_paralyzable, sum_expected, data_server, temp_workspace_name):
     """Test of the dead-time correction algorithm SingleReadoutDeadTimeCorrection."""
     ws = api.LoadEventNexus(Filename=data_server.path_to("REF_M_44382.nxs.h5"), OutputWorkspace=temp_workspace_name())
