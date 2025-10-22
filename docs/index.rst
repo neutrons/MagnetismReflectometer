@@ -14,6 +14,7 @@ User Guide
    /user/reduce
    /user/roi
    /user/polarization
+   /user/dead_time_correction
    /release_notes
 
 Contacting the Team

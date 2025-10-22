@@ -44,6 +44,7 @@ Development procedure
    A PR can only be approved and merged by the reviewer.
 6. The developer changes the task’s status to **Complete** and closes the associated issue.
 
+.. _test-data:
 
 Using the Data Repository mr_reduction-data
 -------------------------------------------
@@ -87,7 +88,7 @@ Note that some tests also require Google Chrome to be installed for ``selenium``
 Coverage reports
 ----------------
 
-GitHuh actions create reports for unit and integration tests, then combine into one report and upload it to
+GitHub Actions create reports for unit and integration tests, then combine into one report and upload it to
 `Codecov <https://app.codecov.io/gh/neutrons/mr_reduction>`_.
 
 
@@ -104,6 +105,11 @@ To build the documentation locally, simply use the included ``pixi`` task:
 After this, point your browser to
 ``file:///path/to/mr_reduction/docs/build/html/index.html``
 
+To test code snippets in the documentation, run the task ``test-docs``:
+
+.. code-block:: bash
+
+   $ pixi run test-docs
 
 Creating a stable release
 -------------------------
