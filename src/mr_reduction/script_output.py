@@ -131,11 +131,15 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
 
     script_text = api.GeneratePythonScript(ws_grp[0])
 
+    api.logger.notice(f"GeneratePythonScript script length {len(script_text)}")
+
     # Skip the header
     lines = script_text.split("\n")
     script_text = "\n".join(lines[4:])
     script += script_text.replace(", ", ",\n                                ")
     script += "\n"
+
+    api.logger.notice(f"Script length after formatting {len(script)}")
 
     if quicknxs_mode is True:
         qnxs_scale = quicknxs_scaling_factor(ws_grp[0])
@@ -143,6 +147,8 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
         for item in xs_list:
             script += "Scale(InputWorkspace='%s', Operation='Multiply',\n" % str(item)
             script += "      Factor=scaling_factor, OutputWorkspace='%s')\n\n" % str(item)
+
+        api.logger.notice(f"Script length after adding quicknxs scaling {len(script)}")
 
     return script
 
