@@ -98,10 +98,8 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
     # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
     autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
 
-    #
     # Invoke the main routine of the livereduction script. It will digest the autoreduction script
     # reduce_REF_M.py we just created
-    #
     accumulation_workspace = data_server.load_nexus_processed("REF_M_44316.nxs")
     with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
         with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
@@ -133,6 +131,39 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
         output_files.append(file_path)
     for file_path in output_files:
         assert os.path.isfile(file_path)
+
+
+@pytest.mark.datarepo
+def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
+    """
+    Test the live reduction of an incomplete run that is still ongoing.
+
+    This means that there is no corresponding NeXus file in the expected location.
+    We expect the live reduction to abort gracefully without raising exceptions,
+    and log an appropriate error message.
+    """
+    # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
+    autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
+
+    #
+    # Invoke the main routine of the livereduction script. It will digest the autoreduction script
+    # reduce_REF_M.py we just created
+    #
+    accumulation_workspace = data_server.load_nexus_processed("REF_M_42539.nxs")
+    with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
+        with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
+            main(
+                accumulation_workspace,
+                outdir=mock_filesystem.tempdir,  # instead of /SNS/IPTS-31954/shared/autoreduce/
+                publish=False,  # don't upload the HTML report to the livedata server
+            )
+
+    # Check that an appropriate error message was logged
+    log_file = os.path.join(mock_filesystem.tempdir, "livereduce_REF_M.log")
+    with open(log_file, "r") as f:
+        log_contents = f.read()
+    expected_error_message = "Post-Processing: NeXus file does not exist"
+    assert expected_error_message in log_contents, f"Expected error message not found in log: {expected_error_message}"
 
 
 if __name__ == "__main__":
