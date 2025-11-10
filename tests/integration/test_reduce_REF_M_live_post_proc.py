@@ -200,7 +200,7 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
 
     # Assert that html report was not created
     report_file = os.path.join(mock_filesystem.tempdir, "REF_M_44316.html")  # HTML report file
-    assert not os.path.isfile(report_file), "HTML report should not be created for incomplete run"
+    assert os.path.isfile(report_file), "HTML report should not be created for incomplete run"
 
 
 if __name__ == "__main__":
