@@ -66,10 +66,12 @@ def header_report(workspace: MantidWorkspace) -> str:
     """
     try:
         samplelogs = SampleLogs(workspace)
-        report = f"<div>Run Number: {workspace.getRunNumber()}</div>\n"
-        report += f"<div>Events: {workspace.getNumberEvents()}</div>\n"
-        report += f"<div>Sequence: {samplelogs['sequence_number']} of {samplelogs['sequence_total']}</div>\n"
-        report += f"<div>Report time: {time.ctime()}</div>\n"
+        report = f"<p>Run Number: {workspace.getRunNumber()}</p>\n"
+        report += f"<p>Events: {workspace.getNumberEvents()}</p>\n"
+        report += f"<p>Sequence: {samplelogs['sequence_number']} of {samplelogs['sequence_total']}</p>\n"
+        report += f"<p>Report time: {time.ctime()}</p>\n"
+        report += "<p><strong>Note:</strong> this report is an intermediate result generated using "
+        report += "livereduce and not from the final Nexus file.</p>\n"
         report += "<hr>\n"  # insert a horizontal line
     except Exception as exception:  # noqa E722
         report = f"<div>{exception}</div>\n"
@@ -147,9 +149,10 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
 
     ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
     nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
-    # check if the run NeXus file exists in the expected location: <facility>/<instrument>/<ipts>/nexus/
-    if not os.path.exists(nexus_filepath):
-        api.logger.error(f"Post-Processing: NeXus file does not exist: {nexus_filepath}")
+
+    # if the run NeXus file exists, live reduction should not proceed
+    if os.path.exists(nexus_filepath):
+        api.logger.error(f"Post-Processing: NeXus file exists: {nexus_filepath}")
         return
 
     if outdir is None:

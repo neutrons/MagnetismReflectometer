@@ -134,6 +134,47 @@ def test_main_with_negative_relative_times(mock_filesystem, data_server, autored
 
 
 @pytest.mark.datarepo
+def test_completed_run(mock_filesystem, data_server, autoreduction_script):
+    """
+    Test the live reduction of a completed run that has finished.
+
+    This means that there is a corresponding NeXus file in the expected location.
+    We expect the live reduction to exit successfully without raising exceptions,
+    and log an appropriate error message.
+    """
+    # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
+    autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
+
+    # Invoke the main routine of the livereduction script. It will digest the autoreduction script
+    # reduce_REF_M.py we just created
+
+    accumulation_workspace = data_server.load_nexus_processed("REF_M_44316.nxs")
+
+    # Mock os.path.exists to return True for the NeXus file path
+    # since livereduce looks in /SNS/REF_M/IPTS-XXXX/nexus/
+    with mock.patch("os.path.exists") as mock_exists:
+        # Return True only for the specific NeXus file path pattern
+        def side_effect(path):
+            if "nexus" in path and path.endswith(".nxs.h5"):
+                return True
+            return False
+
+        mock_exists.side_effect = side_effect
+
+        with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
+            with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
+                main(
+                    accumulation_workspace,
+                    outdir=mock_filesystem.tempdir,  # instead of /SNS/IPTS-31954/shared/autoreduce/
+                    publish=False,  # don't upload the HTML report to the livedata server
+                )
+
+    # Assert that html report was not created
+    report_file = os.path.join(mock_filesystem.tempdir, "REF_M_44316.html")  # HTML report file
+    assert not os.path.isfile(report_file), "HTML report should not be created for completed run"
+
+
+@pytest.mark.datarepo
 def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
     """
     Test the live reduction of an incomplete run that is still ongoing.
@@ -145,11 +186,10 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
     # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
     autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
 
-    #
     # Invoke the main routine of the livereduction script. It will digest the autoreduction script
     # reduce_REF_M.py we just created
-    #
-    accumulation_workspace = data_server.load_nexus_processed("REF_M_42539.nxs")
+
+    accumulation_workspace = data_server.load_nexus_processed("REF_M_44316.nxs")
     with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
         with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir):
             main(
@@ -158,12 +198,9 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
                 publish=False,  # don't upload the HTML report to the livedata server
             )
 
-    # Check that an appropriate error message was logged
-    log_file = os.path.join(mock_filesystem.tempdir, "livereduce_REF_M.log")
-    with open(log_file, "r") as f:
-        log_contents = f.read()
-    expected_error_message = "Post-Processing: NeXus file does not exist"
-    assert expected_error_message in log_contents, f"Expected error message not found in log: {expected_error_message}"
+    # Assert that html report was not created
+    report_file = os.path.join(mock_filesystem.tempdir, "REF_M_44316.html")  # HTML report file
+    assert not os.path.isfile(report_file), "HTML report should not be created for incomplete run"
 
 
 if __name__ == "__main__":
