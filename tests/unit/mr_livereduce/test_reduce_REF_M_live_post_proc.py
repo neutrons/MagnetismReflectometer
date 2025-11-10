@@ -22,10 +22,11 @@ def test_rebin_tof(accumulation_workspace):
 @pytest.mark.datarepo
 def test_header_report(accumulation_workspace):
     report = header_report(accumulation_workspace)
-    assert "<div>Run Number: 42535</div>" in report
-    assert "<div>Events: 593081</div>" in report
-    assert "<div>Sequence: 1 of 4</div>" in report
-    assert "<div>Report time:" in report  # Check for the presence of the report time
+    assert "<p>Run Number: 42535</p>" in report
+    assert "<p>Events: 593081</p>" in report
+    assert "<p>Sequence: 1 of 4</p>" in report
+    assert "<p>Report time:" in report  # Check for the presence of the report time
+    assert "<p><strong>Note:</strong> this report is an intermediate result generated using " in report
 
 
 @pytest.mark.datarepo
