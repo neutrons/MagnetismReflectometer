@@ -147,7 +147,11 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
         api.logger.error("Post-Processing: Run number is 0 in the accumulated-events workspace")
         return
 
-    ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
+    try:
+        ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
+    except (KeyError, RuntimeError) as e:
+        api.logger.error(f"Post-Processing: Unable to get IPTS number from the accumulated-events workspace: {e}")
+        raise e
     nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
 
     # if the run NeXus file exists, live reduction should not proceed

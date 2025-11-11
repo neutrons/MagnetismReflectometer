@@ -180,8 +180,7 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
     Test the live reduction of an incomplete run that is still ongoing.
 
     This means that there is no corresponding NeXus file in the expected location.
-    We expect the live reduction to abort gracefully without raising exceptions,
-    and log an appropriate error message.
+    We expect the live reduction to process the data and generate the HTML report.
     """
     # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
     autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
@@ -200,7 +199,7 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
 
     # Assert that html report was not created
     report_file = os.path.join(mock_filesystem.tempdir, "REF_M_44316.html")  # HTML report file
-    assert os.path.isfile(report_file), "HTML report should not be created for incomplete run"
+    assert os.path.isfile(report_file), "HTML report should be created for incomplete run"
 
 
 if __name__ == "__main__":

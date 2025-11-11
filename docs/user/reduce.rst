@@ -244,7 +244,7 @@ This can be done using the ``os.path.exists()`` function in python, for example:
    import os
 
    ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
-    nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
+   nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
 
     # if the run NeXus file exists, live reduction should not proceed
     if os.path.exists(nexus_filepath):
