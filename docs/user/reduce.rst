@@ -229,3 +229,28 @@ namely a series of reduced files and an HTML report that is saved to the output 
 and available in the `monitor web page <https://monitor.sns.gov/dasmon/ref_m/>`_.
 The only difference is that the live-reduction report contains two graphs missing in the autor-reduction report.
 The graphs inform on the spin flipping ratio and the normalize spin differences.
+
+Tips for Live Reduction Scripts
++++++++++++++++++++++++++++++++
+
+To avoid having auto-reduction and live-reduction scripts stepping on each other's toes,
+it is recommended to check for the existence of the Nexus data files before attempting to reduce them.
+Live reduction should only reduce active runs, i.e. runs that are still being taken, while auto-reduction
+should only reduce completed runs.
+This can be done using the ``os.path.exists()`` function in python, for example:
+
+.. code-block:: python
+
+   import os
+
+   ipts = SampleLogs(input_workspace)["experiment_identifier"]  # e.g. 'IPTS-31954'
+   nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
+
+    # if the run NeXus file exists, live reduction should not proceed
+    if os.path.exists(nexus_filepath):
+        api.logger.error(f"Post-Processing: NeXus file exists: {nexus_filepath}")
+        return
+
+   # proceed with live reduction
+
+This way the live-reduction script can safely skip any runs that have already been processed by the auto-reduction script.
