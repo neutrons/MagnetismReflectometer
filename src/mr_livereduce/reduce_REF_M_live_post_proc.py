@@ -156,7 +156,9 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
 
     # if the run NeXus file exists, live reduction should not proceed
     if os.path.exists(nexus_filepath):
-        api.logger.error(f"Post-Processing: NeXus file exists: {nexus_filepath}")
+        api.logger.error(
+            f"Post-Processing: Run complete, Nexus file exists: {nexus_filepath}. Skipping live reduction."
+        )
         return
 
     if outdir is None:
