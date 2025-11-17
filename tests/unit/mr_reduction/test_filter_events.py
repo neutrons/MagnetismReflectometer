@@ -1,13 +1,8 @@
-import logging
-
-# third-party imports
 import pytest
 from mantid.simpleapi import LoadEventNexus, LoadNexus, logger, mtd
 from mantid.utils.logging import capture_logs
 
-# mr_reduction imports
 from mr_reduction.filter_events import create_table, filter_cross_sections
-from mr_reduction.settings import ANA_STATE, ANA_VETO, POL_STATE, POL_VETO
 
 
 def test_create_table():

@@ -2,19 +2,13 @@
 Reduction for MR
 """
 
-# standard imports
 import os
 import sys
 import time
 from io import IOBase
 from typing import List, Optional
 
-# third-party imports
-# from .settings import MANTID_PATH
-# sys.path.insert(0, MANTID_PATH)
-import mantid
 from mantid.simpleapi import (
-    FilterByLogValue,
     GroupWorkspaces,
     LoadEventNexus,
     MagnetismReflectometryReduction,
@@ -24,18 +18,16 @@ from mantid.simpleapi import (
 )
 
 from mr_reduction import io_orso
-
-# mr_reduction imports
 from mr_reduction.data_info import DataInfo, DataType
-from mr_reduction.filter_events import split_events
+from mr_reduction.filter_events import get_xs_list, slow_filter_cross_sections, split_events
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
-from mr_reduction.settings import ANA_STATE, ANA_VETO, GLOBAL_AR_DIR, POL_STATE, POL_VETO
+from mr_reduction.settings import GLOBAL_AR_DIR, PolarizationLogs
 from mr_reduction.simple_utils import SampleLogs
-from mr_reduction.types import MantidWorkspace, WorkspaceGroup
+from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000
@@ -50,10 +42,7 @@ class ReductionProcess:
     tolerance = 0.02
     # Minimum number of events needed to go ahead with the reduction
     min_number_events = REFLECTED_BEAM_EVTS_MIN
-    pol_state = POL_STATE
-    pol_veto = POL_VETO
-    ana_state = ANA_STATE
-    ana_veto = ANA_VETO
+    polarization_logs = PolarizationLogs()
 
     def __init__(
         self,
@@ -134,7 +123,7 @@ class ReductionProcess:
             int(data_run)
             self.run_number: Optional[int] = int(data_run)
             self.file_path = "REF_M_%s" % data_run
-        except:  # noqa E722
+        except (TypeError, ValueError):
             self.run_number = None
             self.file_path = data_run
         self.data_ws = data_ws
@@ -249,41 +238,6 @@ class ReductionProcess:
         # data, so data_info.cross_section indicates which one that was.
         return data_info, direct_info, apply_norm, norm_run
 
-    def slow_filter_cross_sections(self, ws):
-        """
-        Filter events according to an aggregated state log.
-        :param str file_path: file to read
-
-        BL4A:SF:ICP:getDI
-
-        015 (0000 1111): SF1=OFF, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
-        047 (0010 1111): SF1=ON, SF2=OFF, SF1Veto=OFF, SF2Veto=OFF
-        031 (0001 1111): SF1=OFF, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
-        063 (0011 1111): SF1=ON, SF2=ON, SF1Veto=OFF, SF2Veto=OFF
-        """
-        state_log = "BL4A:SF:ICP:getDI"
-        states = {"Off_Off": 15, "On_Off": 47, "Off_On": 31, "On_On": 63}
-        cross_sections = []
-
-        for pol_state in states:
-            try:
-                _ws = FilterByLogValue(
-                    InputWorkspace=ws,
-                    LogName=state_log,
-                    TimeTolerance=0.1,
-                    MinimumValue=states[pol_state],
-                    MaximumValue=states[pol_state],
-                    LogBoundary="Left",
-                    OutputWorkspace="%s_%s" % (ws.getRunNumber(), pol_state),
-                )
-                _ws.getRun()["cross_section_id"] = pol_state  # add new entry or assign to entry
-                if _ws.getNumberEvents() > 0:
-                    cross_sections.append(_ws)
-            except:  # noqa E722
-                mantid.logger.error("Could not filter %s: %s" % (pol_state, sys.exc_info()[1]))
-
-        return cross_sections
-
     def reduce(self):
         """
         Perform the reduction
@@ -292,34 +246,46 @@ class ReductionProcess:
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         try:
-            # if self.data_ws is not None and self.use_slow_flipper_log:
-            if self.data_ws is None:
-                self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
+            ##########################################################################################
+            # if self.data_ws is None:
+            #     self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
 
-            if self.data_ws.getNumberEvents() < self.min_number_events:
-                raise ValueError(
-                    f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
-                    f"(Minimum of {self.min_number_events} events required)"
-                )
+            # if self.data_ws.getNumberEvents() < self.min_number_events:
+            #     raise ValueError(
+            #         f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
+            #         f"(Minimum of {self.min_number_events} events required)"
+            #     )
 
-            self.run_number = int(self.data_ws.getRunNumber())
+            # self.run_number = int(self.data_ws.getRunNumber())
 
-            if self.use_slow_flipper_log:
-                _xs_list: WorkspaceGroup = self.slow_filter_cross_sections(self.data_ws)
-            else:
-                _xs_list: WorkspaceGroup = split_events(
-                    file_path=_filename,
-                    input_workspace=self.data_ws,
-                    pv_polarizer_state=self.pol_state,
-                    pv_analyzer_state=self.ana_state,
-                    pv_polarizer_veto=self.pol_veto,
-                    pv_analyzer_veto=self.ana_veto,
-                    output_workspace=str(self.data_ws.getRunNumber()),
-                )
-                # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
-                for ws in _xs_list:
-                    if "cross_section_id" not in ws.getRun():
-                        ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
+            # if self.use_slow_flipper_log:
+            #     _xs_list: WorkspaceGroup = slow_filter_cross_sections(self.data_ws)
+            # else:
+            #     _xs_list: WorkspaceGroup = split_events(
+            #         file_path=_filename,
+            #         input_workspace=self.data_ws,
+            #         pv_polarizer_state=self.pol_state,
+            #         pv_analyzer_state=self.ana_state,
+            #         pv_polarizer_veto=self.pol_veto,
+            #         pv_analyzer_veto=self.ana_veto,
+            #         output_workspace=str(self.data_ws.getRunNumber()),
+            #     )
+            #     # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
+            #     for ws in _xs_list:
+            #         if "cross_section_id" not in ws.getRun():
+            #             ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
+            #################################################################################
+
+            # >>>>> GLASS DEBUG BLOCK >>>>>
+            self.run_number, _xs_list = get_xs_list(
+                file_path=_filename,
+                input_workspace=self.data_ws,
+                min_event_count=self.min_number_events,
+                use_slow_flipper_log=self.use_slow_flipper_log,
+                polarization_logs=self.polarization_logs,
+            )
+            # <<<<< GLASS DEBUG BLOCK <<<<<
+
             xs_list = [
                 ws
                 for ws in _xs_list
