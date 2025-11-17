@@ -430,6 +430,10 @@ def get_xs_list(
         Name of the output workspace to store the results. Default is a unique hidden name.
     polarization_logs : PolarizationLogs, optional
         An object containing the names of the polarization state and veto logs.
+    min_event_count : int, optional
+        Minimum number of events required in the workspace. Default is 0.
+    use_slow_flipper_log : bool, optional
+        Whether to use the slow flipper log for filtering. Default is False.
 
     Returns
     -------
