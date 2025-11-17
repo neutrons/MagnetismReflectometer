@@ -19,7 +19,7 @@ from mantid.simpleapi import (
 
 from mr_reduction import io_orso
 from mr_reduction.data_info import DataInfo, DataType
-from mr_reduction.filter_events import get_xs_list, slow_filter_cross_sections, split_events
+from mr_reduction.filter_events import get_xs_list
 from mr_reduction.mr_direct_beam_finder import DirectBeamFinder
 from mr_reduction.reflectivity_merge import combined_catalog_info, combined_curves, plot_combined
 from mr_reduction.reflectivity_output import write_reflectivity
@@ -27,7 +27,7 @@ from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_partial_script
 from mr_reduction.settings import GLOBAL_AR_DIR, PolarizationLogs
 from mr_reduction.simple_utils import SampleLogs
-from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
+from mr_reduction.types import MantidWorkspace
 from mr_reduction.web_report import Report, process_collection
 
 DIRECT_BEAM_EVTS_MIN = 1000

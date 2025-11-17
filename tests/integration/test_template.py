@@ -2,7 +2,6 @@
 import itertools
 import os
 import shutil
-import string
 
 # third party imports
 import pytest

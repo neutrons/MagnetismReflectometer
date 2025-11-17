@@ -6,7 +6,6 @@ from typing import List, Optional, Tuple
 from mantid.api import (
     AnalysisDataService,
 )
-from mantid.kernel import Direction
 from mantid.simpleapi import (
     AddSampleLog,
     CreateEmptyTableWorkspace,

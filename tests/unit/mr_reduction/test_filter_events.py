@@ -1,5 +1,5 @@
 import pytest
-from mantid.simpleapi import LoadEventNexus, LoadNexus, logger, mtd
+from mantid.simpleapi import LoadEventNexus, LoadNexus, mtd
 from mantid.utils.logging import capture_logs
 
 from mr_reduction.filter_events import create_table, filter_cross_sections

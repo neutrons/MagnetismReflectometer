@@ -1,6 +1,3 @@
-import os
-from typing import List, Union
-
 """
 Reduction settings for MR
 """
