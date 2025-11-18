@@ -246,37 +246,6 @@ class ReductionProcess:
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         try:
-            ##########################################################################################
-            # if self.data_ws is None:
-            #     self.data_ws = LoadEventNexus(Filename=self.file_path, OutputWorkspace="raw_events")
-
-            # if self.data_ws.getNumberEvents() < self.min_number_events:
-            #     raise ValueError(
-            #         f"Insufficient number of reflected beam events: {self.data_ws.getNumberEvents()} "
-            #         f"(Minimum of {self.min_number_events} events required)"
-            #     )
-
-            # self.run_number = int(self.data_ws.getRunNumber())
-
-            # if self.use_slow_flipper_log:
-            #     _xs_list: WorkspaceGroup = slow_filter_cross_sections(self.data_ws)
-            # else:
-            #     _xs_list: WorkspaceGroup = split_events(
-            #         file_path=_filename,
-            #         input_workspace=self.data_ws,
-            #         pv_polarizer_state=self.pol_state,
-            #         pv_analyzer_state=self.ana_state,
-            #         pv_polarizer_veto=self.pol_veto,
-            #         pv_analyzer_veto=self.ana_veto,
-            #         output_workspace=str(self.data_ws.getRunNumber()),
-            #     )
-            #     # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
-            #     for ws in _xs_list:
-            #         if "cross_section_id" not in ws.getRun():
-            #             ws.getRun()["cross_section_id"] = "Off_Off"  # assign to entry
-            #################################################################################
-
-            # >>>>> GLASS DEBUG BLOCK >>>>>
             self.run_number, _xs_list = get_xs_list(
                 file_path=_filename,
                 input_workspace=self.data_ws,
@@ -284,7 +253,6 @@ class ReductionProcess:
                 use_slow_flipper_log=self.use_slow_flipper_log,
                 polarization_logs=self.polarization_logs,
             )
-            # <<<<< GLASS DEBUG BLOCK <<<<<
 
             xs_list = [
                 ws

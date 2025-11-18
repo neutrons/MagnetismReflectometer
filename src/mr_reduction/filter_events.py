@@ -353,7 +353,7 @@ def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> List[Eve
     state_log = "BL4A:SF:ICP:getDI"
     states = {"Off_Off": 15, "On_Off": 47, "Off_On": 31, "On_On": 63}
     cross_sections = []
-    if prefix is None:
+    if not prefix:
         prefix = str(ws.getRunNumber())
 
     for pol_state, state_value in states.items():
@@ -370,8 +370,8 @@ def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> List[Eve
             _ws.getRun()["cross_section_id"] = pol_state  # add new entry or assign to entry
             if _ws.getNumberEvents() > 0:
                 cross_sections.append(_ws)
-        except:  # noqa E722
-            logger.error("Could not filter %s: %s" % (pol_state, sys.exc_info()[1]))
+        except Exception as e:  # noqa E722
+            logger.error(f"Could not filter {pol_state}: {e}")
 
     return cross_sections
 
@@ -401,8 +401,8 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
             ws = LoadEventNexus(Filename=file_path, NXentryName="entry-%s" % entry, OutputWorkspace=ws_name)
             AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=entry)
             cross_sections.append(ws_name)
-        except:  # noqa E722
-            logger.information("Could not load %s from legacy data file" % entry)
+        except Exception as e:  # noqa E722
+            logger.information(f"Could not load entry {entry} from legacy data file: {e}")
 
     return GroupWorkspaces(InputWorkspaces=cross_sections, OutputWorkspace=output_workspace)
 
@@ -438,6 +438,9 @@ def get_xs_list(
         - The run number (int)
         - A Mantid workspace group containing the filtered cross-sections.
     """
+    if input_workspace is None and file_path is None:
+        raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+
     if input_workspace is None and file_path is not None:
         input_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
 
