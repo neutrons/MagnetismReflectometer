@@ -20,7 +20,7 @@ from mantid.simpleapi import MagnetismReflectometryReduction, mtd
 
 # mr_reduction imports
 from mr_reduction.data_info import DataInfo
-from mr_reduction.filter_events import split_events
+from mr_reduction.filter_events import get_xs_list, split_events
 
 
 def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
@@ -39,7 +39,9 @@ def extract_data_info(xs_list: WorkspaceGroup) -> DataInfo:
 
 @pytest.mark.datarepo
 def test_reduction_simple(data_server):
-    wsg = split_events(
+    # wsg = split_events(
+    # _, wsg = get_xs_list(
+    wsg = get_xs_list(
         file_path=data_server.path_to("REF_M_28142.nxs.h5"),  # three cross-sections
         output_workspace=mtd.unique_hidden_name(),
     )

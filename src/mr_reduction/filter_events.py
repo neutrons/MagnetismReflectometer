@@ -397,8 +397,8 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
 
     for entry in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         try:
-            ws_name = "%s_%s" % (ws_base_name, entry)
-            ws = LoadEventNexus(Filename=file_path, NXentryName="entry-%s" % entry, OutputWorkspace=ws_name)
+            ws_name = f"{ws_base_name}_{entry}"
+            ws = LoadEventNexus(Filename=file_path, NXentryName=f"entry-{entry}", OutputWorkspace=ws_name)
             AddSampleLog(Workspace=ws, LogName="cross_section_id", LogText=entry)
             cross_sections.append(ws_name)
         except Exception as e:  # noqa E722
@@ -407,15 +407,48 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
     return GroupWorkspaces(InputWorkspaces=cross_sections, OutputWorkspace=output_workspace)
 
 
+def get_workspace(
+    input_workspace: Optional[MantidWorkspace] = None, file_path: Optional[str] = None
+) -> MantidWorkspace:
+    """
+    Retrieve a Mantid workspace from either an existing workspace or by loading a file.
+
+    Parameters
+    ----------
+    input_workspace : MantidWorkspace, optional
+        An existing Mantid workspace to process. If provided, this workspace will be used.
+    file_path : str, optional
+        Path to the Nexus file. If provided and `input_workspace` is None, the file will be loaded.
+
+    Returns
+    -------
+    MantidWorkspace
+        The retrieved Mantid workspace.
+
+    Raises
+    ------
+    ValueError
+        If neither `input_workspace` nor `file_path` is provided.
+    """
+    if input_workspace is not None:
+        return workspace_handle(input_workspace)
+
+    if file_path is not None:
+        return LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
+
+    raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+
+
 def get_xs_list(
     *,
     file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,
     output_workspace: Optional[str] = None,
-    min_event_count: int = 0,
+    min_event_count: int = 200,
     use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
-) -> Tuple[int, WorkspaceGroup]:
+    check_devices: bool = True,
+) -> WorkspaceGroup:
     """
     Load a nexus file and split it into a list of cross-section workspaces.
 
@@ -437,54 +470,58 @@ def get_xs_list(
 
     Returns
     -------
-    Tuple[int, WorkspaceGroup]
-        A tuple containing:
-        - The run number (int)
-        - A Mantid workspace group containing the filtered cross-sections.
+    TODO: finish this when i figure out the return type
     """
-    if input_workspace is None and file_path is None:
-        raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
 
-    if input_workspace is None and file_path is not None:
-        input_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
+    if (file_path is not None) and file_path.endswith(".nxs"):
+        # Handle legacy (pre-EPICS) data files differently
+        xs_list = load_legacy_cross_sections(file_path, output_workspace or mtd.unique_hidden_name())
+        return xs_list
 
-    if input_workspace.getNumberEvents() < min_event_count:
+    events_workspace = get_workspace(input_workspace, file_path)
+
+    if events_workspace.getNumberEvents() < min_event_count:
         raise ValueError(
             f"Insufficient number of reflected beam events: {input_workspace.getNumberEvents()} "
             f"(Minimum of {min_event_count} events required)"
         )
 
-    run_number = int(input_workspace.getRunNumber())
+    run_number = int(events_workspace.getRunNumber())
     if output_workspace is None:
         output_workspace = str(run_number)
 
     if use_slow_flipper_log:
-        xs_list = slow_filter_cross_sections(input_workspace)
+        xs_list = slow_filter_cross_sections(events_workspace)
     else:
-        xs_list = split_events(
-            input_workspace=input_workspace,
-            output_workspace=output_workspace,
+        filter_cross_sections(
+            events_workspace,
+            output_workspace,
             pv_polarizer_state=polarization_logs.POL_STATE,
             pv_analyzer_state=polarization_logs.ANA_STATE,
             pv_polarizer_veto=polarization_logs.POL_VETO,
             pv_analyzer_veto=polarization_logs.ANA_VETO,
+            check_devices=check_devices,
         )
+
+        if input_workspace is None:
+            AnalysisDataService.remove(str(events_workspace))
+
+        xs_list = workspace_handle(output_workspace)
+
         # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
         for ws in xs_list:
             if "cross_section_id" not in ws.getRun():
                 ws.getRun()["cross_section_id"] = "Off_Off"
 
-    return (run_number, xs_list)
+    return xs_list
 
 
+# TODO: This may not be necessary after this PR
 def split_events(
-    output_workspace: str,
     file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,
-    pv_polarizer_state: str = PolarizationLogs.POL_STATE,
-    pv_analyzer_state: str = PolarizationLogs.ANA_STATE,
-    pv_polarizer_veto: str = PolarizationLogs.POL_VETO,
-    pv_analyzer_veto: str = PolarizationLogs.ANA_VETO,
+    output_workspace: Optional[str] = None,
+    polarization_logs: PolarizationLogs = PolarizationLogs(),
     check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
@@ -527,28 +564,31 @@ def split_events(
     - If the file path ends with `.nxs`, it is assumed to be legacy data, and cross-sections are loaded independently.
     - If no polarizer or analyzer information is available, the raw workspace is returned without filtering.
     """
+
+    output_workspace = output_workspace or mtd.unique_hidden_name()
+
     # Handle legacy (pre-EPICS) data files differently
     if (file_path is not None) and file_path.endswith(".nxs"):
         return load_legacy_cross_sections(file_path, output_workspace)
+
+    # if user provides both file_path and input_workspace, use the input_workspace
+    if input_workspace is None:
+        # load data file into a temporary workspace
+        events_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace=mtd.unique_hidden_name())
     else:
-        # if user provides both file_path and input_workspace, use the input_workspace
-        if input_workspace is None:
-            # load data file into a temporary workspace
-            events_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace=mtd.unique_hidden_name())
-        else:
-            events_workspace = workspace_handle(input_workspace)
+        events_workspace = workspace_handle(input_workspace)
 
-        filter_cross_sections(
-            events_workspace,
-            output_workspace,
-            pv_polarizer_state=pv_polarizer_state,
-            pv_analyzer_state=pv_analyzer_state,
-            pv_polarizer_veto=pv_polarizer_veto,
-            pv_analyzer_veto=pv_analyzer_veto,
-            check_devices=check_devices,
-        )
+    filter_cross_sections(
+        events_workspace,
+        output_workspace,
+        pv_polarizer_state=polarization_logs.POL_STATE,
+        pv_analyzer_state=polarization_logs.ANA_STATE,
+        pv_polarizer_veto=polarization_logs.POL_VETO,
+        pv_analyzer_veto=polarization_logs.ANA_VETO,
+        check_devices=check_devices,
+    )
 
-        if input_workspace is None:
-            AnalysisDataService.remove(str(events_workspace))
+    if input_workspace is None:
+        AnalysisDataService.remove(str(events_workspace))
 
-        return workspace_handle(output_workspace)
+    return workspace_handle(output_workspace)

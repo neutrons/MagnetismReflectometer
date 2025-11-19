@@ -11,8 +11,7 @@ import mantid
 import mantid.simpleapi as api
 
 # mr_reduction imports
-from mr_reduction import settings as reduction_settings
-from mr_reduction.filter_events import split_events
+from mr_reduction.filter_events import get_xs_list, split_events
 from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.types import MantidWorkspace
 
@@ -77,7 +76,9 @@ def calculate_ratios(
     if slow_filter:
         workspace_group = filter_GetDI(workspace)
     else:
-        workspace_group = split_events(input_workspace=workspace)
+        # workspace_group = split_events(input_workspace=workspace)
+        assert 1 == 0, "getting xs list in calculate_ratios"
+        workspace_group = get_xs_list(input_workspace=workspace)
 
     ws_list = []
     ws_non_zero = []

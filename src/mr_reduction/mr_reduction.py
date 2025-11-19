@@ -3,7 +3,6 @@ Reduction for MR
 """
 
 import os
-import sys
 import time
 from io import IOBase
 from typing import List, Optional
@@ -120,9 +119,8 @@ class ReductionProcess:
         """
 
         try:
-            int(data_run)
             self.run_number: Optional[int] = int(data_run)
-            self.file_path = "REF_M_%s" % data_run
+            self.file_path = f"REF_M_{data_run}"
         except (TypeError, ValueError):
             self.run_number = None
             self.file_path = data_run
@@ -246,13 +244,21 @@ class ReductionProcess:
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         try:
-            self.run_number, _xs_list = get_xs_list(
+            # self.run_number, _xs_list = get_xs_list(
+            _xs_list = get_xs_list(
                 file_path=_filename,
                 input_workspace=self.data_ws,
                 min_event_count=self.min_number_events,
                 use_slow_flipper_log=self.use_slow_flipper_log,
                 polarization_logs=self.polarization_logs,
             )
+
+            try:
+                self.run_number = _xs_list[0].getRunNumber()
+            except IndexError:
+                # TODO: handle empty cross-section list
+                logger.error("No cross-sections found")
+                pass
 
             xs_list = [
                 ws
@@ -282,10 +288,10 @@ class ReductionProcess:
                 # plotly figures for the reflectivity profile of each cross section, and embed in an <div> container
                 ref_plot = plot_combined(matched_run_list, scaling_factor_list, self.output_dir, publish=False)
                 self.log("Generated reflectivity: %s" % len(str(ref_plot)))
-            except:  # noqa E722
+            except Exception as e:  # noqa E722
                 self.log("Could not generate combined curve")
-                self.log(str(sys.exc_info()[1]))
-                logger.error(str(sys.exc_info()[1]))
+                self.log(str(e))
+                logger.error(str(e))
 
             logger.notice("Processing collection of %s reports" % len(report_list))
             html_report, _ = process_collection(summary_content=ref_plot, report_list=report_list)
@@ -392,10 +398,10 @@ class ReductionProcess:
                 reflectivity_workspaces.append(reflectivity)
                 self.log("  - done writing")
 
-            except:  # noqa E722
+            except Exception as e:  # noqa E722
                 self.log("  - reduction failed")
                 # No data for this cross-section, skip to the next
-                logger.error("Cross section: %s" % str(sys.exc_info()[1]))
+                logger.error(f"Cross section: {str(e)}")
                 report = Report(ws, data_info, direct_info, None)
                 report_list.append(report)
 
@@ -446,7 +452,7 @@ class ReductionProcess:
                         )
                         apply_norm = True
                         break
-                except:  # noqa E722
+                except Exception as e:  # noqa E722
                     # No data in this cross-section
-                    logger.error("Direct beam %s: %s" % (norm_entry, sys.exc_info()[1]))
+                    logger.error(f"Direct beam {norm_entry}: {str(e)}")
         return apply_norm, norm_run, direct_info
