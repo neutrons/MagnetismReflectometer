@@ -2,7 +2,7 @@ import pytest
 from mantid.simpleapi import LoadEventNexus, LoadNexus, mtd
 from mantid.utils.logging import capture_logs
 
-from mr_reduction.filter_events import create_table, filter_cross_sections, get_xs_list
+from mr_reduction.filter_events import create_table, filter_cross_sections, get_err_list, get_xs_list
 
 
 def test_create_table():
@@ -62,7 +62,6 @@ class TestCrossSectionList:
         workspace = LoadEventNexus(
             Filename=data_server.path_to("REF_M_44380.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
         )
-        # run_number, xs_list = get_xs_list(input_workspace=workspace, min_event_count=100)
         xs_list = get_xs_list(input_workspace=workspace, min_event_count=100)
         run_number = int(workspace.getRunNumber())
         assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
@@ -72,7 +71,6 @@ class TestCrossSectionList:
         """
         Test the function that retrieves the list of cross sections from a nexus file.
         """
-        # run_number, xs_list = get_xs_list(file_path=data_server.path_to("REF_M_44380.nxs.h5"), min_event_count=100)
         xs_list = get_xs_list(file_path=data_server.path_to("REF_M_44380.nxs.h5"), min_event_count=100)
         run_number = xs_list[0].getRunNumber()
         assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
@@ -97,6 +95,29 @@ class TestCrossSectionList:
         """
         with pytest.raises(ValueError, match="Either 'file_path' or 'input_workspace' must be provided"):
             get_xs_list()
+
+
+class TestGetErrorList:
+    @pytest.mark.datarepo
+    def test_get_err_list_from_filename(self, data_server):
+        """
+        Test the function that retrieves the error WorkspaceGroup from a nexus file.
+        """
+        err_list = get_err_list(file_path=data_server.path_to("REF_M_45129.nxs.h5"))
+        run_number = err_list[0].getRunNumber()
+        assert list(err_list.getNames()) == [f"{run_number}_err_On_Off", f"{run_number}_err_Off_Off"]
+
+    @pytest.mark.datarepo
+    def test_get_err_list_from_workspace(self, data_server):
+        """
+        Test the function that retrieves the error WorkspaceGroup from a mantid workspace.
+        """
+        workspace = LoadEventNexus(
+            Filename=data_server.path_to("REF_M_45129.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
+        )
+        err_list = get_err_list(input_workspace=workspace)
+        run_number = int(workspace.getRunNumber())
+        assert list(err_list.getNames()) == [f"{run_number}_err_On_Off", f"{run_number}_err_Off_Off"]
 
 
 if __name__ == "__main__":

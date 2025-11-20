@@ -1,5 +1,4 @@
 import os
-import sys
 from operator import itemgetter
 from typing import List, Optional, Tuple
 
@@ -13,6 +12,7 @@ from mantid.simpleapi import (
     FilterEvents,
     GenerateEventsFilter,
     GroupWorkspaces,
+    LoadErrorEventsNexus,
     LoadEventNexus,
     logger,
     mtd,
@@ -450,7 +450,8 @@ def get_xs_list(
     check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
-    Load a nexus file and split it into a list of cross-section workspaces.
+    Split a Mantid EventWorkspace into a cross-section WorkspaceGroup based on polarization,
+    loading from a Nexus file if needed.
 
     Parameters
     ----------
@@ -493,7 +494,7 @@ def get_xs_list(
     if use_slow_flipper_log:
         xs_list = slow_filter_cross_sections(events_workspace)
     else:
-        filter_cross_sections(
+        xs_list = filter_cross_sections(
             events_workspace,
             output_workspace,
             pv_polarizer_state=polarization_logs.POL_STATE,
@@ -503,10 +504,9 @@ def get_xs_list(
             check_devices=check_devices,
         )
 
-        if input_workspace is None:
+        # Only cleanup if the input workspace was created here and is not referenced by the output workspaces
+        if (input_workspace is None) and not (any(ws.name() == str(events_workspace) for ws in xs_list)):
             AnalysisDataService.remove(str(events_workspace))
-
-        xs_list = workspace_handle(output_workspace)
 
         # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
         for ws in xs_list:
@@ -516,79 +516,73 @@ def get_xs_list(
     return xs_list
 
 
-# TODO: This may not be necessary after this PR
-def split_events(
+def get_err_list(
+    *,
     file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,
     output_workspace: Optional[str] = None,
+    use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
-    check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
-    Splits events from a workspace or file into list of cross-section workspaces, based on polarization states.
+    Split a Mantid EventWorkspace into an error WorkspaceGroup based on polarization,
+    loading from a Nexus file if needed.
 
     Parameters
     ----------
-    output_workspace : str
-        Name of the output workspace to store the results.
-    file_path : str, optional
-        Path to the data file. If provided, the file will be loaded.
+    file_path : str
+        Path to the Nexus file.
     input_workspace : MantidWorkspace, optional
         An existing Mantid workspace to process. If both `file_path` and `input_workspace` are provided,
         `input_workspace` takes precedence.
-    pv_polarizer_state : str, optional
-        Name of the sample log for the polarizer state. Default is "SF1".
-    pv_analyzer_state : str, optional
-        Name of the sample log for the analyzer state. Default is "SF2".
-    pv_polarizer_veto : str, optional
-        Name of the sample log for the polarizer veto. Default is "SF1_Veto".
-    pv_analyzer_veto : str, optional
-        Name of the sample log for the analyzer veto. Default is "SF2_Veto".
-    check_devices : bool, optional
-        Whether to check for the presence of polarizer and analyzer devices. Default is True.
+    output_workspace : str, optional
+        Name of the output workspace to store the results. Default is a unique hidden name.
+    polarization_logs : PolarizationLogs, optional
+        An object containing the names of the polarization state and veto logs.
 
     Returns
     -------
     WorkspaceGroup
-        A Mantid workspace group containing the filtered cross-sections.
-
-    Raises
-    ------
-    ValueError
-        If neither `file_path` nor `input_workspace` is provided.
-    RuntimeError
-        If no events remain after filtering.
-
-    Notes
-    -----
-    - If the file path ends with `.nxs`, it is assumed to be legacy data, and cross-sections are loaded independently.
-    - If no polarizer or analyzer information is available, the raw workspace is returned without filtering.
+        A Mantid workspace group containing the error workspaces.
     """
-
-    output_workspace = output_workspace or mtd.unique_hidden_name()
-
-    # Handle legacy (pre-EPICS) data files differently
+    # Only applies to non-legacy data files
     if (file_path is not None) and file_path.endswith(".nxs"):
-        return load_legacy_cross_sections(file_path, output_workspace)
+        raise ValueError("Error workspaces are not available for legacy data files")
 
-    # if user provides both file_path and input_workspace, use the input_workspace
-    if input_workspace is None:
-        # load data file into a temporary workspace
-        events_workspace = LoadEventNexus(Filename=file_path, OutputWorkspace=mtd.unique_hidden_name())
+    if input_workspace is None and file_path is None:
+        raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+
+    if input_workspace is not None:
+        err_ws = input_workspace
     else:
-        events_workspace = workspace_handle(input_workspace)
+        err_ws = LoadErrorEventsNexus(Filename=file_path, OutputWorkspace="raw_events_err")
 
-    filter_cross_sections(
-        events_workspace,
-        output_workspace,
-        pv_polarizer_state=polarization_logs.POL_STATE,
-        pv_analyzer_state=polarization_logs.ANA_STATE,
-        pv_polarizer_veto=polarization_logs.POL_VETO,
-        pv_analyzer_veto=polarization_logs.ANA_VETO,
-        check_devices=check_devices,
-    )
+    metadata = err_ws.getRun()
+    run_number = err_ws.getRunNumber()
+    if output_workspace is None:
+        output_workspace = str(run_number)
 
-    if input_workspace is None:
-        AnalysisDataService.remove(str(events_workspace))
+    if use_slow_flipper_log:
+        err_ws_list = slow_filter_cross_sections(err_ws, prefix=f"{output_workspace}_err")
+    else:
+        pol_veto = polarization_logs.POL_VETO if polarization_logs.POL_VETO in metadata else ""
+        ana_veto = polarization_logs.ANA_VETO if polarization_logs.ANA_VETO in metadata else ""
+        err_ws_list = filter_cross_sections(
+            err_ws,
+            output_workspace=f"{output_workspace}_err",
+            pv_polarizer_state=polarization_logs.POL_STATE,
+            pv_analyzer_state=polarization_logs.ANA_STATE,
+            pv_polarizer_veto=pol_veto,
+            pv_analyzer_veto=ana_veto,
+        )
 
-    return workspace_handle(output_workspace)
+        # Only cleanup if the input workspace was created here and is not referenced by the output workspaces
+        if (input_workspace is None) and not (any(ws.name() == str(err_ws) for ws in err_ws_list)):
+            AnalysisDataService.remove(str(err_ws))
+
+        # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
+        for ws in err_ws_list:
+            if "cross_section_id" not in ws.getRun():
+                ws.getRun()["cross_section_id"] = "Off_Off"
+
+    return err_ws_list

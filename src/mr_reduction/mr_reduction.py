@@ -244,7 +244,6 @@ class ReductionProcess:
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         try:
-            # self.run_number, _xs_list = get_xs_list(
             _xs_list = get_xs_list(
                 file_path=_filename,
                 input_workspace=self.data_ws,
@@ -253,12 +252,12 @@ class ReductionProcess:
                 polarization_logs=self.polarization_logs,
             )
 
-            try:
-                self.run_number = _xs_list[0].getRunNumber()
-            except IndexError:
-                # TODO: handle empty cross-section list
-                logger.error("No cross-sections found")
-                pass
+            if len(_xs_list) == 0:
+                raise ValueError("No cross-sections found after filtering")
+
+            # Extract run number from first workspace
+            if self.run_number is None:
+                self.run_number = int(_xs_list[0].getRunNumber())
 
             xs_list = [
                 ws
