@@ -13,7 +13,7 @@ from mantid.dataobjects import EventWorkspace
 
 """
 List of EvenWorkspace objects representing different cross-sections (Off_Off, Off_on, ...),
-usually the result of running filter_events.split_events on an input Nexus events file.
+usually the result of running filter_events.get_xs_list on an input Nexus events file.
 """
 CrossSectionEventWorkspaces: TypeAlias = List[mantid.dataobjects.EventWorkspace]
 

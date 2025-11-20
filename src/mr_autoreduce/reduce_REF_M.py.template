@@ -117,8 +117,6 @@ def reduce_events(filename=None, workspace=None, outdir=None, **other_options) -
         reports.append(ReductionProcess(**kwargs).reduce())
     return reports
 
-def reduce_events_file(event_file_path, outdir):
-    return reduce_events(filename=event_file_path, outdir=outdir)
 
 def parse_command_arguments():
     parser = argparse.ArgumentParser(description='Autoreduction script for REF_M')
@@ -132,7 +130,7 @@ def main():
     r"""Autoreduce a single events file and upload the HTML report to the livedata server"""
     args = parse_command_arguments()
     os.makedirs(args.outdir, exist_ok=True)
-    reports = reduce_events_file(args.events_file, args.outdir)
+    reports = reduce_events(filename=args.events_file, outdir=args.outdir)
 
     # Save to disk and (optionally) upload the HTML report
     run_number = re.search(r'REF_M_(\d+)', args.events_file).group(1)

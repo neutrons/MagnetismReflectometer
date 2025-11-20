@@ -46,9 +46,9 @@ def reduce_single_run(opts):
         os.system(f"/bin/cp {script_file} {opts['outdir']}")
         # import functions from newly created reduce_REF_M.py and reduce. Save HTML report and reduced files in outdir
         with add_to_sys_path(temp_dir):
-            from reduce_REF_M import reduce_events_file, save_report
+            from reduce_REF_M import reduce_events, save_report
 
-            reports = reduce_events_file(opts["events_file"], opts["outdir"])
+            reports = reduce_events(filename=opts["events_file"], outdir=opts["outdir"])
             report_file = os.path.join(opts["outdir"], f"{run_number(opts['events_file'])}.html")
             save_report(reports, report_file)
     return {"report_file": report_file}

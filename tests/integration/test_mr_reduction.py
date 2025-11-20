@@ -31,10 +31,10 @@ class TestReduction:
             output_dir=mock_filesystem.tempdir,
             publish=False,  # don't upload to the livedata server
         )
-        processor.pol_state = "SF1"
-        processor.ana_state = "SF2"
-        processor.pol_veto = ""
-        processor.ana_veto = ""
+        processor.polarization_logs.POL_STATE = "SF1"
+        processor.polarization_logs.ANA_STATE = "SF2"
+        processor.polarization_logs.POL_VETO = ""
+        processor.polarization_logs.ANA_VETO = ""
         processor.reduce()
         # assert reduction files have been produced
         for file in [
@@ -64,10 +64,10 @@ class TestReduction:
         processor = mr.ReductionProcess(
             data_run=data_server.path_to("REF_M_28142.nxs.h5"), output_dir=mock_filesystem.tempdir
         )
-        processor.pol_state = "SF1"
-        processor.ana_state = "SF2"
-        processor.pol_veto = ""
-        processor.ana_veto = ""
+        processor.polarization_logs.POL_STATE = "SF1"
+        processor.polarization_logs.ANA_STATE = "SF2"
+        processor.polarization_logs.POL_VETO = ""
+        processor.polarization_logs.ANA_VETO = ""
         processor.reduce()
         # assert reduction files have been produced
         for file in [
