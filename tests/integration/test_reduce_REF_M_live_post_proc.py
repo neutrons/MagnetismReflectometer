@@ -222,22 +222,26 @@ def test_run_is_completed_during_reduction(mock_filesystem, data_server, autored
     # Mock os.path.exists for the NeXus file path
     # since livereduce looks in /SNS/REF_M/IPTS-XXXX/nexus/
     with mock.patch("os.path.exists") as mock_exists:
-        # Return first False, then True for the specific NeXus file path pattern,
+        # Return False for the first call, True for subsequent calls,
         # simulating that the run finished during live reduction processing
-        exists_flip = iter([False, True])
+        call_count = {"count": 0}
 
         def side_effect(path):
-            return next(exists_flip) if path.endswith(".nxs.h5") else False
+            if path.endswith(".nxs.h5"):
+                call_count["count"] += 1
+                return call_count["count"] > 1
+            return False
 
         mock_exists.side_effect = side_effect
 
-        with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.save_report"):
+        with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.save_report") as mock_save_report:
             with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.upload_report") as mock_upload:
                 with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
                     with mock.patch(
                         "mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir
                     ):
                         main(accumulation_workspace, outdir=mock_filesystem.tempdir, publish=True)
+                        mock_save_report.assert_called_once()
                         mock_upload.assert_not_called()
 
 
