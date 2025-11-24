@@ -439,7 +439,7 @@ def get_workspace(
     raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
 
 
-def get_xs_list(
+def split_events(
     *,
     file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,
@@ -471,7 +471,8 @@ def get_xs_list(
 
     Returns
     -------
-    TODO: finish this when i figure out the return type
+    WorkspaceGroup
+        A Mantid workspace group containing the cross-section workspaces.
     """
 
     if (file_path is not None) and file_path.endswith(".nxs"):
@@ -516,7 +517,7 @@ def get_xs_list(
     return xs_list
 
 
-def get_err_list(
+def split_error_events(
     *,
     file_path: Optional[str] = None,
     input_workspace: Optional[MantidWorkspace] = None,

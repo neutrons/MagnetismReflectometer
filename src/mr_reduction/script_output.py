@@ -104,7 +104,7 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
 
     The script calls the following algorithms/functions sequentially:
         LoadEventNexus
-        filter_events.get_xs_list
+        filter_events.split_events
         LoadEventNexus
         GroupWorkspaces
         MagnetismReflectometryReduction
