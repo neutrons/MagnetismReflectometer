@@ -17,7 +17,7 @@ jobs:
         shell: bash -el {0}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Needed to switch branches
           ref: next       # Explicitly specify the branch to check out
