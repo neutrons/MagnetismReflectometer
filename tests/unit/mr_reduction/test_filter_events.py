@@ -1,13 +1,8 @@
-import logging
-
-# third-party imports
 import pytest
-from mantid.simpleapi import LoadEventNexus, LoadNexus, logger, mtd
+from mantid.simpleapi import LoadEventNexus, LoadNexus, mtd
 from mantid.utils.logging import capture_logs
 
-# mr_reduction imports
-from mr_reduction.filter_events import create_table, filter_cross_sections
-from mr_reduction.settings import ANA_STATE, ANA_VETO, POL_STATE, POL_VETO
+from mr_reduction.filter_events import create_table, filter_cross_sections, split_error_events, split_events
 
 
 def test_create_table():
@@ -56,6 +51,73 @@ class TestFilterCrossSections:
         with capture_logs(level="warning") as messages:
             filter_cross_sections(workspace, output_workspace="45129")
             assert "Polarizer veto log 'SF1_Veto' not found in sample logs" in messages.getvalue()
+
+
+class TestCrossSectionList:
+    @pytest.mark.datarepo
+    def test_split_events_from_workspace(self, data_server):
+        """
+        Test the function that retrieves the list of cross sections from a mantid workspace.
+        """
+        workspace = LoadEventNexus(
+            Filename=data_server.path_to("REF_M_44380.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
+        )
+        xs_list = split_events(input_workspace=workspace, min_event_count=100)
+        run_number = int(workspace.getRunNumber())
+        assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
+
+    @pytest.mark.datarepo
+    def test_split_events_from_filename(self, data_server):
+        """
+        Test the function that retrieves the list of cross sections from a nexus file.
+        """
+        xs_list = split_events(file_path=data_server.path_to("REF_M_44380.nxs.h5"), min_event_count=100)
+        run_number = xs_list[0].getRunNumber()
+        assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
+
+    @pytest.mark.datarepo
+    def test_split_events_legacy(self, data_server):
+        """
+        Test the function that retrieves the list of cross sections from a legacy nexus file.
+        """
+        xs_list = split_events(file_path=data_server.path_to("REF_M_24945_event.nxs"))
+        assert list(xs_list.getNames()) == [
+            "REF_M_24945_event.nxs_Off_Off",
+            "REF_M_24945_event.nxs_On_Off",
+            "REF_M_24945_event.nxs_Off_On",
+            "REF_M_24945_event.nxs_On_On",
+        ]
+
+    @pytest.mark.datarepo
+    def test_split_events_invalid_args(self):
+        """
+        Test the function that retrieves the list of cross sections with invalid arguments.
+        """
+        with pytest.raises(ValueError, match="Either 'file_path' or 'input_workspace' must be provided"):
+            split_events()
+
+
+class TestGetErrorList:
+    @pytest.mark.datarepo
+    def test_split_error_events_from_filename(self, data_server):
+        """
+        Test the function that retrieves the error WorkspaceGroup from a nexus file.
+        """
+        err_list = split_error_events(file_path=data_server.path_to("REF_M_45129.nxs.h5"))
+        run_number = err_list[0].getRunNumber()
+        assert list(err_list.getNames()) == [f"{run_number}_err_On_Off", f"{run_number}_err_Off_Off"]
+
+    @pytest.mark.datarepo
+    def test_split_error_events_from_workspace(self, data_server):
+        """
+        Test the function that retrieves the error WorkspaceGroup from a mantid workspace.
+        """
+        workspace = LoadEventNexus(
+            Filename=data_server.path_to("REF_M_45129.nxs.h5"), OutputWorkspace=mtd.unique_hidden_name()
+        )
+        err_list = split_error_events(input_workspace=workspace)
+        run_number = int(workspace.getRunNumber())
+        assert list(err_list.getNames()) == [f"{run_number}_err_On_Off", f"{run_number}_err_Off_Off"]
 
 
 if __name__ == "__main__":

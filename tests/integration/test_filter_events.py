@@ -1,8 +1,6 @@
-# third-party imports
 import pytest
 from mantid.simpleapi import LoadNexus, mtd
 
-# mr_reduction imports
 from mr_reduction.filter_events import split_events
 
 

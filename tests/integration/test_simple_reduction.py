@@ -11,14 +11,10 @@ The main test, `test_reduction_simple`, verifies the reduction process for 28142
 The test relies on the `data_server` fixture.
 """
 
-# standard imports
-
-# third party packages
 import pytest
 from mantid.api import WorkspaceGroup
 from mantid.simpleapi import MagnetismReflectometryReduction, mtd
 
-# mr_reduction imports
 from mr_reduction.data_info import DataInfo
 from mr_reduction.filter_events import split_events
 

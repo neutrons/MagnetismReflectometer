@@ -2,16 +2,12 @@
 Polarization testing code, originally from Tim C.
 """
 
-# standard imports
 import sys
 from typing import List, Union
 
-# third party imports
 import mantid
 import mantid.simpleapi as api
 
-# mr_reduction imports
-from mr_reduction import settings as reduction_settings
 from mr_reduction.filter_events import split_events
 from mr_reduction.simple_utils import SampleLogs
 from mr_reduction.types import MantidWorkspace
