@@ -202,5 +202,48 @@ def test_incomplete_run(mock_filesystem, data_server, autoreduction_script):
     assert os.path.isfile(report_file), "HTML report should be created for incomplete run"
 
 
+@pytest.mark.datarepo
+def test_run_is_completed_during_reduction(mock_filesystem, data_server, autoreduction_script):
+    """
+    Test the live reduction of run that completes while live reduction is processing.
+
+    This means that there is no corresponding NeXus file in the expected location at the start
+    of live reduction, but the run completes and the NeXus file is created after live reduction.
+    We expect the live reduction to skip publishing the plot if the NeXus file exists.
+    """
+    # Create a temporary autoreduction script reduce_REF_M.py and pass its parent directory to PYTHONPATH.
+    autoreduction_script(amend_options={"peak_count": 1}, outdir=mock_filesystem.tempdir)
+
+    # Invoke the main routine of the livereduction script. It will digest the autoreduction script
+    # reduce_REF_M.py we just created
+
+    accumulation_workspace = data_server.load_nexus_processed("REF_M_44316.nxs")
+
+    # Mock os.path.exists for the NeXus file path
+    # since livereduce looks in /SNS/REF_M/IPTS-XXXX/nexus/
+    with mock.patch("os.path.exists") as mock_exists:
+        # Return False for the first call, True for subsequent calls,
+        # simulating that the run finished during live reduction processing
+        call_count = {"count": 0}
+
+        def side_effect(path):
+            if path.endswith(".nxs.h5"):
+                call_count["count"] += 1
+                return call_count["count"] > 1
+            return False
+
+        mock_exists.side_effect = side_effect
+
+        with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.save_report") as mock_save_report:
+            with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.upload_report") as mock_upload:
+                with mock.patch("mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_AR_DIR", mock_filesystem.tempdir):
+                    with mock.patch(
+                        "mr_livereduce.reduce_REF_M_live_post_proc.GLOBAL_LR_DIR", mock_filesystem.tempdir
+                    ):
+                        main(accumulation_workspace, outdir=mock_filesystem.tempdir, publish=True)
+                        mock_save_report.assert_called_once()
+                        mock_upload.assert_not_called()
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

@@ -66,13 +66,13 @@ def header_report(workspace: MantidWorkspace) -> str:
     """
     try:
         samplelogs = SampleLogs(workspace)
-        report = f"<p>Run Number: {workspace.getRunNumber()}</p>\n"
+        report = f"<div><p>Run Number: {workspace.getRunNumber()}</p>\n"
         report += f"<p>Events: {workspace.getNumberEvents()}</p>\n"
         report += f"<p>Sequence: {samplelogs['sequence_number']} of {samplelogs['sequence_total']}</p>\n"
         report += f"<p>Report time: {time.ctime()}</p>\n"
         report += "<p><strong>Note:</strong> this report is an intermediate result generated using "
         report += "livereduce and not from the final Nexus file.</p>\n"
-        report += "<hr>\n"  # insert a horizontal line
+        report += "</div><hr>\n"  # insert a horizontal line
     except Exception as exception:  # noqa E722
         report = f"<div>{exception}</div>\n"
     return report
@@ -152,7 +152,7 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
     except (KeyError, RuntimeError) as e:
         api.logger.error(f"Post-Processing: Unable to get IPTS number from the accumulated-events workspace: {e}")
         raise e
-    nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
+    nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/REF_M_{run_number}.nxs.h5"
 
     # if the run NeXus file exists, live reduction should not proceed
     if os.path.exists(nexus_filepath):
@@ -160,6 +160,10 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
             f"Post-Processing: Run complete, Nexus file exists: {nexus_filepath}. Skipping live reduction."
         )
         return
+    else:
+        api.logger.information(
+            f"Post-Processing: Nexus file does not exist yet: {nexus_filepath}. Proceeding with live reduction."
+        )
 
     if outdir is None:
         outdir = f"/SNS/REF_M/{ipts}/shared/autoreduce/"
@@ -218,6 +222,13 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
         # Save to disk and (optionally) upload the HTML report
         save_report(live_report, os.path.join(outdir, f"REF_M_{run_number}.html"))  # save HTML report
         if publish:
+            # if the run NeXus file exists, live reduction should not overwrite the plot from autoreduction
+            if os.path.exists(nexus_filepath):
+                api.logger.error(
+                    f"Post-Processing: Run complete, Nexus file exists: {nexus_filepath}. "
+                    "Skip publishing live reduction results."
+                )
+                return
             upload_report(live_report, run_number=run_number)
 
 
