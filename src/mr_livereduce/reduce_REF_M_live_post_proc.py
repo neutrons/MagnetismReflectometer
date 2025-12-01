@@ -152,7 +152,7 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
     except (KeyError, RuntimeError) as e:
         api.logger.error(f"Post-Processing: Unable to get IPTS number from the accumulated-events workspace: {e}")
         raise e
-    nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/{run_number}.nxs.h5"
+    nexus_filepath = f"/SNS/REF_M/{ipts}/nexus/REF_M_{run_number}.nxs.h5"
 
     # if the run NeXus file exists, live reduction should not proceed
     if os.path.exists(nexus_filepath):
@@ -160,6 +160,10 @@ def main(input_workspace: EventWorkspace, outdir: str = None, publish: bool = Fa
             f"Post-Processing: Run complete, Nexus file exists: {nexus_filepath}. Skipping live reduction."
         )
         return
+    else:
+        api.logger.information(
+            f"Post-Processing: Nexus file does not exist yet: {nexus_filepath}. Proceeding with live reduction."
+        )
 
     if outdir is None:
         outdir = f"/SNS/REF_M/{ipts}/shared/livereduce/"
