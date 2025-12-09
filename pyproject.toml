@@ -129,7 +129,7 @@ docs = { features = ["dev", "docs"], no-default-feature = true }
 build = { features = ["build"], no-default-feature = true }
 
 [tool.pixi.feature.build.dependencies]
-anaconda-client = ">=1.13.0"
+anaconda-client = ">=1.13.1"
 check-wheel-contents = ">=0.6.2"
 versioningit = ">=3.2.0"
 
@@ -138,10 +138,10 @@ toml-cli = "*"
 
 [tool.pixi.feature.dev.dependencies]
 git-lfs = ">=3.7.0"
-mypy = ">=1.16.1"
-pip = ">=25.1.1"
+mypy = ">=1.19.0"
+pip = ">=25.3"
 pip-audit = ">=2.9.0"
-pre-commit = ">=4.2.0"
+pre-commit = ">=4.5.0"
 ruff = "*"
 
 [tool.pixi.feature.docs.dependencies]
@@ -152,7 +152,7 @@ sphinx_rtd_theme = ">=3.0.1"
 codecov = ">=2.1.13"
 selenium = ">=4.34.0"
 furo = ">=2024.8.6"
-pytest = ">=8.4.1"
+pytest = ">=9.0.2"
 pytest-cov = ">=6.2.1"
 pytest-xdist = ">=3.7.0"
 
