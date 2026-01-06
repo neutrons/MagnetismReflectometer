@@ -156,10 +156,6 @@ jobs:
           project_id: 19025
           ref_name: main
           token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
-          ### May not be needed
-          # variables: |
-          #   PLAY="update"
-          #   CONDA_ENV="${{ steps.env_name.outputs.name }}"
 
       - name: Test commit message
         run: |
