@@ -50,7 +50,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   ##############################
   ### Package and Deployment ###
   ##############################
@@ -99,7 +98,6 @@ jobs:
           name: artifact-conda-package
           path: ${{ env.PKG_NAME }}-*.conda
 
-
   # Publish the package as a separate job so that the Github Actions webpage
   # shows it as a separate step in the CI workflow
   publish:
@@ -137,3 +135,33 @@ jobs:
           if [ "${IS_RC}" = "true" ]; then CONDA_LABEL="rc"; fi
           echo pushing ${{ github.ref }} with label $CONDA_LABEL
           pixi run anaconda upload --label $CONDA_LABEL --user neutrons ${{ env.PKG_NAME }}-*.conda
+
+  # Trigger GitLab dev deploy pipeline
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build
+    # if: github.ref == 'refs/heads/next'
+    steps:
+      - name: Get Environment Name
+        uses: neutrons/branch-mapper@main
+        id: env_name
+        with:
+          prefix: mr_reduction
+
+      # - name: Trigger Dev Deploy
+      #   uses: eic/trigger-gitlab-ci@main
+      #   with:
+      #     url: https://code.ornl.gov
+      #     project_id: 19025
+      #     token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
+
+      # - name: Annotate commit
+      #   uses: peter-evans/commit-comment@v2
+      #   with:
+      #     body: |
+      #       GitLab pipeline for ${{ steps.conda_env_name.outputs.name }} has been submitted for this commit: ${{ steps.trigger.outputs.web_url }}
+
+      - name: Test Deploy Message
+        run: |
+          echo "This is where we would trigger the GitLab deploy for the ${{ steps.env_name.outputs.name }} environment."
+          echo "Branch is ${{ github.ref }}"
