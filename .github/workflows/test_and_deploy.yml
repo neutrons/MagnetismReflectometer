@@ -159,7 +159,11 @@ jobs:
           ### May not be needed
           # variables: |
           #   PLAY="update"
-          #   CONDA_ENV="${{ steps.conda_env_name.outputs.name }}"
+          #   CONDA_ENV="${{ steps.env_name.outputs.name }}"
+
+      - name: Test commit message
+        run: |
+          echo "GitLab pipeline for ${{ steps.env_name.outputs.name }} has been submitted for this commit: ${{ steps.trigger.outputs.web_url }}"
 
       - name: Annotate commit
         uses: peter-evans/commit-comment@v2
