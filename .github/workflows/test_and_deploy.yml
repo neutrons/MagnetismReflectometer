@@ -148,20 +148,21 @@ jobs:
         with:
           prefix: mr_reduction
 
-      # - name: Trigger Dev Deploy
-      #   uses: eic/trigger-gitlab-ci@main
-      #   with:
-      #     url: https://code.ornl.gov
-      #     project_id: 19025
-      #     token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
+      - name: Trigger Dev Deploy
+        uses: eic/trigger-gitlab-ci@main
+        id: trigger
+        with:
+          url: https://code.ornl.gov
+          project_id: 19025
+          ref_name: main
+          token: ${{ secrets.GITLAB_DEPLOY_TOKEN }}
+          ### May not be needed
+          # variables: |
+          #   PLAY="update"
+          #   CONDA_ENV="${{ steps.conda_env_name.outputs.name }}"
 
-      # - name: Annotate commit
-      #   uses: peter-evans/commit-comment@v2
-      #   with:
-      #     body: |
-      #       GitLab pipeline for ${{ steps.conda_env_name.outputs.name }} has been submitted for this commit: ${{ steps.trigger.outputs.web_url }}
-
-      - name: Test Deploy Message
-        run: |
-          echo "This is where we would trigger the GitLab deploy for the ${{ steps.env_name.outputs.name }} environment."
-          echo "Branch is ${{ github.ref }}"
+      - name: Annotate commit
+        uses: peter-evans/commit-comment@v2
+        with:
+          body: |
+            GitLab pipeline for ${{ steps.env_name.outputs.name }} has been submitted for this commit: ${{ steps.trigger.outputs.web_url }}
