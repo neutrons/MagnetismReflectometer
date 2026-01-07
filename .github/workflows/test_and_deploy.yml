@@ -151,7 +151,7 @@ jobs:
 
       - name: Trigger Dev Deploy
         # uses: eic/trigger-gitlab-ci@main
-        uses: ./.github/actions/test_trigger_gitlab.yml
+        uses: ./.github/actions/test_trigger_gitlab
         id: trigger
         with:
           url: https://code.ornl.gov
