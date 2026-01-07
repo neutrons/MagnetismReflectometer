@@ -157,7 +157,7 @@ jobs:
 
       - name: Test commit message
         run: |
-          echo ${{ steps.trigger.outputs.json }}
+          printf '%s\n' '${{ steps.trigger.outputs.json }}'
 
       - name: Annotate commit
         uses: peter-evans/commit-comment@v2
