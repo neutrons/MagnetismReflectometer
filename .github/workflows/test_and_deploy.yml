@@ -160,6 +160,7 @@ jobs:
       - name: Test commit message
         run: |
           echo "GitLab pipeline for ${{ steps.env_name.outputs.name }} has been submitted for this commit: ${{ steps.trigger.outputs.web_url }}"
+          echo "Trigger output json: ${{ steps.trigger.outputs.json }}"
 
       - name: Annotate commit
         uses: peter-evans/commit-comment@v2
