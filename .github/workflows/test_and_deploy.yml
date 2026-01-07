@@ -140,6 +140,9 @@ jobs:
     # needs: build
     # if: github.ref == 'refs/heads/next'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Get Environment Name
         uses: neutrons/branch-mapper@main
         id: env_name
