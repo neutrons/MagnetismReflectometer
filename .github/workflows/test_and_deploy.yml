@@ -162,7 +162,7 @@ jobs:
       - name: Test commit message
         run: |
           printf '%s\n' '${{ steps.trigger.outputs.json }}'
-          printf "-------------------------------\n"
+          printf '==============================\n'
           printf '%s\n' '${{ steps.trigger.outputs.web_url }}'
 
       - name: Annotate commit
