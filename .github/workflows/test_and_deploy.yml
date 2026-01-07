@@ -150,7 +150,8 @@ jobs:
           prefix: mr_reduction
 
       - name: Trigger Dev Deploy
-        uses: eic/trigger-gitlab-ci@main
+        # use https://github.com/eic/trigger-gitlab-ci/pull/14 until merged
+        uses: eic/trigger-gitlab-ci@d984d8d53d871d2fdc1325639d94322da6e8747f
         id: trigger
         with:
           url: https://code.ornl.gov
