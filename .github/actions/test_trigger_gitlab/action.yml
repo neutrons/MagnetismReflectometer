@@ -69,10 +69,10 @@ runs:
         {
           printf 'json<<__JSON__\n'
           cat response.json
-          printf '__JSON__\n'
+          printf '\n__JSON__\n'
           printf 'web_url<<__URL__\n'
           jq --raw-output '.web_url' response.json
-          printf '__URL__\n'
+          printf '\n__URL__\n'
         } >> "$GITHUB_OUTPUT"
       shell: bash
       env:
