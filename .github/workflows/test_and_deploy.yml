@@ -7,6 +7,11 @@ on:
     branches: [next, qa, main]
     tags: ["v*"]
 
+# cancel previous job if new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   PKG_NAME: mr_reduction
 
