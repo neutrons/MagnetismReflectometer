@@ -67,12 +67,12 @@ runs:
         # Print and parse json
         jq . response.json
         {
-          echo 'json<<__JSON__'
+          printf 'json<<__JSON__\n'
           cat response.json
-          echo '__JSON__'
-          echo 'web_url<<__URL__'
+          printf '__JSON__\n'
+          printf 'web_url<<__URL__\n'
           jq --raw-output '.web_url' response.json
-          echo '__URL__'
+          printf '__URL__\n'
         } >> "$GITHUB_OUTPUT"
       shell: bash
       env:
