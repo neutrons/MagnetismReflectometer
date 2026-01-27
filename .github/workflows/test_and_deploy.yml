@@ -26,8 +26,6 @@ jobs:
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
-        with:
-          pixi-version: v0.49.0
 
       - name: Install chromium
         run: |
@@ -50,7 +48,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-
   ##############################
   ### Package and Deployment ###
   ##############################
@@ -70,8 +67,6 @@ jobs:
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
-        with:
-          pixi-version: v0.49.0
 
       - name: Build conda package
         run: |
@@ -99,7 +94,6 @@ jobs:
           name: artifact-conda-package
           path: ${{ env.PKG_NAME }}-*.conda
 
-
   # Publish the package as a separate job so that the Github Actions webpage
   # shows it as a separate step in the CI workflow
   publish:
@@ -119,8 +113,6 @@ jobs:
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
-        with:
-          pixi-version: v0.49.0
 
       - name: Download conda package artifact
         uses: actions/download-artifact@v6
