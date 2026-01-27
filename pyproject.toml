@@ -80,7 +80,7 @@ name = "mr_reduction"
 version = "0.0.0"
 
 [tool.pixi.package.build]
-backend = { name = "pixi-build-python", version = "0.1.*" }
+backend = { name = "pixi-build-python", version = "0.4.*" }
 
 [tool.pixi.package.host-dependencies]
 python = ">=3.11,<3.12"
@@ -138,10 +138,10 @@ toml-cli = "*"
 
 [tool.pixi.feature.dev.dependencies]
 git-lfs = ">=3.7.0"
-mypy = ">=1.19.0"
+mypy = ">=1.19.1"
 pip = ">=25.3"
 pip-audit = ">=2.9.0"
-pre-commit = ">=4.5.0"
+pre-commit = ">=4.5.1"
 ruff = "*"
 
 [tool.pixi.feature.docs.dependencies]

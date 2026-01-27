@@ -72,8 +72,6 @@ jobs:
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
-        with:
-          pixi-version: v0.49.0
 
       - name: Build conda package
         run: |
@@ -120,8 +118,6 @@ jobs:
 
       - name: Setup Pixi
         uses: prefix-dev/setup-pixi@v0.9.3
-        with:
-          pixi-version: v0.49.0
 
       - name: Download conda package artifact
         uses: actions/download-artifact@v7
