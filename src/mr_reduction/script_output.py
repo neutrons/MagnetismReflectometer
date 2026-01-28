@@ -129,13 +129,38 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
     script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
 
-    script_text = api.GeneratePythonScript(ws_grp[0])
+    # ignore these algorithms when generating the script
+    mantid_algs_to_ignore = [
+        # called by mr_reduction.filter_events.split_events
+        "CreateEmptyTableWorkspace",
+        "FilterEvents",
+    ]
+
+    script_text = api.GeneratePythonScript(ws_grp[0], IgnoreTheseAlgs=mantid_algs_to_ignore, ExcludeHeader=True)
 
     api.logger.notice(f"GeneratePythonScript script length {len(script_text)}")
 
-    # Skip the header
     lines = script_text.split("\n")
-    script_text = "\n".join(lines[4:])
+
+    def _insert_line_after(lines, keyword, new_line):
+        for i, line in enumerate(lines):
+            if line.strip().startswith(keyword):
+                lines.insert(i + 1, new_line)
+                return
+
+    def _insert_string_before(lines, keyword, new_string):
+        for i, line in enumerate(lines):
+            if line.strip().startswith(keyword):
+                lines[i] = new_string + lines[i]
+                return
+
+    # insert function `split_events` which is not part of the workspace history
+    _insert_line_after(lines, "from mantid.simpleapi import *", "from mr_reduction.filter_events import split_events")
+    _insert_string_before(lines, "LoadEventNexus", "ws = ")
+    _insert_line_after(lines, "ws = LoadEventNexus", "ws_list = split_events(input_workspace=ws)")
+
+    # reformat for better readability
+    script_text = "\n".join(lines)
     script += script_text.replace(", ", ",\n                                ")
     script += "\n"
 
