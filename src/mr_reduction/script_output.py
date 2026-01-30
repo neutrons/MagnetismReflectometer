@@ -95,7 +95,7 @@ def write_partial_script(ws_grp, output_dir):
         fd.write(script)
 
 
-def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
+def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_workspace_string=True) -> str:
     r"""Generate a partial reduction script from a set of workspaces.
 
     This function needs to be compatible with the case of a single workspace.
@@ -127,13 +127,17 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
         return "# No workspace was generated\n"
 
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
-    script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
+    script = ""
+    if include_workspace_string is True:
+        script += "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
 
     # ignore these algorithms when generating the script
     mantid_algs_to_ignore = [
         # called by mr_reduction.filter_events.split_events
         "CreateEmptyTableWorkspace",
         "FilterEvents",
+        # skip diagnostic saving to Nexus
+        "SaveNexus",
     ]
 
     script_text = api.GeneratePythonScript(ws_grp[0], IgnoreTheseAlgs=mantid_algs_to_ignore, ExcludeHeader=True)
@@ -147,12 +151,16 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
             if line.strip().startswith(keyword):
                 lines.insert(i + 1, new_line)
                 return
+        warning_msg = f"Failed to insert line after keyword '{keyword}'. Keyword not found in generated script."
+        api.logger.warning(warning_msg)
 
     def _insert_string_before(lines, keyword, new_string):
         for i, line in enumerate(lines):
             if line.strip().startswith(keyword):
                 lines[i] = new_string + lines[i]
                 return
+        warning_msg = f"Failed to insert string before keyword '{keyword}'. Keyword not found in generated script."
+        api.logger.warning(warning_msg)
 
     # insert function `split_events` which is not part of the workspace history
     _insert_line_after(lines, "from mantid.simpleapi import *", "from mr_reduction.filter_events import split_events")
@@ -206,6 +214,10 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
         _scale_started = False
         _first_line = True
         for line in fd.readlines():
+            # can't use wildcard import inside functions
+            if "from mantid.simpleapi import *" in line:
+                continue
+
             if line.startswith("MagnetismReflectometryRed"):
                 _script_started = True
             elif line.startswith("Scale"):
