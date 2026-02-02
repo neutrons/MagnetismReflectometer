@@ -63,3 +63,33 @@ def test_generate_script_from_ws(data_server, tmp_path, mock_filesystem):
     assert_allclose(y_expected, y_actual, rtol=0.01)
     assert_allclose(dy_expected, dy_actual, rtol=0.01)
     assert_allclose(dx_expected, dx_actual, rtol=1e-5)
+
+
+@pytest.mark.datarepo
+def test_write_reduction_script(data_server):
+    """Test that the combined reduction script runs without errors.
+
+    Note: This test runs the gold combined script, however, the content of the
+    generated combined script is verified separately in
+    tests/unit/mr_reduction/test_script_output.py.
+    """
+    with open(data_server.path_to("REF_M_42535_1_combined.py")) as fd:
+        # replace <FILE_PATH> with actual path
+        script = fd.read()
+        script = script.replace("<FILE_PATH>", data_server.datarepo)
+
+    # Execute the reduction script
+    globals_ = {}
+    exec(script, globals_)
+
+    # Verify that the reflectivity workspaces were created
+    reflectivity_workspaces = [
+        "42535_Off_Off__reflectivity",
+        "42536_Off_Off__reflectivity",
+        "42537_Off_Off__reflectivity",
+        "42535_On_Off__reflectivity",
+        "42536_On_Off__reflectivity",
+        "42537_On_Off__reflectivity",
+    ]
+    for ws_name in reflectivity_workspaces:
+        assert ws_name in mtd

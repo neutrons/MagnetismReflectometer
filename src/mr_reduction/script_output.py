@@ -8,6 +8,7 @@ the Mantid framework.
 # standard imports
 import os
 import time
+from pathlib import Path
 
 # third-party imports
 import mantid
@@ -58,6 +59,9 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
 
     script += prepare_call
     script += reduce_call
+    script += "\n"
+    script += "prepare()\n"
+    script += "reduce()\n"
     script_filepath = os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_combined.py")
     with open(script_filepath, "w") as fd:
         fd.write(script)
@@ -211,6 +215,7 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
 
     with open(partial_script_path, "r") as fd:
         _script_started = False
+        _script_finished = False
         _scale_started = False
         _first_line = True
         for line in fd.readlines():
@@ -231,6 +236,14 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
                     red_script += "                        " + line.strip() + "\n"
                 if line.endswith(")\n"):
                     _script_started = False
+                    _script_finished = True
+            elif _script_finished:
+                if line.startswith("AddSampleLog"):
+                    scale_script += "    " + line.strip() + "\n"
+                else:
+                    scale_script += "                 " + line.strip() + "\n"
+                if line.endswith(")\n"):
+                    _script_finished = False
             elif _scale_started:
                 scale_script += "    " + line.replace(
                     "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
