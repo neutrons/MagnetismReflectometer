@@ -8,6 +8,8 @@ the Mantid framework.
 # standard imports
 import os
 import time
+from enum import Enum, auto
+from pathlib import Path
 
 # third-party imports
 import mantid
@@ -58,6 +60,9 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
 
     script += prepare_call
     script += reduce_call
+    script += "\n"
+    script += "prepare()\n"
+    script += "reduce()\n"
     script_filepath = os.path.join(ar_dir, f"REF_M_{matched_runs[0]}_combined.py")
     with open(script_filepath, "w") as fd:
         fd.write(script)
@@ -95,7 +100,55 @@ def write_partial_script(ws_grp, output_dir):
         fd.write(script)
 
 
-def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
+class StringInsertMode(Enum):
+    BEFORE = auto()
+    AFTER = auto()
+    PREPEND = auto()
+
+
+def _insert_relative_to_keyword(
+    lines: list[str],
+    keyword: str,
+    content: str,
+    *,
+    mode: StringInsertMode,
+) -> None:
+    """
+    Modify `lines` relative to the first line whose stripped content starts
+    with `keyword`.
+
+    Parameters
+    ----------
+    lines : list[str]
+        List of lines to modify in place
+    keyword : str
+        Keyword to search for
+    content : str
+        Content to insert
+    mode : StringInsertMode
+        Modes:
+        - BEFORE: insert `content` as a new line before the match
+        - AFTER: insert `content` as a new line after the match
+        - PREPEND: prepend `content` to the matching line
+    """
+    for i, line in enumerate(lines):
+        if line.strip().startswith(keyword):
+            if mode is StringInsertMode.BEFORE:
+                lines.insert(i, content)
+            elif mode is StringInsertMode.AFTER:
+                lines.insert(i + 1, content)
+            elif mode is StringInsertMode.PREPEND:
+                lines[i] = content + line
+            else:
+                raise ValueError(f"Unknown InsertMode: {mode}")
+            return
+
+    api.logger.warning(
+        f"Failed to insert content relative to keyword '{keyword}'. Keyword not found in generated script."
+    )
+
+
+def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_workspace_string=True) -> str:
     r"""Generate a partial reduction script from a set of workspaces.
 
     This function needs to be compatible with the case of a single workspace.
@@ -127,15 +180,39 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True) -> str:
         return "# No workspace was generated\n"
 
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
-    script = "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
+    script = ""
+    if include_workspace_string is True:
+        script += f"workspaces['{group_name}'] = {str(xs_list)}\n"
 
-    script_text = api.GeneratePythonScript(ws_grp[0])
+    # ignore these algorithms when generating the script
+    mantid_algs_to_ignore = [
+        # called by mr_reduction.filter_events.split_events
+        "CreateEmptyTableWorkspace",
+        "FilterEvents",
+        # skip diagnostic saving to Nexus
+        "SaveNexus",
+    ]
+
+    script_text = api.GeneratePythonScript(ws_grp[0], IgnoreTheseAlgs=mantid_algs_to_ignore, ExcludeHeader=True)
 
     api.logger.notice(f"GeneratePythonScript script length {len(script_text)}")
 
-    # Skip the header
     lines = script_text.split("\n")
-    script_text = "\n".join(lines[4:])
+
+    # insert function `split_events` which is not part of the workspace history
+    _insert_relative_to_keyword(
+        lines,
+        "from mantid.simpleapi import *",
+        "from mr_reduction.filter_events import split_events",
+        mode=StringInsertMode.AFTER,
+    )
+    _insert_relative_to_keyword(lines, "LoadEventNexus", "ws = ", mode=StringInsertMode.PREPEND)
+    _insert_relative_to_keyword(
+        lines, "ws = LoadEventNexus", "ws_list = split_events(input_workspace=ws)", mode=StringInsertMode.AFTER
+    )
+
+    # reformat for better readability
+    script_text = "\n".join(lines)
     script += script_text.replace(", ", ",\n                                ")
     script += "\n"
 
@@ -178,9 +255,14 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
 
     with open(partial_script_path, "r") as fd:
         _script_started = False
+        _script_finished = False
         _scale_started = False
         _first_line = True
         for line in fd.readlines():
+            # can't use wildcard import inside functions
+            if "from mantid.simpleapi import *" in line:
+                continue
+
             if line.startswith("MagnetismReflectometryRed"):
                 _script_started = True
             elif line.startswith("Scale"):
@@ -194,6 +276,14 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
                     red_script += "                        " + line.strip() + "\n"
                 if line.endswith(")\n"):
                     _script_started = False
+                    _script_finished = True
+            elif _script_finished:
+                if line.startswith("AddSampleLog"):
+                    scale_script += "    " + line.strip() + "\n"
+                else:
+                    scale_script += "                 " + line.strip() + "\n"
+                if line.endswith(")\n"):
+                    _script_finished = False
             elif _scale_started:
                 scale_script += "    " + line.replace(
                     "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
