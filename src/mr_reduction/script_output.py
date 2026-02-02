@@ -8,6 +8,7 @@ the Mantid framework.
 # standard imports
 import os
 import time
+from enum import Enum, auto
 from pathlib import Path
 
 # third-party imports
@@ -99,6 +100,54 @@ def write_partial_script(ws_grp, output_dir):
         fd.write(script)
 
 
+class StringInsertMode(Enum):
+    BEFORE = auto()
+    AFTER = auto()
+    PREPEND = auto()
+
+
+def _insert_relative_to_keyword(
+    lines: list[str],
+    keyword: str,
+    content: str,
+    *,
+    mode: StringInsertMode,
+) -> None:
+    """
+    Modify `lines` relative to the first line whose stripped content starts
+    with `keyword`.
+
+    Parameters
+    ----------
+    lines : list[str]
+        List of lines to modify in place
+    keyword : str
+        Keyword to search for
+    content : str
+        Content to insert
+    mode : StringInsertMode
+        Modes:
+        - BEFORE: insert `content` as a new line before the match
+        - AFTER: insert `content` as a new line after the match
+        - PREPEND: prepend `content` to the matching line
+    """
+    for i, line in enumerate(lines):
+        if line.strip().startswith(keyword):
+            if mode is StringInsertMode.BEFORE:
+                lines.insert(i, content)
+            elif mode is StringInsertMode.AFTER:
+                lines.insert(i + 1, content)
+            elif mode is StringInsertMode.PREPEND:
+                lines[i] = content + line
+            else:
+                raise ValueError(f"Unknown InsertMode: {mode}")
+            return
+
+    api.logger.warning(
+        f"Failed to insert content relative to keyword '{keyword}'. Keyword not found in generated script."
+    )
+
+
 def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_workspace_string=True) -> str:
     r"""Generate a partial reduction script from a set of workspaces.
 
@@ -133,7 +182,7 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_work
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
     script = ""
     if include_workspace_string is True:
-        script += "workspaces['%s'] = %s\n" % (group_name, str(xs_list))
+        script += f"workspaces['{group_name}'] = {str(xs_list)}\n"
 
     # ignore these algorithms when generating the script
     mantid_algs_to_ignore = [
@@ -150,26 +199,17 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_work
 
     lines = script_text.split("\n")
 
-    def _insert_line_after(lines, keyword, new_line):
-        for i, line in enumerate(lines):
-            if line.strip().startswith(keyword):
-                lines.insert(i + 1, new_line)
-                return
-        warning_msg = f"Failed to insert line after keyword '{keyword}'. Keyword not found in generated script."
-        api.logger.warning(warning_msg)
-
-    def _insert_string_before(lines, keyword, new_string):
-        for i, line in enumerate(lines):
-            if line.strip().startswith(keyword):
-                lines[i] = new_string + lines[i]
-                return
-        warning_msg = f"Failed to insert string before keyword '{keyword}'. Keyword not found in generated script."
-        api.logger.warning(warning_msg)
-
     # insert function `split_events` which is not part of the workspace history
-    _insert_line_after(lines, "from mantid.simpleapi import *", "from mr_reduction.filter_events import split_events")
-    _insert_string_before(lines, "LoadEventNexus", "ws = ")
-    _insert_line_after(lines, "ws = LoadEventNexus", "ws_list = split_events(input_workspace=ws)")
+    _insert_relative_to_keyword(
+        lines,
+        "from mantid.simpleapi import *",
+        "from mr_reduction.filter_events import split_events",
+        mode=StringInsertMode.AFTER,
+    )
+    _insert_relative_to_keyword(lines, "LoadEventNexus", "ws = ", mode=StringInsertMode.PREPEND)
+    _insert_relative_to_keyword(
+        lines, "ws = LoadEventNexus", "ws_list = split_events(input_workspace=ws)", mode=StringInsertMode.AFTER
+    )
 
     # reformat for better readability
     script_text = "\n".join(lines)
