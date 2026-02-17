@@ -1,3 +1,0 @@
-[submodule "tests/mr_reduction-data"]
-	path = tests/mr_reduction-data
-	url = https://code.ornl.gov/sns-hfir-scse/infrastructure/test-data/mr_reduction-data.git
