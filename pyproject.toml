@@ -97,6 +97,7 @@ pandas = "*"
 plotly = { version = "==5.24.1", channel = "conda-forge" } # <6.0 required for browser to display figures
 pyoncat = "*"
 requests = "*"
+pytz = "*"
 
 [tool.pixi.pypi-dependencies]
 mr_reduction = { path = ".", editable = true }
@@ -112,6 +113,7 @@ pandas = "*"
 plotly = { version = "==5.24.1", channel = "conda-forge" } # <6.0 required for browser to display figures
 pyoncat = "*"
 requests = "*"
+pytz = "*"
 
 
 ######################################
