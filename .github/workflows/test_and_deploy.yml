@@ -90,6 +90,7 @@ jobs:
             which python
             python -c "import mantid"
             python -c "import pyoncat"
+            python -c "import pytz"
 
       # Upload the conda package for job "publish" to use later
       - name: upload conda package as artifact
