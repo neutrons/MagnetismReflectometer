@@ -234,9 +234,14 @@ ws_list = split_events(input_workspace=ws, polarization_logs=polarization_logs)"
     _insert_relative_to_keyword(lines, "ws = LoadEventNexus", split_events_snippet, mode=StringInsertMode.AFTER)
 
     # reformat for better readability
-    refl_algo_idx = [i for i, line in enumerate(lines) if "MagnetismReflectometryReduction(" in line]
-    tmp_refl_algo_line = lines[refl_algo_idx[0]].replace(", ", ",\n                                ")
-    lines[refl_algo_idx[0]] = tmp_refl_algo_line
+    refl_algo_idx = next((i for i, line in enumerate(lines) if "MagnetismReflectometryReduction(" in line), None)
+    if refl_algo_idx is None:
+        api.logger.warning(
+            "Failed to reformat generated script around 'MagnetismReflectometryReduction('. Pattern not found."
+        )
+    else:
+        tmp_refl_algo_line = lines[refl_algo_idx].replace(", ", ",\n                                ")
+        lines[refl_algo_idx] = tmp_refl_algo_line
     script_text = "\n".join(lines)
     script += script_text
     script += "\n"
