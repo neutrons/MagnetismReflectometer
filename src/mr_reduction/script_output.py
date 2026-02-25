@@ -225,10 +225,10 @@ def generate_script_from_ws(
 from mr_reduction.settings import PolarizationLogs"""
     _insert_relative_to_keyword(lines, "from mantid.simpleapi import *", imports_snippet, mode=StringInsertMode.AFTER)
     _insert_relative_to_keyword(lines, "LoadEventNexus", "ws = ", mode=StringInsertMode.PREPEND)
-    polarization_logs_snippet = f'polarization_logs = PolarizationLogs(pol_state="{polarization_logs.POL_STATE}", '
-    polarization_logs_snippet += f'pol_veto="{polarization_logs.POL_VETO}", '
-    polarization_logs_snippet += f'ana_state="{polarization_logs.ANA_STATE}", '
-    polarization_logs_snippet += f'ana_veto="{polarization_logs.ANA_VETO}")'
+    polarization_logs_snippet = f'polarization_logs = PolarizationLogs(pol_state="{polarization_logs.pol_state}", '
+    polarization_logs_snippet += f'pol_veto="{polarization_logs.pol_veto}", '
+    polarization_logs_snippet += f'ana_state="{polarization_logs.ana_state}", '
+    polarization_logs_snippet += f'ana_veto="{polarization_logs.ana_veto}")'
     split_events_snippet = f"""{polarization_logs_snippet}
 ws_list = split_events(input_workspace=ws, polarization_logs=polarization_logs)"""
     _insert_relative_to_keyword(lines, "ws = LoadEventNexus", split_events_snippet, mode=StringInsertMode.AFTER)

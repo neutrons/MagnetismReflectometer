@@ -9,22 +9,17 @@ Reduction settings for MR
 # live data lacks PV's "PolarizerState", "PolarizerVeto", "AnalyzerState", and "AnalyzerVeto"
 # so we need to use the short names
 class PolarizationLogs:
-    POL_STATE: str = "SF1"  # a.k.a "PolarizerState"
-    POL_VETO: str = "SF1_Veto"  # a.k.a "PolarizerVeto"
-    ANA_STATE: str = "SF2"  # a.k.a "AnalyzerState"
-    ANA_VETO: str = "SF2_Veto"  # a.k.a "AnalyzerVeto"
-
     def __init__(
         self,
-        pol_state: str = "SF1",
-        pol_veto: str = "SF1_Veto",
-        ana_state: str = "SF2",
-        ana_veto: str = "SF2_Veto",
+        pol_state: str = "SF1",  # a.k.a "PolarizerState"
+        pol_veto: str = "SF1_Veto",  # a.k.a "PolarizerVeto"
+        ana_state: str = "SF2",  # a.k.a "AnalyzerState"
+        ana_veto: str = "SF2_Veto",  # a.k.a "AnalyzerVeto"
     ):
-        self.POL_STATE = pol_state
-        self.POL_VETO = pol_veto
-        self.ANA_STATE = ana_state
-        self.ANA_VETO = ana_veto
+        self.pol_state = pol_state
+        self.pol_veto = pol_veto
+        self.ana_state = ana_state
+        self.ana_veto = ana_veto
 
 
 # Default TOF binning for histograms
