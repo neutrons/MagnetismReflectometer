@@ -131,10 +131,10 @@ def create_table(
 def filter_cross_sections(
     events_workspace: EventWorkspace,
     output_workspace: str,
-    pv_polarizer_state: str = PolarizationLogs.POL_STATE,
-    pv_analyzer_state: str = PolarizationLogs.ANA_STATE,
-    pv_polarizer_veto: str = PolarizationLogs.POL_VETO,
-    pv_analyzer_veto: str = PolarizationLogs.ANA_VETO,
+    pv_polarizer_state: str = PolarizationLogs().pol_state,
+    pv_analyzer_state: str = PolarizationLogs().ana_state,
+    pv_polarizer_veto: str = PolarizationLogs().pol_veto,
+    pv_analyzer_veto: str = PolarizationLogs().ana_veto,
     check_devices: bool = True,
 ) -> WorkspaceGroup:
     """
@@ -498,10 +498,10 @@ def split_events(
         xs_list = filter_cross_sections(
             events_workspace,
             output_workspace,
-            pv_polarizer_state=polarization_logs.POL_STATE,
-            pv_analyzer_state=polarization_logs.ANA_STATE,
-            pv_polarizer_veto=polarization_logs.POL_VETO,
-            pv_analyzer_veto=polarization_logs.ANA_VETO,
+            pv_polarizer_state=polarization_logs.pol_state,
+            pv_analyzer_state=polarization_logs.ana_state,
+            pv_polarizer_veto=polarization_logs.pol_veto,
+            pv_analyzer_veto=polarization_logs.ana_veto,
             check_devices=check_devices,
         )
 
@@ -566,13 +566,13 @@ def split_error_events(
     if use_slow_flipper_log:
         err_ws_list = slow_filter_cross_sections(err_ws, prefix=f"{output_workspace}_err")
     else:
-        pol_veto = polarization_logs.POL_VETO if polarization_logs.POL_VETO in metadata else ""
-        ana_veto = polarization_logs.ANA_VETO if polarization_logs.ANA_VETO in metadata else ""
+        pol_veto = polarization_logs.pol_veto if polarization_logs.pol_veto in metadata else ""
+        ana_veto = polarization_logs.ana_veto if polarization_logs.ana_veto in metadata else ""
         err_ws_list = filter_cross_sections(
             err_ws,
             output_workspace=f"{output_workspace}_err",
-            pv_polarizer_state=polarization_logs.POL_STATE,
-            pv_analyzer_state=polarization_logs.ANA_STATE,
+            pv_polarizer_state=polarization_logs.pol_state,
+            pv_analyzer_state=polarization_logs.ana_state,
             pv_polarizer_veto=pol_veto,
             pv_analyzer_veto=ana_veto,
         )

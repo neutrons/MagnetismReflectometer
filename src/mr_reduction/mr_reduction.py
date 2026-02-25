@@ -367,7 +367,7 @@ class ReductionProcess:
 
         # Generate partial python script
         self.log("Workspace r_%s: %s" % (runpeak, type(mtd["r_%s" % runpeak])))
-        write_partial_script(mtd["r_%s" % runpeak], self.output_dir)
+        write_partial_script(mtd["r_%s" % runpeak], self.output_dir, polarization_logs=self.polarization_logs)
 
         report_list = []
         reflectivity_workspaces: List[MantidWorkspace] = []

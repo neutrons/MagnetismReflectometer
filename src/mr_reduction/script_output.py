@@ -18,6 +18,8 @@ import mantid.simpleapi as api
 # mr_reduction imports
 from mr_reduction.reflectivity_output import quicknxs_scaling_factor
 from mr_reduction.runpeak import RunPeakNumber
+from mr_reduction.settings import PolarizationLogs
+from mr_reduction.types import MantidWorkspace
 
 
 def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
@@ -69,7 +71,11 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     return script_filepath
 
 
-def write_partial_script(ws_grp, output_dir):
+def write_partial_script(
+    ws_grp: mantid.api.WorkspaceGroup | MantidWorkspace,
+    output_dir: str,
+    polarization_logs: PolarizationLogs | None = None,
+) -> None:
     r"""
     Write a partial python reduction script. This script will be
     used by the merging process to produce a clean and final reduction
@@ -92,7 +98,7 @@ def write_partial_script(ws_grp, output_dir):
         _ws = ws_grp
         _ws_list = [ws_grp]
 
-    script = generate_script_from_ws(_ws_list, group_name=str(ws_grp))
+    script = generate_script_from_ws(_ws_list, group_name=str(ws_grp), polarization_logs=polarization_logs)
     run_number = _ws.getRunNumber()
     peak_number = RunPeakNumber.peak_number_log(_ws)
     runpeak = RunPeakNumber(run_number, peak_number)
@@ -148,7 +154,13 @@ def _insert_relative_to_keyword(
     )
 
 
-def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_workspace_string=True) -> str:
+def generate_script_from_ws(
+    ws_grp: list | mantid.api.WorkspaceGroup,
+    group_name: str,
+    quicknxs_mode: bool = True,
+    include_workspace_string: bool = True,
+    polarization_logs: PolarizationLogs | None = None,
+) -> str:
     r"""Generate a partial reduction script from a set of workspaces.
 
     This function needs to be compatible with the case of a single workspace.
@@ -171,6 +183,11 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_work
         name of the group the workspace belongs to
     quicknxs_mode: bool
         If True, the script will include a scaling factor correction for compatibility with QuickNXS
+    include_workspace_string: bool
+        If True, the script will include a line defining the workspace group
+        (e.g. "workspaces['r_12345_1'] = ['12345_Off_Off__reflectivity', '12345_On_Off__reflectivity']")
+    polarization_logs: PolarizationLogs | None
+        If provided, the script will use the polarization logs definition in the generated script
 
     Returns
     -------
@@ -178,6 +195,10 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_work
     """
     if len(ws_grp) == 0:
         return "# No workspace was generated\n"
+
+    if polarization_logs is None:
+        # use the default
+        polarization_logs = PolarizationLogs()
 
     xs_list = [str(_ws) for _ws in ws_grp if not str(_ws).endswith("unfiltered")]
     script = ""
@@ -199,21 +220,30 @@ def generate_script_from_ws(ws_grp, group_name, quicknxs_mode=True, include_work
 
     lines = script_text.split("\n")
 
-    # insert function `split_events` which is not part of the workspace history
-    _insert_relative_to_keyword(
-        lines,
-        "from mantid.simpleapi import *",
-        "from mr_reduction.filter_events import split_events",
-        mode=StringInsertMode.AFTER,
-    )
+    # insert function `split_events` which is not part of the workspace history and required imports
+    imports_snippet = """from mr_reduction.filter_events import split_events
+from mr_reduction.settings import PolarizationLogs"""
+    _insert_relative_to_keyword(lines, "from mantid.simpleapi import *", imports_snippet, mode=StringInsertMode.AFTER)
     _insert_relative_to_keyword(lines, "LoadEventNexus", "ws = ", mode=StringInsertMode.PREPEND)
-    _insert_relative_to_keyword(
-        lines, "ws = LoadEventNexus", "ws_list = split_events(input_workspace=ws)", mode=StringInsertMode.AFTER
-    )
+    polarization_logs_snippet = f'polarization_logs = PolarizationLogs(pol_state="{polarization_logs.pol_state}", '
+    polarization_logs_snippet += f'pol_veto="{polarization_logs.pol_veto}", '
+    polarization_logs_snippet += f'ana_state="{polarization_logs.ana_state}", '
+    polarization_logs_snippet += f'ana_veto="{polarization_logs.ana_veto}")'
+    split_events_snippet = f"""{polarization_logs_snippet}
+ws_list = split_events(input_workspace=ws, polarization_logs=polarization_logs)"""
+    _insert_relative_to_keyword(lines, "ws = LoadEventNexus", split_events_snippet, mode=StringInsertMode.AFTER)
 
     # reformat for better readability
+    refl_algo_idx = next((i for i, line in enumerate(lines) if "MagnetismReflectometryReduction(" in line), None)
+    if refl_algo_idx is None:
+        api.logger.warning(
+            "Failed to reformat generated script around 'MagnetismReflectometryReduction('. Pattern not found."
+        )
+    else:
+        tmp_refl_algo_line = lines[refl_algo_idx].replace(", ", ",\n                                ")
+        lines[refl_algo_idx] = tmp_refl_algo_line
     script_text = "\n".join(lines)
-    script += script_text.replace(", ", ",\n                                ")
+    script += script_text
     script += "\n"
 
     api.logger.notice(f"Script length after formatting {len(script)}")
