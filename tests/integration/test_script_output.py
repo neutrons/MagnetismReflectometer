@@ -34,10 +34,10 @@ def test_generate_script_from_ws(data_server, tmp_path, mock_filesystem):
     runpeak = RunPeakNumber("44382", peak_number)
     ws_refl_xs = mtd[f"r_{runpeak}"][0]
     x_expected, y_expected, dy_expected, dx_expected = (
-        ws_refl_xs.readX(0),
-        ws_refl_xs.readY(0),
-        ws_refl_xs.readE(0),
-        ws_refl_xs.readDx(0),
+        ws_refl_xs.readX(0).copy(),
+        ws_refl_xs.readY(0).copy(),
+        ws_refl_xs.readE(0).copy(),
+        ws_refl_xs.readDx(0).copy(),
     )
 
     script = generate_script_from_ws(
