@@ -80,7 +80,7 @@ jobs:
           cp *.conda /tmp/local-channel/noarch/
           # extract version from the package file name "quicknxs-<version>-<build>.conda"
           echo "PKG_VERSION=$(ls *.conda | cut -d'-' -f2)" >> $GITHUB_ENV
-          
+
       - name: Verify Conda Package
         uses: neutrons/conda-actions/pkg-verify@v1
         with:
