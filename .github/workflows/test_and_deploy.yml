@@ -37,6 +37,12 @@ jobs:
           echo "chromium enables testing HTML reports"
           sudo apt-get install --yes chromium-browser
 
+      - name: Configure Git credentials for code.ornl.gov
+        env:
+          TOKEN: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+        run: |
+          git config --global url."https://gitlab-ci-token:${TOKEN}@code.ornl.gov/".insteadOf "https://code.ornl.gov/"
+
       - name: Run unit tests
         run: |
           pixi run test -vv -m "not datarepo and not sns_mounted" --cov=src --cov-report=xml --cov-report=term-missing tests/
