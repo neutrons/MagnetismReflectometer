@@ -102,7 +102,7 @@ jobs:
           extra-commands: |
             python -c "import mr_reduction"
             python -c "import mantid"
-            python -c "import oncat"
+            python -c "import pyoncat"
             python -c "import pytz"
 
       # Audit the dependencies of the conda package we just installed.
