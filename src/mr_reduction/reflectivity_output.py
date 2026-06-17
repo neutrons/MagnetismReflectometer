@@ -2,7 +2,6 @@
 Write reflectivity output file
 """
 
-# standard imports
 import math
 import time
 from collections.abc import Sequence
@@ -58,16 +57,13 @@ def write_reflectivity(ws_list, output_path, cross_section):
     with open(output_path, "w") as fd:
         fd.write(quicknxs_file_header(input_file_indices=runpeak_list, extracted_states=cross_section))
 
-        #
         # Write direct beam options
-        #
         fd.write(DirectBeamOptions.dat_header())
         for i_direct_beam, ws in enumerate(ws_list, start=1):
             direct_beam_options = DirectBeamOptions.from_workspace(ws, i_direct_beam)
             if direct_beam_options is not None:
                 fd.write(direct_beam_options.as_dat)
 
-        #
         # Write scattering options and collect scattering data for later
         fd.write("#\n")
         fd.write(ReflectedBeamOptions.dat_header())
@@ -86,9 +82,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
         fd.write("#\n")
         fd.write(quicknxs_global_options_block())
 
-        #
         # Write sequence information from the last workspace in the list
-        #
         fd.write("# [Sequence]\n")
         sample_logs = SampleLogs(ws_list[-1])  # use the last workspace for the sequence information
         line_template = "# {0} {1}\n"
@@ -96,9 +90,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
             if entry in sample_logs:
                 fd.write(line_template.format(entry, sample_logs[entry]))
 
-        #
         # Write scattering data
-        #
         fd.write("#\n")
         fd.write(quicknxs_data_header(include_separator=True))
         fd.write("".join(data_lines))
