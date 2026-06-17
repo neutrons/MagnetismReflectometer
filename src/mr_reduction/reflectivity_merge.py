@@ -7,20 +7,20 @@ import datetime
 import json
 import os
 import sys
-import time
 from glob import glob
 from typing import List, Tuple
 
 # third party imports
-import mantid
 import mantid.simpleapi as api
 import numpy as np
 import pandas
 import pytz
 
-# mr_reduction iports
-import mr_reduction
 from mr_reduction import io_orso
+
+# mr_reduction imports
+from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
+from mr_reduction.reflectivity_output import quicknxs_data_header, quicknxs_file_header, quicknxs_global_options_block
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script
 from mr_reduction.settings import nexus_data_dir
@@ -419,65 +419,17 @@ def write_reflectivity_cross_section(
     str
         File path to the reflectivity profile
     """
-    direct_beam_options = [
-        "DB_ID",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "dpix",
-        "tth",
-        "number",
-        "File",
-    ]
-    dataset_options = [
-        "scale",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "fan",
-        "dpix",
-        "tth",
-        "number",
-        "DB_ID",
-        "File",
-    ]
-
     file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runpeak, cross_section))
     with open(file_path, "w") as fd:
-        fd.write(f"# Datafile created by mr_reduction {mr_reduction.__version__}\n")
-        fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
-        fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-        fd.write("# Type: Specular\n")
-        fd.write("# Input file indices: %s\n" % ",".join(matched_runs))
-        fd.write("# Extracted states: %s\n" % xs_label)
-        fd.write("#\n")
-        fd.write("# [Direct Beam Runs]\n")
-        toks = ["%8s" % item for item in direct_beam_options]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(quicknxs_file_header(input_file_indices=matched_runs, extracted_states=xs_label))
+        fd.write(DirectBeamOptions.dat_header())
         fd.write(direct_beam_info)
         fd.write("#\n")
-        fd.write("# [Data Runs]\n")
-        toks = ["%8s" % item for item in dataset_options]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(ReflectedBeamOptions.dat_header())
         fd.write(data_info)
         fd.write("#\n")
-        fd.write("# [Global Options]\n")
-        fd.write("# name           value\n")
-        fd.write("# sample_length  10\n")
-        fd.write("#\n")
-        fd.write("# [Data]\n")
-        toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(quicknxs_global_options_block())
+        fd.write(quicknxs_data_header())
         fd.write(data_buffer)
     return file_path
 
