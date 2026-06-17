@@ -9,6 +9,7 @@ from mr_reduction.io_dat import (
 )
 
 
+@pytest.mark.datarepo
 def test_read_reduced_file_from_autoreduce_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
     direct_beam_runs, data_runs, additional_peaks, has_scaling_error = read_reduced_file(file_path)
@@ -22,6 +23,7 @@ def test_read_reduced_file_from_autoreduce_fixture(data_server):
     assert data_runs[0][2]["DB_ID"] == 1
 
 
+@pytest.mark.datarepo
 def test_read_reduced_file_with_configuration_object(data_server):
     class FakeConfiguration:
         sample_size = 10
