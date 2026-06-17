@@ -68,8 +68,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
                 fd.write(direct_beam_options.as_dat)
 
         #
-        # Write scattering options and collect scatting data for later
-        #
+        # Write scattering options and collect scattering data for later
         fd.write("#\n")
         fd.write(ReflectedBeamOptions.dat_header())
         data_lines = []
