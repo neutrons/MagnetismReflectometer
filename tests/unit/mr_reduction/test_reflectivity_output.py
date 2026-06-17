@@ -30,7 +30,7 @@ from mantid.simpleapi import LoadNexus
 # mr_reduction imports
 from mr_reduction.reflectivity_output import write_reflectivity
 
-"""Test helpers for QuickNXS reduced-file compatibility checks."""
+# Test helpers for QuickNXS reduced-file compatibility checks.
 
 
 def _row_to_dict(columns: list[str], tokens: list[str]) -> dict[str, str]:
