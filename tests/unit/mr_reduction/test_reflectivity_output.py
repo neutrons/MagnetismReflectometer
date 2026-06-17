@@ -107,7 +107,7 @@ def test_write_reflectivity(mock_filesystem, data_server):
     assert len(direct_rows) >= 1
     assert len(data_rows) >= 1
 
-    # compare output_file to expected. Skip the first 4 header lines (signature/version/date), which can vary across environments
+    # compare output_file to expected. Skip first 4 header lines (signature/version/date), which can vary.
     with open(output_file) as output_handle:
         obtained = output_handle.readlines()[4:]
     with open(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")) as expected_handle:

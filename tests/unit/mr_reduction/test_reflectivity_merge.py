@@ -1,4 +1,10 @@
-from mr_reduction.reflectivity_merge import write_reflectivity_cross_section
+import pytest
+
+from mr_reduction.reflectivity_merge import (
+    _extract_sequence_id,
+    compute_scaling_factors,
+    write_reflectivity_cross_section,
+)
 from tests.unit.mr_reduction.test_reflectivity_output import parse_quicknxs_reduced_file
 
 
@@ -27,3 +33,28 @@ def test_write_reflectivity_cross_section(tmp_path):
     assert len(direct_rows) == 1
     assert len(data_rows) == 1
     assert data_rows[0]["DB_ID"] == "1"
+
+
+@pytest.mark.datarepo
+def test_extract_sequence_id(data_server):
+    file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
+    run_peak_number, group_id, lowest_q = _extract_sequence_id(file_path)
+
+    assert run_peak_number == "29160_2"
+    assert group_id is None
+    assert isinstance(lowest_q, float)
+
+
+@pytest.mark.datarepo
+def test_compute_scaling_factors_reads_option_objects(data_server):
+    scaling_factors, direct_beam_info, data_info, data_buffer, cross_section_label = compute_scaling_factors(
+        matched_runs=["42535_1", "42536_1"],
+        cross_section="Off_Off",
+        ar_dir=data_server.datarepo,
+    )
+
+    assert len(scaling_factors) == 2
+    assert len(direct_beam_info.splitlines()) >= 2
+    assert len(data_info.splitlines()) >= 2
+    assert len(data_buffer.splitlines()) > 0
+    assert cross_section_label == "+"
