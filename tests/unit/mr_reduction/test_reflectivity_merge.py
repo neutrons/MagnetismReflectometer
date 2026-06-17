@@ -2,7 +2,7 @@ from mr_reduction.reflectivity_merge import write_reflectivity_cross_section
 from tests.unit.mr_reduction.test_reflectivity_output import parse_quicknxs_reduced_file
 
 
-def test_write_reflectivity_cross_section_quicknxs_contract(tmp_path):
+def test_write_reflectivity_cross_section(tmp_path):
     output_file = write_reflectivity_cross_section(
         runpeak="42535_1",
         cross_section="Off_Off",
