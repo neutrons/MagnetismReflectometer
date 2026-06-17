@@ -1,3 +1,5 @@
+import pytest
+
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 from mr_reduction.io_dat import (
     determine_which_files_to_sum,
@@ -88,6 +90,7 @@ def test_determine_which_files_to_sum_with_summed_run_number():
     assert output == ("/SNS/REF_M/IPTS-12345/nexus/REF_M_42112.nxs.h5+/SNS/REF_M/IPTS-12345/nexus/REF_M_42113.nxs.h5")
 
 
+@pytest.mark.datarepo
 def test_read_reduced_file_metadata_from_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
     metadata = read_reduced_file_metadata(file_path)
@@ -98,6 +101,7 @@ def test_read_reduced_file_metadata_from_fixture(data_server):
     assert isinstance(metadata["lowest_q"], float)
 
 
+@pytest.mark.datarepo
 def test_read_reduced_file_options_from_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
     direct_options, reflected_options, additional_peak_options, has_scaling_error = read_reduced_file_options(
