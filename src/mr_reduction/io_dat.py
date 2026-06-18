@@ -1,9 +1,8 @@
 """Read QuickNXS reduced data files (.dat) in a legacy-compatible format."""
 
-import copy
-import inspect
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -76,38 +75,6 @@ def _parse_value(value_str: str) -> Any:
         return value_str
 
 
-def _assign_config_value(conf: object, attr: str, value_str: str):
-    """Assign a string value to a configuration-like object with type inference."""
-    if not hasattr(conf, attr):
-        return
-
-    value_str = value_str.strip()
-    try:
-        current_value = getattr(conf, attr)
-        if isinstance(current_value, bool):
-            value = value_str.lower() in ("true", "1", "yes")
-        elif isinstance(current_value, float):
-            value = float(value_str)
-        elif isinstance(current_value, int):
-            try:
-                value = int(value_str)
-            except ValueError:
-                value = float(value_str)
-        elif value_str == "None":
-            value = None
-        elif isinstance(current_value, list) or ("[" in value_str and "]" in value_str):
-            value_str = value_str.replace("[", "").replace("]", "")
-            if value_str == "":
-                value = []
-            else:
-                value = [float(item) for item in value_str.split(",") if item.strip()]
-        else:
-            value = value_str
-        setattr(conf, attr, value)
-    except (AttributeError, ValueError, TypeError) as error:
-        logging.error("Failed to assign config value: %s = %s -> %s", attr, value_str, error)
-
-
 def determine_which_files_to_sum(run_file: str, data_file_indices: str, run_number_str: str = None) -> str:
     """Determine which file paths are summed for a data run entry."""
     if run_number_str and "+" in run_number_str:
@@ -149,22 +116,27 @@ def determine_which_files_to_sum(run_file: str, data_file_indices: str, run_numb
     return output
 
 
-def read_reduced_file(file_path: str, configuration=None):
+@dataclass
+class ReducedFileData:
+    """Parsed contents of a QuickNXS reduced data file."""
+
+    direct_beam_options: list[DirectBeamOptions]
+    reflected_beam_options: list[ReflectedBeamOptions]
+    additional_peak_options: list[tuple[int, ReflectedBeamOptions]]
+    has_scaling_error: bool
+    metadata: dict[str, Any]
+
+
+def read_reduced_file(file_path: str):
     """Read reduced-file entries using a QuickNXS legacy-compatible return signature."""
     direct_beam_runs = []
     data_runs = []
     additional_peaks = []
-    config_properties = []
-    if configuration is not None:
-        config_properties = [
-            name for name, _ in inspect.getmembers(type(configuration), lambda item: isinstance(item, property))
-        ]
 
     with open(file_path, "r") as file_content:
         in_section = 0
         file_start = True
         has_scaling_error = False
-        db_id_is_zero_based = None
         data_file_indices = ""
         peak_index = 0
         for line in file_content.readlines():
@@ -201,23 +173,7 @@ def read_reduced_file(file_path: str, configuration=None):
                 if len(toks) < 14:
                     continue
                 try:
-                    if db_id_is_zero_based is None:
-                        first_db_id = int(_get_tok("DB_ID", cols, toks))
-                        db_id_is_zero_based = first_db_id == 0
-
-                    if configuration is not None:
-                        conf = copy.deepcopy(configuration)
-                        for label in cols:
-                            attr = LABEL_TO_CONFIG.get(label, label)
-                            value_str = _get_tok(label, cols, toks)
-                            if value_str is not None and attr not in config_properties:
-                                _assign_config_value(conf, attr, value_str)
-                        row_payload = conf
-                    else:
-                        row_payload = {
-                            label: _parse_value(_get_tok(label, cols, toks)) for label in cols if label != "#"
-                        }
-
+                    row_payload = {label: _parse_value(_get_tok(label, cols, toks)) for label in cols if label != "#"}
                     run_number_str = str(_get_tok("number", cols, toks))
                     if "+" in run_number_str:
                         run_number = int(run_number_str.split("+")[0])
@@ -243,28 +199,8 @@ def read_reduced_file(file_path: str, configuration=None):
                 if len(toks) < 16:
                     continue
                 try:
-                    if configuration is not None:
-                        conf = copy.deepcopy(configuration)
-                        for label in cols:
-                            attr = LABEL_TO_CONFIG.get(label, label)
-                            value_str = _get_tok(label, cols, toks)
-                            if value_str is not None and attr not in config_properties:
-                                _assign_config_value(conf, attr, value_str)
-                                if label == "scale_err":
-                                    has_scaling_error = True
-                        db_id = int(_get_tok("DB_ID", cols, toks))
-                        if db_id_is_zero_based:
-                            if db_id >= 0 and len(direct_beam_runs) > db_id:
-                                conf.direct_beam = direct_beam_runs[db_id][0]
-                        else:
-                            if db_id > 0 and len(direct_beam_runs) >= db_id:
-                                conf.direct_beam = direct_beam_runs[db_id - 1][0]
-                        row_payload = conf
-                    else:
-                        row_payload = {
-                            label: _parse_value(_get_tok(label, cols, toks)) for label in cols if label != "#"
-                        }
-                        has_scaling_error = has_scaling_error or ("scale_err" in row_payload)
+                    row_payload = {label: _parse_value(_get_tok(label, cols, toks)) for label in cols if label != "#"}
+                    has_scaling_error = has_scaling_error or ("scale_err" in row_payload)
 
                     run_number_str = str(_get_tok("number", cols, toks))
                     if "+" in run_number_str:
@@ -287,15 +223,6 @@ def read_reduced_file(file_path: str, configuration=None):
                         additional_peaks.append([peak_index, run_number, run_file, row_payload, slice_value])
                 except ValueError:
                     logging.error("Unable to parse line '%s' in run file %s", line, run_file)
-
-            if in_section == 4 and line.startswith("# "):
-                try:
-                    label, value = line[2:].strip().split(" ", 1)
-                except ValueError:
-                    continue
-                if configuration is not None:
-                    attr = LABEL_TO_CONFIG.get(label, label)
-                    _assign_config_value(type(configuration), attr, value)
 
     return direct_beam_runs, data_runs, additional_peaks, has_scaling_error
 
@@ -344,40 +271,7 @@ def _row_to_reflected_beam_options(row_data: dict[str, Any]) -> ReflectedBeamOpt
     )
 
 
-def read_reduced_file_options(
-    file_path: str,
-) -> tuple[list[DirectBeamOptions], list[ReflectedBeamOptions], list[tuple[int, ReflectedBeamOptions]], bool]:
-    """Read reduced-file options as mr_reduction beam option objects.
-
-    Returns
-    -------
-    tuple
-        direct_beam_options, data_run_options, additional_peak_options, has_scaling_error
-    """
-    direct_beam_runs, data_runs, additional_peaks, has_scaling_error = read_reduced_file(file_path)
-
-    direct_beam_options = []
-    for _, _, row_payload, _ in direct_beam_runs:
-        if not isinstance(row_payload, dict):
-            raise TypeError("Expected dict payload for direct beam row when reading reduced-file options")
-        direct_beam_options.append(_row_to_direct_beam_options(row_payload))
-
-    data_run_options = []
-    for _, _, row_payload, _ in data_runs:
-        if not isinstance(row_payload, dict):
-            raise TypeError("Expected dict payload for data run row when reading reduced-file options")
-        data_run_options.append(_row_to_reflected_beam_options(row_payload))
-
-    additional_peak_options = []
-    for peak_index, _, _, row_payload, _ in additional_peaks:
-        if not isinstance(row_payload, dict):
-            raise TypeError("Expected dict payload for additional peak row when reading reduced-file options")
-        additional_peak_options.append((int(peak_index), _row_to_reflected_beam_options(row_payload)))
-
-    return direct_beam_options, data_run_options, additional_peak_options, has_scaling_error
-
-
-def read_reduced_file_metadata(file_path: str) -> dict[str, Any]:
+def _read_reduced_file_metadata(file_path: str) -> dict[str, Any]:
     """Extract commonly used header metadata from a reduced file."""
     metadata = {
         "input_file_indices": None,
@@ -407,3 +301,24 @@ def read_reduced_file_metadata(file_path: str) -> dict[str, Any]:
             ):
                 break
     return metadata
+
+
+def read_reduced_data(file_path: str) -> ReducedFileData:
+    """Read a reduced file and return beam options and metadata as a ReducedFileData dataclass."""
+    direct_beam_runs, data_runs, additional_peaks, has_scaling_error = read_reduced_file(file_path)
+    metadata = _read_reduced_file_metadata(file_path)
+
+    direct_beam_options = [_row_to_direct_beam_options(row_payload) for _, _, row_payload, _ in direct_beam_runs]
+    reflected_beam_options = [_row_to_reflected_beam_options(row_payload) for _, _, row_payload, _ in data_runs]
+    additional_peak_options = [
+        (int(peak_index), _row_to_reflected_beam_options(row_payload))
+        for peak_index, _, _, row_payload, _ in additional_peaks
+    ]
+
+    return ReducedFileData(
+        direct_beam_options=direct_beam_options,
+        reflected_beam_options=reflected_beam_options,
+        additional_peak_options=additional_peak_options,
+        has_scaling_error=has_scaling_error,
+        metadata=metadata,
+    )

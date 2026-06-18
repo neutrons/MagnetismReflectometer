@@ -21,7 +21,7 @@ from mr_reduction import io_orso
 
 # mr_reduction imports
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
-from mr_reduction.io_dat import read_reduced_file_metadata, read_reduced_file_options
+from mr_reduction.io_dat import read_reduced_data
 from mr_reduction.reflectivity_output import quicknxs_data_header, quicknxs_file_header, quicknxs_global_options_block
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script
@@ -110,7 +110,7 @@ def _extract_sequence_id(file_path):
     assert file_path.endswith("autoreduce.dat"), "Input file is not an autoreduced data file"
     run_peak_number, group_id, lowest_q = None, None, None
     if os.path.isfile(file_path):
-        metadata = read_reduced_file_metadata(file_path)
+        metadata = read_reduced_data(file_path).metadata
         run_peak_number = metadata["input_file_indices"]
         group_id = metadata["sequence_id"]
         lowest_q = metadata["lowest_q"]
@@ -231,21 +231,20 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
                 scaling_factors.append(running_scale)
             _previous_ws = api.CloneWorkspace(ws)
 
-            metadata = read_reduced_file_metadata(file_path)
-            if metadata["extracted_states"] is not None:
-                _cross_section_label = metadata["extracted_states"]
+            reduced = read_reduced_data(file_path)
+            if reduced.metadata["extracted_states"] is not None:
+                _cross_section_label = reduced.metadata["extracted_states"]
 
-            direct_options, reflected_options, _, _ = read_reduced_file_options(file_path)
-            for option in direct_options:
+            for option in reduced.direct_beam_options:
                 direct_beam_count += 1
                 direct_beam_info += replace(option, DB_ID=direct_beam_count).as_dat
 
             target_run_number = str(RunPeakNumber(i_runpeak).run_number)
             selected_reflected_options = [
-                option for option in reflected_options if target_run_number in str(option.number)
+                option for option in reduced.reflected_beam_options if target_run_number in str(option.number)
             ]
-            if not selected_reflected_options and len(reflected_options) == 1:
-                selected_reflected_options = reflected_options
+            if not selected_reflected_options and len(reduced.reflected_beam_options) == 1:
+                selected_reflected_options = reduced.reflected_beam_options
             for option in selected_reflected_options:
                 if run_count >= len(scaling_factors):
                     break

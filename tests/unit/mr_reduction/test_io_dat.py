@@ -2,10 +2,10 @@ import pytest
 
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 from mr_reduction.io_dat import (
+    ReducedFileData,
     determine_which_files_to_sum,
+    read_reduced_data,
     read_reduced_file,
-    read_reduced_file_metadata,
-    read_reduced_file_options,
 )
 
 
@@ -24,30 +24,13 @@ def test_read_reduced_file_from_autoreduce_fixture(data_server):
 
 
 @pytest.mark.datarepo
-def test_read_reduced_file_with_configuration_object(data_server):
-    class FakeConfiguration:
-        sample_size = 10
-
-        def __init__(self):
-            self.scaling_factor = 0.0
-            self.cut_first_n_points = 0
-            self.cut_last_n_points = 0
-            self.peak_position = 0.0
-            self.peak_width = 0.0
-            self.low_res_position = 0.0
-            self.low_res_width = 0.0
-            self.bck_position = 0.0
-            self.bck_width = 0.0
-            self.direct_pixel_overwrite = 0.0
-            self.direct_beam = None
-
+def test_read_reduced_data_from_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
-    _, data_runs, _, _ = read_reduced_file(file_path, configuration=FakeConfiguration())
+    reduced = read_reduced_data(file_path)
 
-    configuration = data_runs[0][2]
-    assert isinstance(configuration, FakeConfiguration)
-    assert configuration.scaling_factor == 1.0
-    assert configuration.direct_beam == 29137
+    assert isinstance(reduced, ReducedFileData)
+    assert isinstance(reduced.reflected_beam_options[0], ReflectedBeamOptions)
+    assert reduced.reflected_beam_options[0].scale == 1.0
 
 
 def test_peak_1_runs_override_data_runs(tmp_path):
@@ -93,9 +76,9 @@ def test_determine_which_files_to_sum_with_summed_run_number():
 
 
 @pytest.mark.datarepo
-def test_read_reduced_file_metadata_from_fixture(data_server):
+def test_read_reduced_data_metadata_from_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
-    metadata = read_reduced_file_metadata(file_path)
+    metadata = read_reduced_data(file_path).metadata
 
     assert metadata["input_file_indices"] == "29160_2"
     assert metadata["extracted_states"] == "Off-Off"
@@ -104,15 +87,13 @@ def test_read_reduced_file_metadata_from_fixture(data_server):
 
 
 @pytest.mark.datarepo
-def test_read_reduced_file_options_from_fixture(data_server):
+def test_read_reduced_data_options_from_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
-    direct_options, reflected_options, additional_peak_options, has_scaling_error = read_reduced_file_options(
-        file_path
-    )
+    reduced = read_reduced_data(file_path)
 
-    assert len(direct_options) == 1
-    assert len(reflected_options) == 1
-    assert len(additional_peak_options) == 0
-    assert has_scaling_error is False
-    assert isinstance(direct_options[0], DirectBeamOptions)
-    assert isinstance(reflected_options[0], ReflectedBeamOptions)
+    assert len(reduced.direct_beam_options) == 1
+    assert len(reduced.reflected_beam_options) == 1
+    assert len(reduced.additional_peak_options) == 0
+    assert reduced.has_scaling_error is False
+    assert isinstance(reduced.direct_beam_options[0], DirectBeamOptions)
+    assert isinstance(reduced.reflected_beam_options[0], ReflectedBeamOptions)
