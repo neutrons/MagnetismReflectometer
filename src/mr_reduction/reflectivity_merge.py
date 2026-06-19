@@ -7,20 +7,22 @@ import datetime
 import json
 import os
 import sys
-import time
+from dataclasses import replace
 from glob import glob
 from typing import List, Tuple
 
 # third party imports
-import mantid
 import mantid.simpleapi as api
 import numpy as np
 import pandas
 import pytz
 
-# mr_reduction iports
-import mr_reduction
 from mr_reduction import io_orso
+
+# mr_reduction imports
+from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
+from mr_reduction.io_dat import read_reduced_data
+from mr_reduction.reflectivity_output import quicknxs_data_header, quicknxs_file_header, quicknxs_global_options_block
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.script_output import write_reduction_script
 from mr_reduction.settings import nexus_data_dir
@@ -108,26 +110,10 @@ def _extract_sequence_id(file_path):
     assert file_path.endswith("autoreduce.dat"), "Input file is not an autoreduced data file"
     run_peak_number, group_id, lowest_q = None, None, None
     if os.path.isfile(file_path):
-        with open(file_path, "r") as fd:
-            for line in fd.readlines():
-                if line.startswith("# sequence_id"):
-                    try:
-                        group_id = int(line[len("# sequence_id") :].strip())
-                    except:  # noqa E722
-                        api.logger.error("Could not extract group id from line: %s" % line)
-                if line.startswith("# Input file indices:"):
-                    try:
-                        run_peak_number = line[len("# Input file indices:") :].strip()
-                    except:  # noqa E722
-                        api.logger.error("Could not extract run number from line: %s" % line)
-                if not line.startswith("#") and len(line.strip()) > 0:
-                    try:
-                        toks = line.split()
-                        lowest_q = float(toks[0])
-                    except:  # noqa E722
-                        api.logger.error("Could not extract lowest q from line: %s" % line)
-                if all(x is not None for x in [run_peak_number, group_id, lowest_q]):
-                    return run_peak_number, group_id, lowest_q
+        metadata = read_reduced_data(file_path).metadata
+        run_peak_number = metadata["input_file_indices"]
+        group_id = metadata["sequence_id"]
+        lowest_q = metadata["lowest_q"]
     return run_peak_number, group_id, lowest_q
 
 
@@ -234,8 +220,8 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
     for i_runpeak in matched_runs:
         file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runpeak, cross_section))
         if os.path.isfile(file_path):
-            _file_handle = open(file_path, "r")
-            ref_data = pandas.read_csv(_file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
+            with open(file_path, "r") as file_handle:
+                ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
 
             ws = api.CreateWorkspace(DataX=ref_data["q"], DataY=ref_data["r"], DataE=ref_data["dr"])
             ws = api.ConvertToHistogram(ws)
@@ -245,48 +231,26 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
                 scaling_factors.append(running_scale)
             _previous_ws = api.CloneWorkspace(ws)
 
-            # Rewind and get meta-data
-            _file_handle.seek(0)
-            _direct_beams_started = 0
-            _data_runs_started = 0
-            for line in _file_handle.readlines():
-                # Look for cross-section label
-                if line.find("Extracted states:") > 0:
-                    toks = line.split(":")
-                    if len(toks) > 1:
-                        _cross_section_label = toks[1].strip()
+            reduced = read_reduced_data(file_path)
+            if reduced.metadata["extracted_states"] is not None:
+                _cross_section_label = reduced.metadata["extracted_states"]
 
-                # If we are in the data run block, copy the data we need
-                if _data_runs_started == 1 and line.find(str(i_runpeak)) > 0:
-                    toks = ["%8s" % t for t in line.split()]
-                    if len(toks) > 10:
-                        toks[1] = "%8g" % scaling_factors[run_count]
-                        run_count += 1
-                        toks[14] = "%8s" % str(run_count)
-                        _line = "  ".join(toks).strip() + "\n"
-                        data_info += _line.replace("# ", "#")
+            for option in reduced.direct_beam_options:
+                direct_beam_count += 1
+                direct_beam_info += replace(option, DB_ID=direct_beam_count).as_dat
 
-                # Find out whether we started the direct beam block
-                if line.find("Data Runs") > 0:
-                    _direct_beams_started = 0
-                    _data_runs_started = 1
-
-                # Get the direct beam info
-                if _direct_beams_started == 2:
-                    toks = ["%8s" % t for t in line.split()]
-                    if len(toks) > 10:
-                        direct_beam_count += 1
-                        toks[1] = "%8g" % direct_beam_count
-                        _line = "  ".join(toks).strip() + "\n"
-                        direct_beam_info += _line.replace("# ", "#")
-
-                # If we are in the direct beam block, we need to skip the column info line
-                if _direct_beams_started == 1 and line.find("DB_ID") > 0:
-                    _direct_beams_started = 2
-
-                # Find out whether we started the direct beam block
-                if line.find("Direct Beam Runs") > 0:
-                    _direct_beams_started = 1
+            target_run_number = str(RunPeakNumber(i_runpeak).run_number)
+            selected_reflected_options = [
+                option for option in reduced.reflected_beam_options if str(option.number) == target_run_number
+            ]
+            if not selected_reflected_options and len(reduced.reflected_beam_options) == 1:
+                selected_reflected_options = reduced.reflected_beam_options
+            for option in selected_reflected_options:
+                if run_count >= len(scaling_factors):
+                    break
+                scaled_db_id = run_count + 1
+                data_info += replace(option, scale=scaling_factors[run_count], DB_ID=scaled_db_id).as_dat
+                run_count += 1
 
             for i in range(len(ref_data["q"])):
                 data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
@@ -419,65 +383,17 @@ def write_reflectivity_cross_section(
     str
         File path to the reflectivity profile
     """
-    direct_beam_options = [
-        "DB_ID",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "dpix",
-        "tth",
-        "number",
-        "File",
-    ]
-    dataset_options = [
-        "scale",
-        "P0",
-        "PN",
-        "x_pos",
-        "x_width",
-        "y_pos",
-        "y_width",
-        "bg_pos",
-        "bg_width",
-        "fan",
-        "dpix",
-        "tth",
-        "number",
-        "DB_ID",
-        "File",
-    ]
-
     file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runpeak, cross_section))
     with open(file_path, "w") as fd:
-        fd.write(f"# Datafile created by mr_reduction {mr_reduction.__version__}\n")
-        fd.write("# Datafile created by Mantid %s\n" % mantid.__version__)
-        fd.write("# Date: %s\n" % time.strftime("%Y-%m-%d %H:%M:%S"))
-        fd.write("# Type: Specular\n")
-        fd.write("# Input file indices: %s\n" % ",".join(matched_runs))
-        fd.write("# Extracted states: %s\n" % xs_label)
-        fd.write("#\n")
-        fd.write("# [Direct Beam Runs]\n")
-        toks = ["%8s" % item for item in direct_beam_options]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(quicknxs_file_header(input_file_indices=matched_runs, extracted_states=xs_label))
+        fd.write(DirectBeamOptions.dat_header())
         fd.write(direct_beam_info)
         fd.write("#\n")
-        fd.write("# [Data Runs]\n")
-        toks = ["%8s" % item for item in dataset_options]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(ReflectedBeamOptions.dat_header())
         fd.write(data_info)
         fd.write("#\n")
-        fd.write("# [Global Options]\n")
-        fd.write("# name           value\n")
-        fd.write("# sample_length  10\n")
-        fd.write("#\n")
-        fd.write("# [Data]\n")
-        toks = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
-        fd.write("# %s\n" % "  ".join(toks))
+        fd.write(quicknxs_global_options_block())
+        fd.write(quicknxs_data_header())
         fd.write(data_buffer)
     return file_path
 

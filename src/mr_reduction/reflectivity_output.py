@@ -2,18 +2,47 @@
 Write reflectivity output file
 """
 
-# standard imports
 import math
 import time
+from collections.abc import Sequence
 
-# third party imports
 import mantid
 
-# mr_reduction imports
 import mr_reduction
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 from mr_reduction.runpeak import RunPeakNumber
 from mr_reduction.simple_utils import SampleLogs
+
+QUICKNXS_DATA_COLUMNS = ("Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]")
+
+
+def quicknxs_file_header(input_file_indices: Sequence[str], extracted_states: str) -> str:
+    """Header block required by QuickNXS reduced file reader."""
+    run_indices = ",".join(map(str, input_file_indices))
+    return (
+        "# Datafile created by QuickNXS\n"
+        f"# Datafile created using mr_reduction {mr_reduction.__version__}\n"
+        f"# Datafile created using Mantid {mantid.__version__}\n"
+        f"# Date: {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        "# Type: Specular\n"
+        f"# Input file indices: {run_indices}\n"
+        f"# Extracted states: {extracted_states}\n"
+        "#\n"
+    )
+
+
+def quicknxs_global_options_block(sample_length: float = 10) -> str:
+    """Standard Global Options section for reduced data files."""
+    return f"# [Global Options]\n# name           value\n# sample_length  {sample_length:g}\n#\n"
+
+
+def quicknxs_data_header(include_separator: bool = False) -> str:
+    """Data section header with the canonical 5-column reflectivity layout."""
+    tokens = ["%12s" % item for item in QUICKNXS_DATA_COLUMNS]
+    header = "# [Data]\n# %s\n" % "  ".join(tokens)
+    if include_separator:
+        header += "#\n"
+    return header
 
 
 def write_reflectivity(ws_list, output_path, cross_section):
@@ -22,78 +51,51 @@ def write_reflectivity(ws_list, output_path, cross_section):
     if not ws_list:
         return
 
-    fd = open(output_path, "w")
-
-    #
-    # Write header
-    #
     peak_number = RunPeakNumber.peak_number_log(ws_list[0])
     runpeak_list = [str(RunPeakNumber(str(ws.getRunNumber()), peak_number)) for ws in ws_list]
-    fd.write(f"""# Datafile created by mr_reduction {mr_reduction.__version__}
-# Datafile created by Mantid {mantid.__version__}
-# Autoreduced
-# Date: {time.strftime("%Y-%m-%d %H:%M:%S")}
-# Type: Specular
-# Input file indices: {",".join(runpeak_list)}
-# Extracted states: {cross_section}
-#
-""")
 
-    #
-    # Write direct beam options
-    #
-    fd.write(DirectBeamOptions.dat_header())
-    for i_direct_beam, ws in enumerate(ws_list, start=1):
-        direct_beam_options = DirectBeamOptions.from_workspace(ws, i_direct_beam)
-        if direct_beam_options is not None:
-            fd.write(direct_beam_options.as_dat)
+    with open(output_path, "w") as fd:
+        fd.write(quicknxs_file_header(input_file_indices=runpeak_list, extracted_states=cross_section))
 
-    #
-    # Write scattering options and collect scatting data for later
-    #
-    fd.write("#\n")
-    fd.write(ReflectedBeamOptions.dat_header())
-    data_block = ""  # collect the data for later
-    for i_direct_beam, ws in enumerate(ws_list, start=1):
-        reflected_beam_options = ReflectedBeamOptions.from_workspace(ws, i_direct_beam)
-        fd.write(reflected_beam_options.as_dat)
-        # collect the numerical data into `data_block`
-        x, y, dy, dx = ws.readX(0), ws.readY(0), ws.readE(0), ws.readDx(0)
-        theta = reflected_beam_options.tth * math.pi / 360.0
-        sf = quicknxs_scaling_factor(ws)
-        for i in range(len(x)):
-            data_block += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (x[i], y[i] * sf, dy[i] * sf, dx[i], theta)
+        # Write direct beam options
+        fd.write(DirectBeamOptions.dat_header())
+        for i_direct_beam, ws in enumerate(ws_list, start=1):
+            direct_beam_options = DirectBeamOptions.from_workspace(ws, i_direct_beam)
+            if direct_beam_options is not None:
+                fd.write(direct_beam_options.as_dat)
 
-    fd.write("""#
-# [Global Options]
-# name           value
-# sample_length  10
-#
-""")
+        # Write scattering options and collect scattering data for later
+        fd.write("#\n")
+        fd.write(ReflectedBeamOptions.dat_header())
+        data_lines = []
+        for i_direct_beam, ws in enumerate(ws_list, start=1):
+            reflected_beam_options = ReflectedBeamOptions.from_workspace(ws, i_direct_beam)
+            fd.write(reflected_beam_options.as_dat)
+            # collect the numerical data into `data_lines`
+            x, y, dy, dx = ws.readX(0), ws.readY(0), ws.readE(0), ws.readDx(0)
+            theta = reflected_beam_options.tth * math.pi / 360.0
+            sf = quicknxs_scaling_factor(ws)
+            for i in range(len(x)):
+                row = (x[i], y[i] * sf, dy[i] * sf, dx[i], theta)
+                data_lines.append("%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % row)
 
-    #
-    # Write sequence information from the last workspace in the list
-    #
-    fd.write("# [Sequence]\n")
-    sample_logs = SampleLogs(ws_list[-1])  # use the last workspace for the sequence information
-    line_template = "# {0} {1}\n"
-    for entry in ["sequence_id", "sequence_number", "sequence_total"]:
-        if entry in sample_logs:
-            fd.write(line_template.format(entry, sample_logs[entry]))
+        fd.write("#\n")
+        fd.write(quicknxs_global_options_block())
 
-    #
-    # Write scattering data
-    #
-    tokens = ["%12s" % item for item in ["Qz [1/A]", "R [a.u.]", "dR [a.u.]", "dQz [1/A]", "theta [rad]"]]
-    header = "# %s" % "  ".join(tokens)
-    fd.write(f"""#
-# [Data]
-{header}
-#
-{data_block}
-""")
+        # Write sequence information from the last workspace in the list
+        fd.write("# [Sequence]\n")
+        sample_logs = SampleLogs(ws_list[-1])  # use the last workspace for the sequence information
+        line_template = "# {0} {1}\n"
+        for entry in ["sequence_id", "sequence_number", "sequence_total"]:
+            if entry in sample_logs:
+                fd.write(line_template.format(entry, sample_logs[entry]))
 
-    fd.close()
+        # Write scattering data
+        fd.write("#\n")
+        fd.write(quicknxs_data_header(include_separator=True))
+        fd.write("".join(data_lines))
+
+        fd.write("\n")
 
 
 def quicknxs_scaling_factor(ws) -> float:
