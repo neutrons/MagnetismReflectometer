@@ -1,11 +1,11 @@
 import pytest
 
+from mr_reduction.io_dat import read_reduced_file
 from mr_reduction.reflectivity_merge import (
     _extract_sequence_id,
     compute_scaling_factors,
     write_reflectivity_cross_section,
 )
-from tests.unit.mr_reduction.test_reflectivity_output import parse_quicknxs_reduced_file
 
 
 def test_write_reflectivity_cross_section(tmp_path):
@@ -29,10 +29,10 @@ def test_write_reflectivity_cross_section(tmp_path):
     with open(output_file, "r") as file_handle:
         assert file_handle.readline().startswith("# Datafile created by QuickNXS")
 
-    direct_rows, data_rows = parse_quicknxs_reduced_file(output_file)
-    assert len(direct_rows) == 1
-    assert len(data_rows) == 1
-    assert data_rows[0]["DB_ID"] == "1"
+    direct_beam_runs, data_runs, *_ = read_reduced_file(output_file)
+    assert len(direct_beam_runs) == 1
+    assert len(data_runs) == 1
+    assert data_runs[0][2]["DB_ID"] == 1
 
 
 @pytest.mark.datarepo
