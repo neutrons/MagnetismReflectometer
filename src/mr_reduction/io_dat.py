@@ -125,6 +125,7 @@ class ReducedFileData:
     additional_peak_options: list[tuple[int, ReflectedBeamOptions]]
     has_scaling_error: bool
     metadata: dict[str, Any]
+    global_options: dict[str, Any]
 
 
 def read_reduced_file(file_path: str):
@@ -137,6 +138,7 @@ def read_reduced_file(file_path: str):
         in_section = 0
         file_start = True
         has_scaling_error = False
+        global_options: dict[str, Any] = {}
         data_file_indices = ""
         peak_index = 0
         for line in file_content.readlines():
@@ -189,7 +191,7 @@ def read_reduced_file(file_path: str):
                     run_file = _find_h5_data(run_file)
                     direct_beam_runs.append([run_number, run_file, row_payload, slice_value])
                 except ValueError:
-                    logging.error("Unable to parse line '%s' in run file %s", line, run_file)
+                    logging.error("Unable to parse line '%s' in file %s", line.strip(), file_path)
 
             if in_section in (2, 3):
                 toks = line.replace(", ", ",").split()
@@ -222,9 +224,18 @@ def read_reduced_file(file_path: str):
                     else:
                         additional_peaks.append([peak_index, run_number, run_file, row_payload, slice_value])
                 except ValueError:
-                    logging.error("Unable to parse line '%s' in run file %s", line, run_file)
+                    logging.error("Unable to parse line '%s' in file %s", line.strip(), file_path)
 
-    return direct_beam_runs, data_runs, additional_peaks, has_scaling_error
+            if in_section == 4 and line.startswith("# "):
+                try:
+                    label, value_str = line[2:].strip().split(None, 1)
+                except ValueError:
+                    continue
+                if label.startswith("[") or label == "name":
+                    continue
+                global_options[label] = _parse_value(value_str)
+
+    return direct_beam_runs, data_runs, additional_peaks, has_scaling_error, global_options
 
 
 def _row_to_direct_beam_options(row_data: dict[str, Any]) -> DirectBeamOptions:
@@ -305,7 +316,7 @@ def _read_reduced_file_metadata(file_path: str) -> dict[str, Any]:
 
 def read_reduced_data(file_path: str) -> ReducedFileData:
     """Read a reduced file and return beam options and metadata as a ReducedFileData dataclass."""
-    direct_beam_runs, data_runs, additional_peaks, has_scaling_error = read_reduced_file(file_path)
+    direct_beam_runs, data_runs, additional_peaks, has_scaling_error, global_options = read_reduced_file(file_path)
     metadata = _read_reduced_file_metadata(file_path)
 
     direct_beam_options = [_row_to_direct_beam_options(row_payload) for _, _, row_payload, _ in direct_beam_runs]
@@ -321,4 +332,5 @@ def read_reduced_data(file_path: str) -> ReducedFileData:
         additional_peak_options=additional_peak_options,
         has_scaling_error=has_scaling_error,
         metadata=metadata,
+        global_options=global_options,
     )

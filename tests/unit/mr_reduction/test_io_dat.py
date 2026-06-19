@@ -12,7 +12,7 @@ from mr_reduction.io_dat import (
 @pytest.mark.datarepo
 def test_read_reduced_file_from_autoreduce_fixture(data_server):
     file_path = data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.dat")
-    direct_beam_runs, data_runs, additional_peaks, has_scaling_error = read_reduced_file(file_path)
+    direct_beam_runs, data_runs, additional_peaks, has_scaling_error, global_options = read_reduced_file(file_path)
 
     assert len(direct_beam_runs) == 1
     assert len(data_runs) == 1
@@ -55,17 +55,22 @@ def test_peak_1_runs_override_data_runs(tmp_path):
 # scale P0 PN x_pos x_width y_pos y_width bg_pos bg_width fan dpix tth number DB_ID File
 # 3.7201 5 10 214.9 22 121.8 56.3 39 56 False 180 4.1776 50002 0 /tmp/50002.nxs.h5
 #
+# [Global Options]
+# name           value
+# sample_length  10
+#
 # [Data]
 #     Qz [1/A]      R [a.u.]     dR [a.u.]     dQz [1/A]   theta [rad]
 2.263373e-02       1.986968e-02       1.427452e-04       1.252235e-03       1.445378e-02
 """
     )
 
-    _, data_runs, additional_peaks, _ = read_reduced_file(str(test_file))
+    _, data_runs, additional_peaks, _, global_options = read_reduced_file(str(test_file))
 
     assert len(data_runs) == 1
     assert data_runs[0][0] == 50002
     assert len(additional_peaks) == 0
+    assert global_options == {"sample_length": 10}
 
 
 def test_determine_which_files_to_sum_with_summed_run_number():

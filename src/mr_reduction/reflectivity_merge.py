@@ -241,7 +241,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
 
             target_run_number = str(RunPeakNumber(i_runpeak).run_number)
             selected_reflected_options = [
-                option for option in reduced.reflected_beam_options if target_run_number in str(option.number)
+                option for option in reduced.reflected_beam_options if str(option.number) == target_run_number
             ]
             if not selected_reflected_options and len(reduced.reflected_beam_options) == 1:
                 selected_reflected_options = reduced.reflected_beam_options
