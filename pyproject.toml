@@ -164,7 +164,7 @@ test-docs = { cmd = "sphinx-build -M doctest docs docs/_build/html", description
 # Testing
 test = { description = "Run the test suite", cmd = "pytest" }
 # Packaging
-conda-build-command = { cmd = "pixi publish --target-channel /tmp/local-channel", description = "Wrapper for building the conda package - used by `conda-build`" }
+conda-build-command = { cmd = "pixi publish --target-channel ./local-channel", description = "Wrapper for building the conda package - used by `conda-build`" }
 conda-build = { description = "Build the conda package", depends-on = [
   "sync-version",
   "conda-build-command",
