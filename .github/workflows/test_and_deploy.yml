@@ -86,8 +86,8 @@ jobs:
       - name: Build conda package
         run: |
           pixi run conda-build
-          mkdir -p /tmp/local-channel/noarch
-          cp *.conda /tmp/local-channel/noarch/
+          mkdir -p ./local-channel/noarch
+          cp *.conda ./local-channel/noarch/
           # extract version from the package file name "quicknxs-<version>-<build>.conda"
           echo "PKG_VERSION=$(ls *.conda | cut -d'-' -f2)" >> $GITHUB_ENV
 
@@ -96,7 +96,7 @@ jobs:
         uses: neutrons/conda-actions/pkg-install@v2
         with:
           package-name: ${{ env.PKG_NAME }}
-          local-channel: /tmp/local-channel
+          local-channel: ./local-channel
           python-version: "3.11"
           extra-channels: neutrons mantid oncat
 
