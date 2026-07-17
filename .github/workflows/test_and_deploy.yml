@@ -106,7 +106,7 @@ jobs:
         uses: neutrons/gh-actions/pkg-verify@eb7a7c6fcfd0cda1a7b238329afc0afd09a4f4af # v2
         with:
           package-name: ${{ env.PKG_NAME }}
-          conda-env-name: ${{ steps.install.outputs.conda_env }}
+          conda-env-name: ${{ steps.install.outputs.conda-env }}
           extra-commands: |
             python -c "import mr_reduction"
             python -c "import mantid"
