@@ -129,8 +129,6 @@ docs = { features = ["dev", "docs"], no-default-feature = true }
 build = { features = ["build"], no-default-feature = true }
 
 [tool.pixi.feature.build.dependencies]
-anaconda-client = ">=1.13.1"
-check-wheel-contents = ">=0.6.2"
 versioningit = ">=3.2.0"
 
 [tool.pixi.feature.build.pypi-dependencies]
