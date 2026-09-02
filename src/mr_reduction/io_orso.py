@@ -140,7 +140,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         info.data_source.sample.name = str(sample_logs["SampleName"])
     except RuntimeError:
         logger.warning("SampleName not found in sample logs - setting to null.")
-        info.data_source.sample.name = "null"
+        info.data_source.sample.name = None  # type: ignore[assignment] None is allowed, just not typed as such
 
     measurement: ORSOMeasurement = info.data_source.measurement
     measurement.instrument_settings = ORSOInstrumentSettings(

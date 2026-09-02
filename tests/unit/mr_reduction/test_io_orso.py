@@ -5,7 +5,7 @@ from unittest import mock
 
 import numpy as np
 import pytest
-from mantid.simpleapi import LoadNexusProcessed, mtd
+from mantid.simpleapi import DeleteLog, LoadNexusProcessed, mtd
 from numpy.testing import assert_almost_equal
 from orsopy.fileio.base import Column, ErrorColumn
 from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
@@ -42,7 +42,7 @@ def assert_instrument_settings(datasets: List[OrsoDataset], thetas, wavelengths,
         assert instrument_settings.polarization.value == polarizations[i]
 
 
-def assert_metadata(datasets: List[OrsoDataset], title: str, sample_name: str):
+def assert_metadata(datasets: List[OrsoDataset], title: str, sample_name: str | None):
     """Test-helper function, assert that each dataset in the list has the expected experiment title and sample name"""
     for dataset in datasets:
         info: Orso = dataset.info
@@ -61,9 +61,8 @@ def test_save_cross_sections_single_cross_section(mock_filesystem, data_server):
     reflectivity_workspace = LoadNexusProcessed(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
     save_cross_sections([reflectivity_workspace], output_file)
-    #
+
     # load the ORSO file and check its contents
-    #
     datasets: List[OrsoDataset] = load_orso(output_file)
     assert len(datasets) == 1
     assert_columns(datasets)
@@ -82,9 +81,8 @@ def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
         workspace_list.append(workspace)
     output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
     save_cross_sections(workspace_list, output_file)
-    #
+
     # load the ORSO file and check its contents
-    #
     datasets: List[OrsoDataset] = load_orso(output_file)
     assert len(datasets) == 2
     assert set([dataset.info.data_set for dataset in datasets]) == {"Off_Off", "On_Off"}
@@ -92,6 +90,20 @@ def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     assert_columns(datasets)
     assert_instrument_settings(datasets, thetas=[0.007, 0.007], wavelengths=[2.55, 2.55], polarizations=["po", "mo"])
     assert_metadata(datasets, title="YIG Clean", sample_name="No sample")
+
+
+@pytest.mark.datarepo
+def test_save_cross_sections_missing_sample_name(mock_filesystem, data_server):
+    """SampleName log absent from the workspace -> sample.name should be set to null, not raise"""
+    reflectivity_workspace = LoadNexusProcessed(data_server.path_to("REF_M_29160_2_Off_Off_autoreduce.nxs.h5"))
+    DeleteLog(reflectivity_workspace, "SampleName")
+    output_file = os.path.join(mock_filesystem.tempdir, "REF_M_29160_2_Off_Off_autoreduce.ort")
+    save_cross_sections([reflectivity_workspace], output_file)
+
+    # load the ORSO file and check its contents
+    datasets: List[OrsoDataset] = load_orso(output_file)
+    assert len(datasets) == 1
+    assert datasets[0].info.data_source.sample.name is None
 
 
 @pytest.fixture
