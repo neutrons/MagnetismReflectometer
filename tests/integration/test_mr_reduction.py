@@ -1,17 +1,11 @@
-# standard imports
 import itertools
 import os
 import shutil
 
 import numpy as np
-
-# third party imports
 import pytest
-
-# mantid imports
 from mantid.simpleapi import AddSampleLog, CreateSampleWorkspace
 
-# mr_reduction imports
 import mr_reduction.mr_reduction as mr
 from mr_reduction import io_orso
 

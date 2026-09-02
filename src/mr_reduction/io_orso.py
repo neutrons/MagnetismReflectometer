@@ -1,9 +1,7 @@
-# standard library imports
 import math
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 
-# third-party imports
 import numpy as np
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
 from numpy.testing import assert_almost_equal, assert_equal
@@ -13,9 +11,8 @@ from orsopy.fileio.data_source import InstrumentSettings as ORSOInstrumentSettin
 from orsopy.fileio.data_source import Measurement as ORSOMeasurement
 from orsopy.fileio.orso import Orso, OrsoDataset, load_orso, save_orso
 
-# mr_reduction imports
 import mr_reduction
-from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
+from mr_reduction.beam_options import ReflectedBeamOptions
 from mr_reduction.logging import logger
 from mr_reduction.script_output import generate_script_from_ws
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
@@ -105,7 +102,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         try:
             return MantidORSODataset.create_local_datetime_from_utc_string(history.executionDate().toISO8601String())
         except ValueError:
-            logger.notice(
+            logger.warning(
                 "Could not parse the reduction timestamp into the required format "
                 "- this information will be excluded from the file."
             )
@@ -137,6 +134,13 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     reduction_software = info.reduction.software
     reduction_software.name = "mr_reduction"
     reduction_software.version = mr_reduction.__version__
+
+    info.data_source.experiment.title = str(sample_logs["run_title"])
+    try:
+        info.data_source.sample.name = str(sample_logs["SampleName"])
+    except RuntimeError:
+        logger.warning("SampleName not found in sample logs - setting to null.")
+        info.data_source.sample.name = "null"
 
     measurement: ORSOMeasurement = info.data_source.measurement
     measurement.instrument_settings = ORSOInstrumentSettings(
@@ -187,7 +191,7 @@ class SequenceDataSet:
     but at different incident angles or wavelengths ranges.
     """
 
-    def __init__(self, filepath_sequence: Dict[str, str] = None):
+    def __init__(self, filepath_sequence: Dict[str, str] | None = None):
         """
         Initialize the SequenceDataSet with a list of ORSO files, each containing the reflectivities
         for the different cross-sections (e.g. "Off_Off", "On_Off", etc.)
@@ -228,9 +232,9 @@ class SequenceDataSet:
         List[OrsoDataset]
             The list of datasets for the given runpeak or cross-section.
         """
-        if item in self.runpeaks:  # item is a runpeak
+        if self.runpeaks is not None and item in self.runpeaks:  # item is a runpeak
             return self.datasets[item]
-        elif item in self.cross_sections:  # item is a cross-section
+        elif self.cross_sections is not None and item in self.cross_sections:  # item is a cross-section
             index = self.cross_sections.index(item)  # find the index of the cross-section label `item`
             return [self.datasets[runpeak][index] for runpeak in self.runpeaks]
         else:
