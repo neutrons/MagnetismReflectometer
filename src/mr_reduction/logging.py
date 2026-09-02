@@ -1,4 +1,3 @@
-# standard imports
 import logging
 
 # Configure the logger
