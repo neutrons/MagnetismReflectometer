@@ -53,14 +53,14 @@ class ReductionProcess:
         q_step=-0.02,
         const_q_cutoff=0.02,
         update_peak_range=False,
-        peak_number: Optional[int] = None,
+        peak_number: int | None = None,
         use_roi=True,
         force_peak_roi=False,
         peak_roi=[0, 0],
         use_roi_bck=False,
         force_bck_roi=False,
         bck_roi=[0, 0],
-        low_res_roi: List[int] = None,
+        low_res_roi: list[int] = None,
         force_low_res: bool = False,
         use_tight_bck=False,
         bck_offset=3,
@@ -119,7 +119,7 @@ class ReductionProcess:
         """
 
         try:
-            self.run_number: Optional[int] = int(data_run)
+            self.run_number: int | None = int(data_run)
             self.file_path = f"REF_M_{data_run}"
         except (TypeError, ValueError):
             self.run_number = None
@@ -160,7 +160,7 @@ class ReductionProcess:
         self.script = ""
 
         # "REF_M_livereduce.log" or "REF_M_autoreduce.log"
-        self.logfile: Optional[IOBase] = None  # a file handle to a log file
+        self.logfile: IOBase | None = None  # a file handle to a log file
         if logfile:  # usually path to "REF_M_livereduce.log"
             self.logfile = open(logfile, "a")
         elif debug is True:
@@ -191,7 +191,7 @@ class ReductionProcess:
         if self.output_dir is None:
             self.output_dir = f"/SNS/REF_M/{ipts}/shared/autoreduce/"
 
-    def _extract_data_info(self, xs_list: List[MantidWorkspace]):
+    def _extract_data_info(self, xs_list: list[MantidWorkspace]):
         """
         Extract data info for the cross-section with the most events
         :param list xs_list: workspace group
@@ -300,7 +300,7 @@ class ReductionProcess:
 
         return html_report
 
-    def reduce_workspace_group(self, xs_list: List[MantidWorkspace]):
+    def reduce_workspace_group(self, xs_list: list[MantidWorkspace]):
         # Extract data info (find peaks, etc...)
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
@@ -370,7 +370,7 @@ class ReductionProcess:
         write_partial_script(mtd["r_%s" % runpeak], self.output_dir, polarization_logs=self.polarization_logs)
 
         report_list = []
-        reflectivity_workspaces: List[MantidWorkspace] = []
+        reflectivity_workspaces: list[MantidWorkspace] = []
         for ws in xs_list:
             try:
                 if str(ws).endswith("unfiltered"):

@@ -26,7 +26,7 @@ class RunPeakNumber:
     """
 
     @staticmethod
-    def peak_number_log(input_workspace: Union[str, Workspace]) -> Optional[int]:
+    def peak_number_log(input_workspace: str | Workspace) -> int | None:
         r"""
         Fetch the peak number from the logs of the input workspace
 
@@ -48,7 +48,7 @@ class RunPeakNumber:
         else:
             return None
 
-    def __init__(self, runpeak: Union[str, int, "RunPeakNumber"], peak_number: Union[str, int] = None):
+    def __init__(self, runpeak: Union[str, int, "RunPeakNumber"], peak_number: str | int = None):
         r"""
         A RunPeakNumber is a run number (e.g. 12345) or a combination of a run number and a peak number
         (e.g. 12335_2 for run number 12345 and peak number 2). Peak numbers start at 1, not 0.
@@ -97,7 +97,7 @@ class RunPeakNumber:
             output += "_" + str(self.peak_number)
         return output
 
-    def log_peak_number(self, input_workspace: Union[str, Workspace2D, WorkspaceGroup]):
+    def log_peak_number(self, input_workspace: str | Workspace2D | WorkspaceGroup):
         r"""
         Insert the peak number into the logs of the input workspace
 

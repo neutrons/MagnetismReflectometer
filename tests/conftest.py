@@ -8,7 +8,8 @@ import tempfile
 import unittest.mock as mock
 from collections import namedtuple
 from os.path import dirname
-from typing import Any, Generator, List
+from typing import Any, List
+from collections.abc import Generator
 
 import pytest
 
@@ -55,7 +56,7 @@ def data_server():
             config["default.instrument"] = "REF_M"
 
         @property
-        def directories(self) -> List[str]:
+        def directories(self) -> list[str]:
             r"""Absolute path to the data-repo directory"""
             return self._directories
 
@@ -81,7 +82,7 @@ def data_server():
                 for dirpath, dirnames, filenames in os.walk(directory):
                     if basename in filenames:
                         return os.path.join(dirpath, basename)
-            raise IOError(f"File {basename} not found in data directory {self._directories}")
+            raise OSError(f"File {basename} not found in data directory {self._directories}")
 
         def load_events(self, basename: str, output_workspace: str = None) -> MantidWorkspace:
             r"""
@@ -220,7 +221,7 @@ def autoreduction_script(tempdir, data_server):
             options.update(amend_options)
 
         # inject options in the reduction template and save as new script reduce_REF_M.py
-        with open(data_server.path_to_template, "r") as file_handle:
+        with open(data_server.path_to_template) as file_handle:
             template = string.Template(file_handle.read())
             script = template.substitute(**options)
         if outdir is None:

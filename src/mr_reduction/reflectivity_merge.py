@@ -28,7 +28,7 @@ from mr_reduction.script_output import write_reduction_script
 from mr_reduction.settings import nexus_data_dir
 
 
-def match_run_for_cross_section(run, ipts, cross_section, ar_dir) -> List[str]:
+def match_run_for_cross_section(run, ipts, cross_section, ar_dir) -> list[str]:
     """Return a list of matching runs (or RunPeakNumber's) to be stitched
 
     Examples
@@ -178,7 +178,7 @@ def match_run_with_sequence(run, ipts, cross_section, ar_dir):
     return match_series
 
 
-def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[float], str, str, str, str]:
+def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> tuple[list[float], str, str, str, str]:
     r"""Compute the scaling factors for an input set of runs (or RunPeakNumber's) by comparing with
     direct-beam runs having the same instrument configuration as the `matched_runs`.
 
@@ -220,7 +220,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
     for i_runpeak in matched_runs:
         file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runpeak, cross_section))
         if os.path.isfile(file_path):
-            with open(file_path, "r") as file_handle:
+            with open(file_path) as file_handle:
                 ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
 
             ws = api.CreateWorkspace(DataX=ref_data["q"], DataY=ref_data["r"], DataE=ref_data["dr"])
@@ -264,7 +264,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> Tuple[List[f
     return scaling_factors, direct_beam_info, data_info, data_buffer, _cross_section_label
 
 
-def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) -> List[Tuple[str, str]]:
+def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) -> list[tuple[str, str]]:
     r"""Apply the scaling factors (used for stitching) that were computed with the cross-section having the highest
     event count to rescale the reflectivity profiles of the other cross-sections.
 
@@ -303,7 +303,7 @@ def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) 
         for j, i_runpeak in enumerate(matched_runs):
             file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runpeak, xs))
             if os.path.isfile(file_path):
-                with open(file_path, "r") as file_handle:
+                with open(file_path) as file_handle:
                     ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
                 for i in range(len(ref_data["q"])):
                     data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
@@ -489,7 +489,7 @@ def combined_curves(run, ipts, ar_dir):
     api.logger.notice("High xs: %s" % high_stat_cross_section)
 
     # Match the given run with other runs of the same group ID
-    matched_runs: List[str] = match_run_with_sequence(runpeak, ipts, high_stat_cross_section, ar_dir)
+    matched_runs: list[str] = match_run_with_sequence(runpeak, ipts, high_stat_cross_section, ar_dir)
     api.logger.notice("Matched runs: %s" % str(matched_runs))
 
     # Compute scaling factors for this cross section

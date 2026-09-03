@@ -193,7 +193,7 @@ def _as_ints(a):
     return [int(a[0]), int(a[1])]
 
 
-class DataInspector(object):
+class DataInspector:
     """
     Class to hold the relevant information from a run (scattering or direct beam).
 
@@ -210,7 +210,7 @@ class DataInspector(object):
     def __init__(
         self,
         input_workspace: MantidWorkspace,
-        peak_number: Optional[int] = 1,
+        peak_number: int | None = 1,
         cross_section="",
         event_threshold=10000,
         dirpix_overwrite=None,
@@ -317,7 +317,7 @@ class DataInspector(object):
         self.tof_range = [tof_min, tof_max]
         return [tof_min, tof_max]
 
-    def process_pv_roi(self, ws: EventWorkspace, peak_number: Optional[int] = 1):
+    def process_pv_roi(self, ws: EventWorkspace, peak_number: int | None = 1):
         """
         Processes the regions of interest (ROIs) processing variables (PV) from the given event workspace
         and computes the peak and background ROI dimensions along specified axes.
@@ -413,7 +413,7 @@ class DataInspector(object):
         self.theta_d = 180.0 / math.pi * mtd.MRGetTheta(ws, SpecularPixel=peak_position, UseSANGLE=False)
         return not self.theta_d > self.tolerance
 
-    def determine_data_type(self, ws, peak_number: Optional[int] = 1):
+    def determine_data_type(self, ws, peak_number: int | None = 1):
         """
         Inspect and determine the type of data (direct-beam or scattering)
         based on the peak locations and other characteristics.
@@ -503,21 +503,21 @@ class DataInspector(object):
 
 def inspect_data(
     Workspace: str,
-    peak_number: Optional[int] = 1,
+    peak_number: int | None = 1,
     UseROI: bool = True,
     UpdatePeakRange: bool = False,
     UseROIBck: bool = False,
     UseTightBck: bool = False,
     BckWidth: int = 10,
     ForcePeakROI: bool = False,
-    PeakROI: List[int] = [0, 0],
+    PeakROI: list[int] = [0, 0],
     ForceLowResPeakROI: bool = False,
-    LowResPeakROI: List[int] = [0, 0],
+    LowResPeakROI: list[int] = [0, 0],
     ForceBckROI: bool = False,
-    BckROI: List[int] = [0, 0],
+    BckROI: list[int] = [0, 0],
     EventThreshold: int = 10000,
-    DirectPixelOverwrite: Optional[float] = None,
-    DAngle0Overwrite: Optional[float] = None,
+    DirectPixelOverwrite: float | None = None,
+    DAngle0Overwrite: float | None = None,
 ) -> None:
     """
     Inspect data with the given parameters.

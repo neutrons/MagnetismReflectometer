@@ -44,7 +44,7 @@ def _find_h5_data(filename: str) -> str:
     return filename
 
 
-def _get_tok(col_name: str, cols: list[str], toks: list[str]) -> Optional[str]:
+def _get_tok(col_name: str, cols: list[str], toks: list[str]) -> str | None:
     """Get token value by column name."""
     try:
         return toks[cols.index(col_name)]
@@ -134,14 +134,14 @@ def read_reduced_file(file_path: str):
     data_runs = []
     additional_peaks = []
 
-    with open(file_path, "r") as file_content:
+    with open(file_path) as file_content:
         in_section = 0
         file_start = True
         has_scaling_error = False
         global_options: dict[str, Any] = {}
         data_file_indices = ""
         peak_index = 0
-        for line in file_content.readlines():
+        for line in file_content:
             if file_start and not (
                 line.startswith("# Datafile created by QuickNXS")
                 or line.startswith("# Datafile created by mr_reduction QuickNXS")
@@ -290,7 +290,7 @@ def _read_reduced_file_metadata(file_path: str) -> dict[str, Any]:
         "sequence_id": None,
         "lowest_q": None,
     }
-    with open(file_path, "r") as file_handle:
+    with open(file_path) as file_handle:
         for line in file_handle:
             if line.startswith("# Input file indices:"):
                 metadata["input_file_indices"] = line[len("# Input file indices:") :].strip()

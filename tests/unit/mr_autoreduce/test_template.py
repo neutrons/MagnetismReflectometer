@@ -66,7 +66,7 @@ def test_template(data_server, tempdir):
     }
     values = {**common, **peak1, **peak2, **peak3}
     # inject values in the reduction template
-    with open(data_server.path_to_template, "r") as file_handle:
+    with open(data_server.path_to_template) as file_handle:
         template = string.Template(file_handle.read())
         script = template.substitute(**values)
     open(os.path.join(tempdir, "reduce_REF_M.py"), "w").write(script)

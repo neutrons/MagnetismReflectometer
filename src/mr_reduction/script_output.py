@@ -283,12 +283,12 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
     red_script = "def prepare_%s():\n" % run_peak_number
     scale_script = ""
 
-    with open(partial_script_path, "r") as fd:
+    with open(partial_script_path) as fd:
         _script_started = False
         _script_finished = False
         _scale_started = False
         _first_line = True
-        for line in fd.readlines():
+        for line in fd:
             # can't use wildcard import inside functions
             if "from mantid.simpleapi import *" in line:
                 continue

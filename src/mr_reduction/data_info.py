@@ -2,20 +2,16 @@
 Meta-data information for MR reduction
 """
 
-# standard library imports
 import contextlib
 import warnings
 from enum import IntEnum
-from typing import List, Optional, Tuple
 
-# third party imports
 import mantid.simpleapi as api
 import numpy as np
 import scipy.optimize as opt
 from scipy import ndimage
 from scipy.optimize import OptimizeWarning
 
-# mr_reduction imports
 from mr_reduction.inspect_data import inspect_data
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
@@ -132,7 +128,7 @@ class DataInfo:
         self,
         ws: MantidWorkspace,
         cross_section,
-        peak_number: Optional[int] = 1,
+        peak_number: int | None = 1,
         use_roi: bool = True,
         update_peak_range: bool = False,
         use_roi_bck: bool = False,
@@ -141,8 +137,8 @@ class DataInfo:
         force_peak_roi: bool = False,
         peak_roi=[0, 0],
         force_bck_roi: bool = False,
-        bck_roi: List[int] = [0, 0],
-        low_res_roi: List[int] = None,
+        bck_roi: list[int] = [0, 0],
+        low_res_roi: list[int] = None,
         force_low_res_roi: bool = False,
     ):
         """
@@ -245,6 +241,8 @@ class DataInfo:
                 low_res_max = sample_logs["low_res_max"]
                 low_res_min = max(fitter.DEAD_PIXELS, low_res_min)
                 low_res_max = min(fitter.n_y - fitter.DEAD_PIXELS, low_res_max)
+        # TODO (Glass): This else block is unreachable because improved_peaks is always True.
+        #               Consider removing it or making improved_peaks a parameter.
         else:
             peak_min = sample_logs["peak_min"]
             peak_max = sample_logs["peak_max"]
@@ -825,14 +823,14 @@ class Fitter2:
             Mantid workspace instance (or just its name) containing the pixel intensities
         """
         self.workspace = workspace_handle(workspace)
-        self.n_x: Optional[int] = None  # Number of x-pixels in the instrument's detector panel
-        self.n_y: Optional[int] = None  # Number of y-pixels in the instrument's detector panel
-        self.z: Optional[np.ndarray] = None  # 2D (n_x X n_y) array of pixel intensities
-        self.y: Optional[np.ndarray] = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
-        self.x_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus x-pixel indices
-        self.y_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus y-pixel indices
-        self.guess_x: Optional[int] = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
-        self.guess_wx: Optional[float] = None  # Initial guess for the width of the peak along the x-pixel axis
+        self.n_x: int | None = None  # Number of x-pixels in the instrument's detector panel
+        self.n_y: int | None = None  # Number of y-pixels in the instrument's detector panel
+        self.z: np.ndarray | None = None  # 2D (n_x X n_y) array of pixel intensities
+        self.y: np.ndarray | None = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
+        self.x_vs_counts: np.ndarray | None = None  # 1D array intensities versus x-pixel indices
+        self.y_vs_counts: np.ndarray | None = None  # 1D array intensities versus y-pixel indices
+        self.guess_x: int | None = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
+        self.guess_wx: float | None = None  # Initial guess for the width of the peak along the x-pixel axis
 
         self._prepare_data()
 
@@ -847,7 +845,7 @@ class Fitter2:
         plt.show()
 
     @contextlib.contextmanager
-    def filter_outside_roi(self, x_range: List[int] = None, y_range: List[int] = None):
+    def filter_outside_roi(self, x_range: list[int] = None, y_range: list[int] = None):
         """
         Temporarily set the counts outside the specified x and y ranges to zero
 
@@ -894,7 +892,7 @@ class Fitter2:
         self.guess_x = np.argmax(self.x_vs_counts)
         self.guess_wx = 6.0
 
-    def _scan_peaks(self) -> List[int]:
+    def _scan_peaks(self) -> list[int]:
         """Scan for peaks along the X-axis.
 
         Update the guess_x and guess_ws attributes with the position and width of best peak found.
@@ -940,7 +938,7 @@ class Fitter2:
 
         return found_peaks
 
-    def fit_2d_peak(self, x_range: List[int] = None, y_range: List[int] = None) -> Tuple[List[int], List[int]]:
+    def fit_2d_peak(self, x_range: list[int] = None, y_range: list[int] = None) -> tuple[list[int], list[int]]:
         """
         Find the boundaries of the peak along the X- and Y- axes of the instrument detector panel
 
@@ -957,7 +955,7 @@ class Fitter2:
             beam_peak = self.fit_beam_width()  # Along low-resolution Y-Pixel axis
         return spec_peak, beam_peak
 
-    def fit_peak(self) -> List[int]:
+    def fit_peak(self) -> list[int]:
         """
         Find the boundaries of the peak along the X-axis of the instrument detector panel
         """

@@ -50,7 +50,7 @@ class REFMPolarizerVariant(IntEnum):
 @dataclass
 class REFMPolarizer:
     variant: REFMPolarizerVariant
-    state: Optional[REFMSpinSelectorState] = (
+    state: REFMSpinSelectorState | None = (
         None  # None makes sense only if polarizer not installed or type is unknown
     )
 
@@ -87,7 +87,7 @@ class REFMAnalyzerVariant(IntEnum):
 @dataclass
 class REFMAnalyzer:
     variant: REFMAnalyzerVariant
-    state: Optional[REFMSpinSelectorState] = None  # None makes sense only if analyzer not installed or type is unknown
+    state: REFMSpinSelectorState | None = None  # None makes sense only if analyzer not installed or type is unknown
 
     @property
     def spin(self) -> SpinState:

@@ -1,16 +1,14 @@
-# standard imports
 import os
 import re
 import shlex
 import string
+import subprocess
 import sys
 import tempfile
 from pprint import pformat
 
-# third party imports
 from flask import Flask, abort, jsonify, render_template, request, send_from_directory
 
-# mr_reduction imports
 from mr_reduction.simple_utils import add_to_sys_path, namedtuplefy
 
 TEMPLATED_AUTOREDUCTION_SCRIPT = os.path.join(os.path.dirname(__file__), "reduce_REF_M.py.template")
@@ -18,7 +16,10 @@ app = Flask(__name__)
 
 
 def run_number(filepath):
-    return re.search(r"REF_M_\d+", filepath).group(0)
+    match = re.search(r"REF_M_\d+", filepath)
+    if match is None:
+        raise ValueError(f"Could not find run number in {filepath}")
+    return match.group(0)
 
 
 @namedtuplefy
@@ -36,14 +37,14 @@ def reduce_single_run(opts):
 
     """
     # actualize the autoreduction template with `opts` and save in a temporary directory as reduce_REF_M.py
-    with open(TEMPLATED_AUTOREDUCTION_SCRIPT, "r") as file_handle:
+    with open(TEMPLATED_AUTOREDUCTION_SCRIPT) as file_handle:
         template = string.Template(file_handle.read())
     script = template.substitute(**opts)
     with tempfile.TemporaryDirectory() as temp_dir:
         script_file = os.path.join(temp_dir, "reduce_REF_M.py")
         with open(script_file, "w") as file:
             file.write(script)
-        os.system(f"/bin/cp {script_file} {opts['outdir']}")
+        subprocess.run(["/bin/cp", script_file, opts["outdir"]], check=True)
         # import functions from newly created reduce_REF_M.py and reduce. Save HTML report and reduced files in outdir
         with add_to_sys_path(temp_dir):
             from reduce_REF_M import reduce_events, save_report

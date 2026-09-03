@@ -240,7 +240,7 @@ class DirectBeamFinder:
             if not item.endswith("nxs.h5.json"):
                 continue
             summary_path = os.path.join(db_dir, item)
-            with open(summary_path, "r") as fd:
+            with open(summary_path) as fd:
                 try:
                     meta_data = json.load(fd)
                 except JSONDecodeError as e:

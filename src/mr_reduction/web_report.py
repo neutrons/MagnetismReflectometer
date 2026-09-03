@@ -21,7 +21,7 @@ from mr_reduction.data_info import DataType
 from mr_reduction.simple_utils import SampleLogs
 
 
-def html_wrapper(report: Union[str, None]) -> str:
+def html_wrapper(report: str | None) -> str:
     """Wraps a report (set of <dvi> elements) in a complete HTML document
 
     Adds the javascript engine (PlotLy.js) address, HTML head, and body tags.
@@ -66,7 +66,7 @@ def html_wrapper(report: Union[str, None]) -> str:
     return prefix + report + suffix  # allow for report being `None`
 
 
-def _concatenate_reports(reports: List[str]) -> str:
+def _concatenate_reports(reports: list[str]) -> str:
     if isinstance(reports, (list, tuple)):
         composite = "\n".join([str(report) for report in reports])
     else:
@@ -74,7 +74,7 @@ def _concatenate_reports(reports: List[str]) -> str:
     return composite
 
 
-def save_report(html_report: Union[str, List[str]], report_file: str):
+def save_report(html_report: str | list[str], report_file: str):
     """Save report to a local file
 
     If `html_report` contains more than one report, then merge them.
@@ -93,7 +93,7 @@ def save_report(html_report: Union[str, List[str]], report_file: str):
         f.write(html_wrapper(report_composite))
 
 
-def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int]) -> Optional[requests.Response]:
+def upload_report(html_report: str | list[str], run_number: str | int) -> requests.Response | None:
     r"""Upload report to the livedata server
 
     If `html_report` contains more than one report, then merge them.
@@ -119,7 +119,7 @@ def upload_report(html_report: Union[str, List[str]], run_number: Union[str, int
     return publish_plot("REF_M", run_number, files={"file": report_composite})
 
 
-def process_collection(summary_content=None, report_list=None) -> Tuple[str, str]:
+def process_collection(summary_content=None, report_list=None) -> tuple[str, str]:
     r"""Process a collection of HTML reports into on final HTML report
 
     Parameters

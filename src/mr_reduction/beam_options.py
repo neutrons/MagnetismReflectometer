@@ -1,9 +1,6 @@
-# standard imports
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional
 
-# mr_reduction imports
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
 from mr_reduction.types import MantidWorkspace
 
@@ -29,7 +26,7 @@ class DirectBeamOptions:
     File: str  # normalization run in the re-processed and legacy-compatible, readable by QuickNXS
 
     @staticmethod
-    def option_names() -> List[str]:
+    def option_names() -> list[str]:
         """List of option names in the order expected for a QuickNXS output file"""
         return [
             "DB_ID",
@@ -53,7 +50,7 @@ class DirectBeamOptions:
         return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % name for name in cls.option_names()])
 
     @staticmethod
-    def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> Optional["DirectBeamOptions"]:
+    def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> "DirectBeamOptions | None":
         """Create an instance of DirectBeamOptions from a workspace.
 
         Parameters
@@ -136,7 +133,7 @@ class ReflectedBeamOptions:
     tth_offset: float = field(repr=False, default=0.0)
 
     @staticmethod
-    def option_names() -> List[str]:
+    def option_names() -> list[str]:
         """List of option names, excluding the two-theta offset, in the order expected for a QuickNXS output file"""
         return [
             "scale",

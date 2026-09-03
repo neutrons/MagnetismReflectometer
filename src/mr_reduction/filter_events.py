@@ -24,13 +24,13 @@ from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
 
 
 def extract_times(
-    times: List[int],
+    times: list[int],
     is_start: bool,
     is_sf1: bool = False,
     is_sf2: bool = False,
     is_veto1: bool = False,
     is_veto2: bool = False,
-) -> List[Tuple[int, bool, List[bool]]]:
+) -> list[tuple[int, bool, list[bool]]]:
     """
     Extract time intervals and associates them with specific device states.
 
@@ -326,7 +326,7 @@ def filter_cross_sections(
     return workspace_handle(output_workspace)
 
 
-def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> List[EventWorkspace]:
+def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> list[EventWorkspace]:
     """
     Filter events according to an aggregated state log.
 
@@ -393,7 +393,7 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
         A workspace group containing the loaded cross-sections.
     """
     ws_base_name = os.path.basename(file_path)
-    cross_sections: List[EventWorkspace] = list()
+    cross_sections: list[EventWorkspace] = list()
 
     for entry in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         try:
@@ -408,7 +408,7 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
 
 
 def get_workspace(
-    input_workspace: Optional[MantidWorkspace] = None, file_path: Optional[str] = None
+    input_workspace: MantidWorkspace | None = None, file_path: str | None = None
 ) -> MantidWorkspace:
     """
     Retrieve a Mantid workspace from either an existing workspace or by loading a file.
@@ -441,9 +441,9 @@ def get_workspace(
 
 def split_events(
     *,
-    file_path: Optional[str] = None,
-    input_workspace: Optional[MantidWorkspace] = None,
-    output_workspace: Optional[str] = None,
+    file_path: str | None = None,
+    input_workspace: MantidWorkspace | None = None,
+    output_workspace: str | None = None,
     min_event_count: int = 200,
     use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
@@ -519,9 +519,9 @@ def split_events(
 
 def split_error_events(
     *,
-    file_path: Optional[str] = None,
-    input_workspace: Optional[MantidWorkspace] = None,
-    output_workspace: Optional[str] = None,
+    file_path: str | None = None,
+    input_workspace: MantidWorkspace | None = None,
+    output_workspace: str | None = None,
     use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
 ) -> WorkspaceGroup:
