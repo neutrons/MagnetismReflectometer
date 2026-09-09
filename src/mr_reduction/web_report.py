@@ -735,7 +735,7 @@ def _plot2d(
         yaxis=y_layout,
     )
     fig = go.Figure(data=data, layout=layout)
-    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False)
 
 
 def _plot1d(
@@ -870,7 +870,7 @@ def _plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    return pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    return pyo.plot(fig, output_type="div", include_plotlyjs=False)
 
 
 def plot1d(
@@ -963,7 +963,7 @@ def plot1d(
     )
 
     fig = go.Figure(data=data, layout=layout)
-    plot_div = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot_div = pyo.plot(fig, output_type="div", include_plotlyjs=False)
     return plot_div
 
 
@@ -997,6 +997,6 @@ def _plotText(text, title=""):
     )
 
     fig = go.Figure(layout=layout)
-    plot = pyo.plot(fig, output_type="div", include_plotlyjs=False, show_link=False)
+    plot = pyo.plot(fig, output_type="div", include_plotlyjs=False)
 
     return plot
