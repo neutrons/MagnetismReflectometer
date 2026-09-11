@@ -6,7 +6,7 @@
 name = "mr_reduction"
 description = "Magnetism Reflectometer Automated Reduction"
 dynamic = ["version"]
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
 readme = "README.md"
 keywords = ["neutrons", "quicknxs", "magnetic reflectivity"]
@@ -67,7 +67,8 @@ name = "mr_reduction"
 platforms = ["linux-64"]
 channels = [
   "conda-forge",
-  "mantid",
+  "mantid-ornl/label/rc",
+  # "mantid",
   "oncat",
   "neutrons",
   "https://prefix.dev/pixi-build-backends",
@@ -83,13 +84,13 @@ version = "0.0.0"
 backend = { name = "pixi-build-python", version = "*" }
 
 [tool.pixi.package.host-dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.12,<3.13"
 hatchling = "*"
 versioningit = "*"
 
 [tool.pixi.dependencies]
 argcomplete = "*"
-mantid = ">=6.15.0,<6.16.0"
+mantid = ">=6.16.0,<6.17.0"
 plot-publisher = ">=1.0,<2.0"
 flask = "*"
 gunicorn = "*"
@@ -104,7 +105,7 @@ webdriver-manager = "*"
 
 # Conda packages (no PyPi) to be enumerated within the conda package to be built.
 [tool.pixi.package.run-dependencies]
-mantid = ">=6.15.0,<6.16.0"
+mantid = ">=6.16.0,<6.17.0"
 plot-publisher = ">=1.0,<2.0"
 flask = "*"
 gunicorn = "*"
