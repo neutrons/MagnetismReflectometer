@@ -41,8 +41,8 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     str
         File path of the combined reduction script (its file name is f"REF_M_{matched_runs[0]}_combined.py"")
     """
-    script = "# Mantid version %s\n" % mantid.__version__
-    script += "# Date: %s\n\n" % time.strftime("%Y-%m-%d %H:%M:%S")
+    script = f"# Mantid version {mantid.__version__}\n"
+    script += "# Date: {}\n\n".format(time.strftime("%Y-%m-%d %H:%M:%S"))
     script += "from mantid.simpleapi import *\n\n"
     script += "# Dictionary of workspace names. Each entry is a list of cross-sections\n"
     script += "workspaces =  dict()\n"
@@ -51,14 +51,14 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
     reduce_call = "\ndef reduce():\n"
     prepare_call = "def prepare():\n"
     for i, runpeak in enumerate(matched_runs):
-        file_path = os.path.join(ar_dir, "REF_M_%s_partial.py" % runpeak)
+        file_path = os.path.join(ar_dir, f"REF_M_{runpeak}_partial.py")
         if os.path.isfile(file_path):
-            script += "\n# Run:%s\n" % runpeak
-            script += "parameters['r_%s'] = dict(sf_%s = %s)\n" % (runpeak, runpeak, scaling_factors[i])
+            script += f"\n# Run:{runpeak}\n"
+            script += f"parameters['r_{runpeak}'] = dict(sf_{runpeak} = {scaling_factors[i]})\n"
             _script = generate_split_script(runpeak, file_path)
             script += _script + "\n"
-            reduce_call += "    reduce_%s()\n" % runpeak
-            prepare_call += "    prepare_%s()\n" % runpeak
+            reduce_call += f"    reduce_{runpeak}()\n"
+            prepare_call += f"    prepare_{runpeak}()\n"
 
     script += prepare_call
     script += reduce_call
@@ -250,10 +250,10 @@ ws_list = split_events(input_workspace=ws, polarization_logs=polarization_logs)"
 
     if quicknxs_mode is True:
         qnxs_scale = quicknxs_scaling_factor(ws_grp[0])
-        script += "scaling_factor *= %s\n" % qnxs_scale
+        script += f"scaling_factor *= {qnxs_scale}\n"
         for item in xs_list:
-            script += "Scale(InputWorkspace='%s', Operation='Multiply',\n" % str(item)
-            script += "      Factor=scaling_factor, OutputWorkspace='%s')\n\n" % str(item)
+            script += f"Scale(InputWorkspace='{str(item)}', Operation='Multiply',\n"
+            script += f"      Factor=scaling_factor, OutputWorkspace='{str(item)}')\n\n"
 
         api.logger.notice(f"Script length after adding quicknxs scaling {len(script)}")
 
@@ -280,7 +280,7 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
     str
         Contents of the reduction script
     """
-    red_script = "def prepare_%s():\n" % run_peak_number
+    red_script = f"def prepare_{run_peak_number}():\n"
     scale_script = ""
 
     with open(partial_script_path) as fd:
@@ -316,19 +316,19 @@ def generate_split_script(run_peak_number, partial_script_path) -> str:
                     _script_finished = False
             elif _scale_started:
                 scale_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
+                    "scaling_factor", f'parameters["r_{run_peak_number}"]["sf_{run_peak_number}"]'
                 )
             else:
                 red_script += "    " + line.replace(
-                    "scaling_factor", 'parameters["r_%s"]["sf_%s"]' % (run_peak_number, run_peak_number)
+                    "scaling_factor", f'parameters["r_{run_peak_number}"]["sf_{run_peak_number}"]'
                 )
 
-    red_script = red_script.replace("MagnetismReflectometryReduction", "params_%s = dict" % run_peak_number)
-    red_script = red_script.replace("wsg", "wsg_%s" % run_peak_number)
-    red_script += '    parameters["r_%s"]["params"] = params_%s\n' % (run_peak_number, run_peak_number)
+    red_script = red_script.replace("MagnetismReflectometryReduction", f"params_{run_peak_number} = dict")
+    red_script = red_script.replace("wsg", f"wsg_{run_peak_number}")
+    red_script += f'    parameters["r_{run_peak_number}"]["params"] = params_{run_peak_number}\n'
 
-    red_script += "\ndef reduce_%s():\n" % run_peak_number
-    red_script += '    MagnetismReflectometryReduction(**parameters["r_%s"]["params"])\n' % run_peak_number
+    red_script += f"\ndef reduce_{run_peak_number}():\n"
+    red_script += f'    MagnetismReflectometryReduction(**parameters["r_{run_peak_number}"]["params"])\n'
     red_script += scale_script
 
     return red_script

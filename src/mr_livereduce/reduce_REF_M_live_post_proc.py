@@ -9,7 +9,6 @@ import math
 import os
 import time
 import traceback
-from typing import List, Optional
 
 from mantid import simpleapi as api
 from mantid.dataobjects import EventWorkspace

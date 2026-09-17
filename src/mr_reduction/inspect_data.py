@@ -5,16 +5,16 @@ module to replace Mantid algorithm MRInspectData
 import copy
 import math
 import sys
-from typing import List, Optional
 
 import numpy as np
 from mantid import simpleapi as mtd
+from mantid.dataobjects import EventWorkspace
 from mantid.kernel import logger
 from scipy import optimize as opt
 from scipy.optimize import OptimizeWarning
 
 from mr_reduction.simple_utils import workspace_handle
-from mr_reduction.types import EventWorkspace, MantidWorkspace
+from mr_reduction.types import MantidWorkspace
 
 DEAD_PIXELS = 10
 NX_PIXELS = 304
@@ -284,10 +284,10 @@ class DataInspector:
         """
         Log useful diagnostics
         """
-        logger.notice("| Run: %s [direct beam: %s]" % (self.run_number, self.is_direct_beam))
-        logger.notice("|   Peak position: %s" % self.peak_position)
-        logger.notice("|   Reflectivity peak: %s" % str(self.peak_range))
-        logger.notice("|   Low-resolution pixel range: %s" % str(self.low_res_range))
+        logger.notice(f"| Run: {self.run_number} [direct beam: {self.is_direct_beam}]")
+        logger.notice(f"|   Peak position: {self.peak_position}")
+        logger.notice(f"|   Reflectivity peak: {str(self.peak_range)}")
+        logger.notice(f"|   Low-resolution pixel range: {str(self.low_res_range)}")
 
     def get_tof_range(self, ws):
         """
@@ -430,7 +430,7 @@ class DataInspector:
         # Skip empty data entries
         if ws.getNumberEvents() < self.n_events_cutoff:
             self.data_type = -1
-            logger.notice("No data for %s %s" % (self.run_number, self.cross_section))
+            logger.notice(f"No data for {self.run_number} {self.cross_section}")
             return
 
         # Find reflectivity peak and low resolution ranges
@@ -441,20 +441,20 @@ class DataInspector:
             bck_range = [int(max(0.0, peak[0] - 2 * self.bck_offset)), int(max(0.0, peak[0] - self.bck_offset))]
         self.found_peak = copy.copy(peak)
         self.found_low_res = copy.copy(low_res)
-        logger.notice("Run %s [%s]: Peak found %s" % (self.run_number, self.cross_section, peak))
-        logger.notice("Run %s [%s]: Low-res found %s" % (self.run_number, self.cross_section, str(low_res)))
+        logger.notice(f"Run {self.run_number} [{self.cross_section}]: Peak found {peak}")
+        logger.notice(f"Run {self.run_number} [{self.cross_section}]: Low-res found {str(low_res)}")
 
         # Inspect the ROI* process variables to initialize the peak and background ranges
         self.process_pv_roi(ws, peak_number=peak_number)
         # Is User overriding any of the ROI regions?
         if self.force_peak_roi:
-            logger.notice("Forcing peak ROI: %s" % self.forced_peak_roi)
+            logger.notice(f"Forcing peak ROI: {self.forced_peak_roi}")
             self.roi_peak = self.forced_peak_roi
         if self.force_low_res_roi:
-            logger.notice("Forcing low-res ROI: %s" % self.forced_low_res_roi)
+            logger.notice(f"Forcing low-res ROI: {self.forced_low_res_roi}")
             self.roi_low_res = self.forced_low_res_roi
         if self.force_bck_roi:
-            logger.notice("Forcing background ROI: %s" % self.forced_bck_roi)
+            logger.notice(f"Forcing background ROI: {self.forced_bck_roi}")
             self.roi_background = self.forced_bck_roi
 
         # Keep track of whether we actually used the ROI
@@ -462,7 +462,7 @@ class DataInspector:
 
         if self.use_roi and (self.roi_peak != [0, 0]):
             if self.update_peak_range is False:
-                logger.notice("Using ROI peak range: [%s %s]" % (self.roi_peak[0], self.roi_peak[1]))
+                logger.notice(f"Using ROI peak range: [{self.roi_peak[0]} {self.roi_peak[1]}]")
                 self.use_roi_actual = True
                 peak = copy.copy(self.roi_peak)
                 if not self.roi_low_res == [0, 0]:
@@ -470,7 +470,7 @@ class DataInspector:
                 if not self.roi_background == [0, 0]:
                     bck_range = copy.copy(self.roi_background)
             else:
-                logger.notice("Using fit peak range: [%s %s]" % (peak[0], peak[1]))
+                logger.notice(f"Using fit peak range: [{peak[0]} {peak[1]}]")
                 if not self.roi_low_res == [0, 0]:
                     low_res = copy.copy(self.roi_low_res)
                 if not self.roi_background == [0, 0]:

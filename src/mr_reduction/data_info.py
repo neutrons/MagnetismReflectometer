@@ -65,7 +65,7 @@ def get_cross_section_label(ws, cross_section) -> str:
     if ana_label == "" and pol_label == "":
         return cross_section
     else:
-        return "%s%s" % (pol_label, ana_label)
+        return f"{pol_label}{ana_label}"
 
 
 class DataType(IntEnum):
@@ -232,7 +232,7 @@ class DataInfo:
             )
             [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak(**fit_ranges)
 
-            api.logger.notice("New peak: %s %s" % (peak_min, peak_max))
+            api.logger.notice(f"New peak: {peak_min} {peak_max}")
             if np.abs(peak_max - peak_min) <= 1:
                 peak_min = peak_min - 2
                 peak_max = peak_max + 2
@@ -315,7 +315,7 @@ class Fitter:
         self.workspace = workspace
         self.prepare_plot_data = prepare_plot_data
         self._prepare_data()
-        api.logger.notice("Numpy version: %s" % np.__version__)
+        api.logger.notice(f"Numpy version: {np.__version__}")
 
     def _prepare_data(self):
         """
@@ -513,8 +513,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Gaussian")
-            api.logger.notice("Chi2[Gaussian] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (gauss_coef[1], gauss_coef[2]))
+            api.logger.notice(f"Chi2[Gaussian] = {_chi2}")
+            api.logger.notice(f"    {gauss_coef[1]:g} +- {gauss_coef[2]:g}")
 
     def _fit_gaussian_and_poly(self):
         """
@@ -546,7 +546,7 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Polynomial")
-            api.logger.notice("Chi2[Polynomial] = %g" % _chi2)
+            api.logger.notice(f"Chi2[Polynomial] = {_chi2:g}")
 
         # Now fit a Gaussian + background
         # A, mu_x, sigma_x, mu_y, sigma_y, background
@@ -579,8 +579,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Gaussian + polynomial")
-            api.logger.notice("Chi2[Gaussian + polynomial] = %g" % _chi2)
-            api.logger.notice("    %g +- %g" % (coef[1], coef[2]))
+            api.logger.notice(f"Chi2[Gaussian + polynomial] = {_chi2:g}")
+            api.logger.notice(f"    {coef[1]:g} +- {coef[2]:g}")
 
     def _fit_lorentz_2d(self, peak=True):
         """
@@ -616,8 +616,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Lorentz 2D")
-            api.logger.notice("Chi2[Lorentz 2D] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (lorentz_coef[1], lorentz_coef[2]))
+            api.logger.notice(f"Chi2[Lorentz 2D] = {_chi2}")
+            api.logger.notice(f"    {lorentz_coef[1]:g} +- {lorentz_coef[2]:g}")
         return lorentz_coef
 
     def _gaussian_and_lorentzian(self, region):
@@ -649,7 +649,7 @@ class Fitter:
             api.logger.notice("Could not fit G+L")
             lorentz_coef = p0
 
-        api.logger.notice("G+L params: %s" % str(lorentz_coef))
+        api.logger.notice(f"G+L params: {str(lorentz_coef)}")
         # Keep track of the result
         theory = self.gaussian_and_fixed_lorentzian(self.coded_pixels, *lorentz_coef)
         theory = np.reshape(theory, (self.n_x, self.n_y))
@@ -659,7 +659,7 @@ class Fitter:
         # of goodness of fit because the models are imprecise.
         # Nonetheless, log an entry if the chi^2 is larger
         if _chi2 > self.guess_chi2:
-            api.logger.notice("Fitting with two peaks resulted in a larger chi^2: %g > %g" % (_chi2, self.guess_chi2))
+            api.logger.notice(f"Fitting with two peaks resulted in a larger chi^2: {_chi2:g} > {self.guess_chi2:g}")
 
         # Unless we have a crazy peak
         if lorentz_coef[1] > self.peaks[0] - 10 and lorentz_coef[1] < self.peaks[0] + 10:
@@ -675,8 +675,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("G + Lorentz 2D")
-            api.logger.notice("Chi2[G + Lorentz] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (lorentz_coef[1], lorentz_coef[2]))
+            api.logger.notice(f"Chi2[G + Lorentz] = {_chi2}")
+            api.logger.notice(f"    {lorentz_coef[1]:g} +- {lorentz_coef[2]:g}")
         return lorentz_coef
 
     def fit_2d_peak(self, region=None):
@@ -685,7 +685,7 @@ class Fitter:
         :param region: region of interest for the reflected peak
         """
         self.peaks = self._scan_peaks()
-        api.logger.notice("Peaks (rough scan): %s" % self.peaks)
+        api.logger.notice(f"Peaks (rough scan): {self.peaks}")
 
         # Gaussian fit
         self._fit_gaussian()

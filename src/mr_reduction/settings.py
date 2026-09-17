@@ -33,4 +33,4 @@ GLOBAL_AR_DIR = "/SNS/REF_M/shared/autoreduce"
 
 
 def nexus_data_dir(ipts: str) -> str:
-    return "/SNS/REF_M/%(ipts)s/nexus" % {"ipts": ipts}
+    return f"/SNS/REF_M/{ipts}/nexus"

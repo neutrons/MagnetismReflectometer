@@ -7,9 +7,9 @@ import sys
 import tempfile
 import unittest.mock as mock
 from collections import namedtuple
-from os.path import dirname
-from typing import Any, List
 from collections.abc import Generator
+from os.path import dirname
+from typing import Any
 
 import pytest
 
@@ -234,7 +234,7 @@ def autoreduction_script(tempdir, data_server):
 
 
 @pytest.fixture
-def browser(tmp_path) -> Generator[WebDriver, Any, None]:
+def browser(tmp_path) -> Generator[WebDriver, Any]:
     """A headless Chromium browser for testing HTML reports containing plotly graphs.
 
     The yielded object has method `render_report(report :str)` so that one can mimic rendering

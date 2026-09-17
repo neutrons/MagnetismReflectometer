@@ -1,10 +1,11 @@
 import os
 from operator import itemgetter
-from typing import List, Optional, Tuple
 
 from mantid.api import (
     AnalysisDataService,
+    WorkspaceGroup,
 )
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import (
     AddSampleLog,
     CreateEmptyTableWorkspace,
@@ -20,7 +21,7 @@ from mantid.simpleapi import (
 
 from mr_reduction.settings import PolarizationLogs
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
-from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
+from mr_reduction.types import MantidWorkspace
 
 
 def extract_times(
@@ -109,7 +110,7 @@ def create_table(
     for item in change_list:
         # We have a change of state, add an entry for the state that just ended
         if specified[0] and specified[1] and not current_state[2] and not current_state[3]:
-            xs = "%s_%s" % ("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
+            xs = "{}_{}".format("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
             start = int(current_state_t0 - start_time)
             stop = item[0] - start_time
             if start < 0 and stop <= 0:
@@ -407,9 +408,7 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
     return GroupWorkspaces(InputWorkspaces=cross_sections, OutputWorkspace=output_workspace)
 
 
-def get_workspace(
-    input_workspace: MantidWorkspace | None = None, file_path: str | None = None
-) -> MantidWorkspace:
+def get_workspace(input_workspace: MantidWorkspace | None = None, file_path: str | None = None) -> MantidWorkspace:
     """
     Retrieve a Mantid workspace from either an existing workspace or by loading a file.
 

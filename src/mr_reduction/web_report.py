@@ -6,7 +6,6 @@ Report class sed to populate the web monitor
 import math
 import sys
 import time
-from typing import List, Optional, Tuple, Union
 
 # third party imports
 import numpy as np
@@ -139,23 +138,23 @@ def process_collection(summary_content=None, report_list=None) -> tuple[str, str
     """
     if report_list is None:
         report_list = []
-    logger.notice("Processing... %s" % len(report_list))
+    logger.notice(f"Processing... {len(report_list)}")
     plot_html = "<div></div>"
     script = ""
 
     if summary_content is not None:
-        plot_html += "<div>%s</div>\n" % summary_content
+        plot_html += f"<div>{summary_content}</div>\n"
 
     if report_list:
         plot_html += report_list[0].report
     for report in report_list:
         script += report.script
-        plot_html += "<div>%s</div>\n" % report.cross_section_info
+        plot_html += f"<div>{report.cross_section_info}</div>\n"
         plot_html += "<table style='width:100%'>\n"
         plot_html += "<tr>\n"
         for plot in report.plots:
             if plot is not None:
-                plot_html += "<td>%s</td>\n" % plot
+                plot_html += f"<td>{plot}</td>\n"
         plot_html += "</tr>\n"
         plot_html += "</table>\n"
         plot_html += "<hr>\n"
@@ -172,7 +171,7 @@ class Report:
         """
         :param bool force_plot: if True, a report will be generated regardless of whether there is enough data
         """
-        logger.notice("  - Data type: %s; Reflectivity ws: %s" % (data_info.data_type.name, str(reflectivity_ws)))
+        logger.notice(f"  - Data type: {data_info.data_type.name}; Reflectivity ws: {str(reflectivity_ws)}")
         self.data_info = data_info
         self.direct_info = direct_info
         self.logfile = logfile
@@ -188,19 +187,19 @@ class Report:
         self.report = ""
         self.cross_section_info = ""
         if force_plot or (self.data_info.data_type != DataType.UNKNOWN):
-            self.log("  - writing script [%s %s %s]" % (self.cross_section, self.number_events, self.has_reflectivity))
+            self.log(f"  - writing script [{self.cross_section} {self.number_events} {self.has_reflectivity}]")
             self.script: str = self.generate_script(reflectivity_ws)
             self.report: str = self.generate_web_report(reflectivity_ws)
             self.cross_section_info = self.generate_cross_section_info(reflectivity_ws)
             try:
                 self.plots = self.generate_plots(workspace)
             except:  # noqa E722
-                self.log("Could not generate plots: %s" % sys.exc_info()[0])
-                logger.error("Could not generate plots: %s" % sys.exc_info()[0])
+                self.log(f"Could not generate plots: {sys.exc_info()[0]}")
+                logger.error(f"Could not generate plots: {sys.exc_info()[0]}")
         else:
-            logger.error("Invalid data type for report: %s" % self.data_info.data_type.name)
+            logger.error(f"Invalid data type for report: {self.data_info.data_type.name}")
 
-        self.log("  - report: %s %s" % (len(self.report), len(self.plots)))
+        self.log(f"  - report: {len(self.report)} {len(self.plots)}")
 
     def log(self, msg):
         """Log a message"""
@@ -222,12 +221,12 @@ class Report:
         """
         self.log("  - generating cross-section report")
         meta = "<p>\n<table style='width:80%'>"
-        meta += "<tr><td>Cross-section:</td><td><b>%s</b></tr>" % self.cross_section
-        meta += "<tr><td># events:</td><td>%s</td></tr>" % self.number_events
+        meta += f"<tr><td>Cross-section:</td><td><b>{self.cross_section}</b></tr>"
+        meta += f"<tr><td># events:</td><td>{self.number_events}</td></tr>"
 
         if workspace:
             p_charge = SampleLogs(workspace)["gd_prtn_chrg"]
-            meta += "<tr><td>p-charge [uAh]:</td><td>%6.4g</td></tr>" % p_charge
+            meta += f"<tr><td>p-charge [uAh]:</td><td>{p_charge:6.4g}</td></tr>"
         meta += "</table>\n<p>\n"
         return meta
 
@@ -248,40 +247,36 @@ class Report:
         if workspace is None:
             self.log("  - simple report")
             meta = "<table style='width:80%'>"
-            meta += "<tr><td>Run:</td><td><b>%s</b> (direct beam: %s)</td></td></tr>" % (
-                self.data_info.run_number,
-                self.data_info.is_direct_beam,
+            meta += (
+                f"<tr><td>Run:</td><td><b>{self.data_info.run_number}</b> "
+                f"(direct beam: {self.data_info.is_direct_beam})</td></tr>"
             )
             if not self.data_info.run_number == self.direct_info.run_number:
-                meta += "<tr><td>Assigned direct beam:</td><td>%s</td></tr>" % self.direct_info.run_number
-            meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td></tr>" % (
-                self.data_info.use_roi,
-                self.data_info.use_roi_actual,
+                meta += f"<tr><td>Assigned direct beam:</td><td>{self.direct_info.run_number}</td></tr>"
+            meta += (
+                f"<tr><td>Using ROI:</td><td>req={self.data_info.use_roi}, "
+                f"actual={self.data_info.use_roi_actual}</td></tr>"
             )
-            meta += "<tr><td>Peak range:</td><td>%s - %s</td></td></tr>" % (
-                self.data_info.peak_range[0],
-                self.data_info.peak_range[1],
+            meta += (
+                f"<tr><td>Peak range:</td><td>{self.data_info.peak_range[0]} - "
+                f"{self.data_info.peak_range[1]}</td></tr>"
             )
-            meta += "<tr><td>Background:</td><td>%s - %s</td></tr>" % (
-                self.data_info.background[0],
-                self.data_info.background[1],
+            meta += (
+                f"<tr><td>Background:</td><td>{self.data_info.background[0]} - "
+                f"{self.data_info.background[1]}</td></tr>"
             )
-            meta += "<tr><td>Low-res range:</td><td>%s - %s</td></tr>" % (
-                self.data_info.low_res_range[0],
-                self.data_info.low_res_range[1],
+            meta += (
+                f"<tr><td>Low-res range:</td><td>{self.data_info.low_res_range[0]} - "
+                f"{self.data_info.low_res_range[1]}</td></tr>"
             )
-            meta += "<tr><td>ROI peak:</td><td>%s - %s</td></tr>" % (
-                self.data_info.roi_peak[0],
-                self.data_info.roi_peak[1],
+            meta += f"<tr><td>ROI peak:</td><td>{self.data_info.roi_peak[0]} - {self.data_info.roi_peak[1]}</td></tr>"
+            meta += (
+                f"<tr><td>ROI bck:</td><td>{self.data_info.roi_background[0]} - "
+                f"{self.data_info.roi_background[1]}</td></tr>"
             )
-            meta += "<tr><td>ROI bck:</td><td>%s - %s</td></tr>" % (
-                self.data_info.roi_background[0],
-                self.data_info.roi_background[1],
-            )
-            meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (
-                self.data_info.sequence_id,
-                self.data_info.sequence_number,
-                self.data_info.sequence_total,
+            meta += (
+                f"<tr><td>Sequence:</td><td>{self.data_info.sequence_id}: "
+                f"{self.data_info.sequence_number}/{self.data_info.sequence_total}</td></tr>"
             )
             meta += "</table>\n<p>\n"
             return meta
@@ -298,69 +293,57 @@ class Report:
         dirpix = sample_logs.mean("DIRPIX")
 
         meta = "<table style='width:80%'>"
-        meta += "<tr><td>Run:</td><td><b>%s</b> </td></td><td><b>Direct beam: %s</b></td></tr>" % (
+        meta += "<tr><td>Run:</td><td><b>{}</b></td><td><b>Direct beam: {}</b></td></tr>".format(
             int(sample_logs["run_number"]),
             direct_beam,
         )
-        meta += "<tr><td>Q-binning:</td><td>%s</td><td>-</td></tr>" % constant_q_binning
-        meta += "<tr><td>Using ROI:</td><td>req=%s, actual=%s</td><td>req=%s, actual=%s</td></tr>" % (
-            self.data_info.use_roi,
-            self.data_info.use_roi_actual,
-            self.direct_info.use_roi,
-            self.direct_info.use_roi_actual,
+        meta += f"<tr><td>Q-binning:</td><td>{constant_q_binning}</td><td>-</td></tr>"
+        meta += (
+            f"<tr><td>Using ROI:</td><td>req={self.data_info.use_roi}, "
+            f"actual={self.data_info.use_roi_actual}</td>"
+            f"<td>req={self.direct_info.use_roi}, actual={self.direct_info.use_roi_actual}</td></tr>"
         )
-        meta += "<tr><td>Specular peak:</td><td>%g</td><td>%g</td></tr>" % (
-            self.data_info.peak_position,
-            self.direct_info.peak_position,
+        meta += (
+            f"<tr><td>Specular peak:</td><td>{self.data_info.peak_position:g}</td>"
+            f"<td>{self.direct_info.peak_position:g}</td></tr>"
         )
-        meta += "<tr><td>Peak range:</td><td>%s - %s</td></td><td>%s - %s</td></tr>" % (
-            self.data_info.peak_range[0],
-            self.data_info.peak_range[1],
-            self.direct_info.peak_range[0],
-            self.direct_info.peak_range[1],
+        meta += (
+            f"<tr><td>Peak range:</td><td>{self.data_info.peak_range[0]} - {self.data_info.peak_range[1]}</td>"
+            f"<td>{self.direct_info.peak_range[0]} - {self.direct_info.peak_range[1]}</td></tr>"
         )
-        meta += "<tr><td>Background:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (
-            self.data_info.background[0],
-            self.data_info.background[1],
-            self.direct_info.background[0],
-            self.direct_info.background[1],
+        meta += (
+            f"<tr><td>Background:</td><td>{self.data_info.background[0]} - {self.data_info.background[1]}</td>"
+            f"<td>{self.direct_info.background[0]} - {self.direct_info.background[1]}</td></tr>"
         )
-        meta += "<tr><td>Low-res range:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (
-            self.data_info.low_res_range[0],
-            self.data_info.low_res_range[1],
-            self.direct_info.low_res_range[0],
-            self.direct_info.low_res_range[1],
+        meta += (
+            f"<tr><td>Low-res range:</td><td>{self.data_info.low_res_range[0]} - "
+            f"{self.data_info.low_res_range[1]}</td>"
+            f"<td>{self.direct_info.low_res_range[0]} - {self.direct_info.low_res_range[1]}</td></tr>"
         )
-        meta += "<tr><td>ROI peak:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (
-            self.data_info.roi_peak[0],
-            self.data_info.roi_peak[1],
-            self.direct_info.roi_peak[0],
-            self.direct_info.roi_peak[1],
+        meta += (
+            f"<tr><td>ROI peak:</td><td>{self.data_info.roi_peak[0]} - {self.data_info.roi_peak[1]}</td>"
+            f"<td>{self.direct_info.roi_peak[0]} - {self.direct_info.roi_peak[1]}</td></tr>"
         )
-        meta += "<tr><td>ROI bck:</td><td>%s - %s</td><td>%s - %s</td></tr>" % (
-            self.data_info.roi_background[0],
-            self.data_info.roi_background[1],
-            self.direct_info.roi_background[0],
-            self.direct_info.roi_background[1],
+        meta += (
+            f"<tr><td>ROI bck:</td><td>{self.data_info.roi_background[0]} - "
+            f"{self.data_info.roi_background[1]}</td>"
+            f"<td>{self.direct_info.roi_background[0]} - {self.direct_info.roi_background[1]}</td></tr>"
         )
-        meta += "<tr><td>Sequence:</td><td>%s: %s/%s</td></tr>" % (
-            self.data_info.sequence_id,
-            self.data_info.sequence_number,
-            self.data_info.sequence_total,
+        meta += (
+            f"<tr><td>Sequence:</td><td>{self.data_info.sequence_id}: "
+            f"{self.data_info.sequence_number}/{self.data_info.sequence_total}</td></tr>"
         )
-        meta += "<tr><td>Report time:</td><td>%s</td></tr>" % time.ctime()
+        meta += f"<tr><td>Report time:</td><td>{time.ctime()}</td></tr>"
         meta += "</table>\n"
 
         meta += "<p><table style='width:100%'>"
-        meta += "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th><th>DIRPIX</th><th>Wavelength</th></tr>"  # noqa E501
-        meta += "<tr><td>%6.4g</td><td>%6.4g [%6.4g]</td><td>%6.4g</td><td>%6.4g</td><td>%6.4g - %6.4g</td></tr>\n" % (
-            theta,
-            dangle,
-            dangle0,
-            sangle,
-            dirpix,
-            lambda_min,
-            lambda_max,
+        meta += (
+            "<tr><th>Theta (actual)</th><th>DANGLE [DANGLE0]</th><th>SANGLE</th>"
+            "<th>DIRPIX</th><th>Wavelength</th></tr>"
+        )
+        meta += (
+            f"<tr><td>{theta:6.4g}</td><td>{dangle:6.4g} [{dangle0:6.4g}]</td><td>{sangle:6.4g}</td>"
+            f"<td>{dirpix:6.4g}</td><td>{lambda_min:6.4g} - {lambda_max:6.4g}</td></tr>\n"
         )
         meta += "</table>\n<p>\n"
         return meta
@@ -383,7 +366,7 @@ class Report:
         if workspace is None:
             return ""
         cross_section = SampleLogs(workspace)["cross_section_id"]
-        script = "# Run:%s    Cross-section: %s\n" % (self.data_info.run_number, cross_section)
+        script = f"# Run:{self.data_info.run_number}    Cross-section: {cross_section}\n"
         if workspace is not None:
             script_text = GeneratePythonScript(workspace)
             script += script_text.replace(", ", ",\n                                ")
@@ -396,10 +379,10 @@ class Report:
         """
         Generate diagnostics plots
         """
-        self.log("  - generating plots [%s]" % self.number_events)
+        self.log(f"  - generating plots [{self.number_events}]")
         cross_section = SampleLogs(workspace)["cross_section_id"]
         if self.number_events < 10:
-            logger.notice("No events for workspace %s" % str(workspace))
+            logger.notice(f"No events for workspace {str(workspace)}")
             return []
 
         n_x = int(workspace.getInstrument().getNumberParameter("number-of-x-pixels")[0])
@@ -421,11 +404,11 @@ class Report:
                 x_range=scatt_peak,
                 y_range=scatt_low_res,
                 x_bck_range=self.data_info.background,
-                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                title=f"r{self.data_info.run_number} [{cross_section}]",
             )
         except:  # noqa E722
             self.log("  - Could not generate XY plot")
-            xy_plot = _plotText("Could not generate XY plot", "r%s [%s]" % (self.data_info.run_number, cross_section))
+            xy_plot = _plotText("Could not generate XY plot", f"r{self.data_info.run_number} [{cross_section}]")
 
         self.log("  - generating X-TOF plot")
         # X-TOF plot
@@ -433,7 +416,7 @@ class Report:
         try:
             tof_min = workspace.getTofMin()
             tof_max = workspace.getTofMax()
-            workspace = Rebin(workspace, params="%s, 50, %s" % (tof_min, tof_max))
+            workspace = Rebin(workspace, params=f"{tof_min}, 50, {tof_max}")
             # algorithm RefRoi sums up the intensities in a region of interest on a 2D detector
             # returns a MatrixWorkspace
             direct_summed = RefRoi(
@@ -459,14 +442,12 @@ class Report:
                 y_range=None,
                 x_label="X pixel",
                 y_label="TOF (ms)",
-                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                title=f"r{self.data_info.run_number} [{cross_section}]",
                 swap_axes=False,
             )
         except:  # noqa E722
             self.log("  - Could not generate X-TOF plot")
-            x_tof_plot = _plotText(
-                "Could not generate X-TOF plot", "r%s [%s]" % (self.data_info.run_number, cross_section)
-            )
+            x_tof_plot = _plotText("Could not generate X-TOF plot", f"r{self.data_info.run_number} [{cross_section}]")
 
         self.log("  - generating X count distribution")
         # Count per X pixel
@@ -483,12 +464,12 @@ class Report:
                 bck_range=self.data_info.background,
                 x_label="X pixel",
                 y_label="Counts",
-                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                title=f"r{self.data_info.run_number} [{cross_section}]",
             )
         except:  # noqa E722
             self.log("  - Could not generate X count distribution")
             peak_pixels = _plotText(
-                "Could not generate X count distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+                "Could not generate X count distribution", f"r{self.data_info.run_number} [{cross_section}]"
             )
 
         self.log("  - generating Y count distribution")
@@ -515,12 +496,12 @@ class Report:
                 y_range=scatt_low_res,
                 x_label="Counts",
                 y_label="Y pixel",
-                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                title=f"r{self.data_info.run_number} [{cross_section}]",
             )
         except:  # noqa E722
             self.log("  - Could not generate Y count distribution")
             low_res_profile = _plotText(
-                "Could not generate Y count distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+                "Could not generate Y count distribution", f"r{self.data_info.run_number} [{cross_section}]"
             )
 
         # TOF distribution
@@ -535,12 +516,12 @@ class Report:
                 x_range=None,
                 x_label="TOF (ms)",
                 y_label="Counts",
-                title="r%s [%s]" % (self.data_info.run_number, cross_section),
+                title=f"r{self.data_info.run_number} [{cross_section}]",
             )
         except:  # noqa E722
             self.log("  - Could not generate TOF distribution")
             tof_dist = _plotText(
-                "Could not generate TOF distribution", "r%s [%s]" % (self.data_info.run_number, cross_section)
+                "Could not generate TOF distribution", f"r{self.data_info.run_number} [{cross_section}]"
             )
 
         return [xy_plot, x_tof_plot, peak_pixels, low_res_profile, tof_dist]

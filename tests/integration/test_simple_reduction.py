@@ -67,7 +67,7 @@ def test_reduction_simple(data_server):
         TimeAxisRange=data_info.tof_range,
         SpecularPixel=data_info.peak_position,
         ConstantQBinning=False,
-        OutputWorkspace="r_%s" % data_info.run_number,
+        OutputWorkspace=f"r_{data_info.run_number}",
     )
 
 

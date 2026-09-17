@@ -38,8 +38,8 @@ def quicknxs_global_options_block(sample_length: float = 10) -> str:
 
 def quicknxs_data_header(include_separator: bool = False) -> str:
     """Data section header with the canonical 5-column reflectivity layout."""
-    tokens = ["%12s" % item for item in QUICKNXS_DATA_COLUMNS]
-    header = "# [Data]\n# %s\n" % "  ".join(tokens)
+    tokens = [f"{item:>12}" for item in QUICKNXS_DATA_COLUMNS]
+    header = "# [Data]\n# {}\n".format("  ".join(tokens))
     if include_separator:
         header += "#\n"
     return header
@@ -77,7 +77,7 @@ def write_reflectivity(ws_list, output_path, cross_section):
             sf = quicknxs_scaling_factor(ws)
             for i in range(len(x)):
                 row = (x[i], y[i] * sf, dy[i] * sf, dx[i], theta)
-                data_lines.append("%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % row)
+                data_lines.append("{:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}\n".format(*row))
 
         fd.write("#\n")
         fd.write(quicknxs_global_options_block())

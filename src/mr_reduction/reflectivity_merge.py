@@ -9,7 +9,6 @@ import os
 import sys
 from dataclasses import replace
 from glob import glob
-from typing import List, Tuple
 
 # third party imports
 import mantid.simpleapi as api
@@ -61,7 +60,7 @@ def match_run_for_cross_section(run, ipts, cross_section, ar_dir) -> list[str]:
     _previous_q_min = 0
     _previous_q_max = 0
 
-    api.logger.notice("Matching for IPTS-%s r%s [%s]" % (ipts, run, cross_section))
+    api.logger.notice(f"Matching for IPTS-{ipts} r{run} [{cross_section}]")
     matched_runs = []
     series_end = False
     for i in range(10):  # search the previous 10 runs
@@ -75,7 +74,7 @@ def match_run_for_cross_section(run, ipts, cross_section, ar_dir) -> list[str]:
             ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
             q_min = min(ref_data["q"])
             q_max = max(ref_data["q"])
-            api.logger.notice("%s: [%s %s]" % (i_runpeak, q_min, q_max))
+            api.logger.notice(f"{i_runpeak}: [{q_min} {q_max}]")
 
             if (q_max < _previous_q_max and q_max > _previous_q_min) or _previous_q_max == 0:
                 _previous_q_max = q_max
@@ -218,7 +217,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> tuple[list[f
     scaling_factors = [1.0]
 
     for i_runpeak in matched_runs:
-        file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runpeak, cross_section))
+        file_path = os.path.join(ar_dir, f"REF_M_{i_runpeak}_{cross_section}_autoreduce.dat")
         if os.path.isfile(file_path):
             with open(file_path) as file_handle:
                 ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
@@ -253,7 +252,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> tuple[list[f
                 run_count += 1
 
             for i in range(len(ref_data["q"])):
-                data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
+                data_buffer += "{:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}\n".format(
                     ref_data["q"][i],
                     running_scale * ref_data["r"][i],
                     running_scale * ref_data["dr"][i],
@@ -301,12 +300,12 @@ def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) 
         data_buffer = ""
 
         for j, i_runpeak in enumerate(matched_runs):
-            file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (i_runpeak, xs))
+            file_path = os.path.join(ar_dir, f"REF_M_{i_runpeak}_{xs}_autoreduce.dat")
             if os.path.isfile(file_path):
                 with open(file_path) as file_handle:
                     ref_data = pandas.read_csv(file_handle, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
                 for i in range(len(ref_data["q"])):
-                    data_buffer += "%12.6g  %12.6g  %12.6g  %12.6g  %12.6g\n" % (
+                    data_buffer += "{:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}  {:12.6g}\n".format(
                         ref_data["q"][i],
                         scaling_factors[j] * ref_data["r"][i],
                         scaling_factors[j] * ref_data["dr"][i],
@@ -341,7 +340,7 @@ def select_cross_section(run, ar_dir):
     for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         file_path = os.path.join(ar_dir, f"REF_M_{runpeak}_{xs}_autoreduce.dat")
         if os.path.isfile(file_path):
-            api.logger.notice("Found: %s" % file_path)
+            api.logger.notice(f"Found: {file_path}")
             ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
             relative_error = np.sum(ref_data["dr"] * ref_data["dr"]) / np.sum(ref_data["r"])
             if best_xs is None or relative_error < best_error:
@@ -383,7 +382,7 @@ def write_reflectivity_cross_section(
     str
         File path to the reflectivity profile
     """
-    file_path = os.path.join(output_dir, "REF_M_%s_%s_combined.dat" % (runpeak, cross_section))
+    file_path = os.path.join(output_dir, f"REF_M_{runpeak}_{cross_section}_combined.dat")
     with open(file_path, "w") as fd:
         fd.write(quicknxs_file_header(input_file_indices=matched_runs, extracted_states=xs_label))
         fd.write(DirectBeamOptions.dat_header())
@@ -426,13 +425,13 @@ def plot_combined(matched_runs, scaling_factors, ar_dir, publish=True):
     data_list = []  # a list of reflectivity profiles with columns Q, r, and dr. One profile for each cross section
     for i, runpeak in enumerate(matched_runs):
         for xs in ["Off_Off", "On_Off", "Off_On", "On_On"]:
-            file_path = os.path.join(ar_dir, "REF_M_%s_%s_autoreduce.dat" % (runpeak, xs))
+            file_path = os.path.join(ar_dir, f"REF_M_{runpeak}_{xs}_autoreduce.dat")
             if os.path.isfile(file_path):
                 ref_data = pandas.read_csv(file_path, sep=r"\s+", comment="#", names=["q", "r", "dr", "dq", "a"])
                 data_list.append(
                     [ref_data["q"], scaling_factors[i] * ref_data["r"], scaling_factors[i] * ref_data["dr"]]
                 )
-                data_names.append("r%s [%s]" % (runpeak, xs))
+                data_names.append(f"r{runpeak} [{xs}]")
 
     try:
         # Depending on where we run, we might get our publisher from different places, or not at all.
@@ -486,11 +485,11 @@ def combined_curves(run, ipts, ar_dir):
     runpeak = RunPeakNumber(run)  # e.g. "12345", "12345_2"
     # Select the cross section with the best statistics
     high_stat_cross_section = select_cross_section(runpeak, ar_dir)
-    api.logger.notice("High xs: %s" % high_stat_cross_section)
+    api.logger.notice(f"High xs: {high_stat_cross_section}")
 
     # Match the given run with other runs of the same group ID
     matched_runs: list[str] = match_run_with_sequence(runpeak, ipts, high_stat_cross_section, ar_dir)
-    api.logger.notice("Matched runs: %s" % str(matched_runs))
+    api.logger.notice(f"Matched runs: {str(matched_runs)}")
 
     # Compute scaling factors for this cross section
     try:

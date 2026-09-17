@@ -1,23 +1,16 @@
-"""
-Compendium of custom type hints.
+"""Compendium of custom type hints."""
 
-"""
-
-# standard library imports
-from typing import List, TypeAlias, Union
-
-# third party imports
 import mantid
-from mantid.api import WorkspaceGroup
-from mantid.dataobjects import EventWorkspace
 
 """
 List of EvenWorkspace objects representing different cross-sections (Off_Off, Off_on, ...),
 usually the result of running filter_events.split_events on an input Nexus events file.
 """
-CrossSectionEventWorkspaces: TypeAlias = list[mantid.dataobjects.EventWorkspace]
+type CrossSectionEventWorkspaces = list[mantid.dataobjects.EventWorkspace]
+
 
 """Any type of Mantid workspace, including its name"""
-MantidWorkspace: TypeAlias = str | mantid.api.Workspace
+type MantidWorkspace = str | mantid.api.Workspace
 
-MantidAlgorithmHistory: TypeAlias = mantid.api.AlgorithmHistory
+
+type MantidAlgorithmHistory = mantid.api.AlgorithmHistory

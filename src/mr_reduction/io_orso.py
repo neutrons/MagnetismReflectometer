@@ -1,6 +1,5 @@
 import math
 from datetime import datetime
-from typing import Dict, List, Optional, Union
 
 import numpy as np
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver

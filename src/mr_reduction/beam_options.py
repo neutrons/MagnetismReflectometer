@@ -47,7 +47,8 @@ class DirectBeamOptions:
     @classmethod
     def dat_header(cls) -> str:
         """Header for the direct beam options in the *_autoreduced.dat file"""
-        return "# [Direct Beam Runs]\n# %s\n" % "  ".join(["%8s" % name for name in cls.option_names()])
+        names = "  ".join(f"{name:>8}" for name in cls.option_names())
+        return f"# [Direct Beam Runs]\n# {names}\n"
 
     @staticmethod
     def from_workspace(input_workspace: MantidWorkspace, direct_beam_counter=1) -> "DirectBeamOptions | None":
@@ -104,11 +105,12 @@ class DirectBeamOptions:
         for name in self.option_names():
             value = getattr(self, name)
             if isinstance(value, (bool, str)):
-                clean_dict[name] = "%8s" % value
+                clean_dict[name] = f"{value!s:>8}"
             else:
-                clean_dict[name] = "%8g" % value
+                clean_dict[name] = f"{value:8g}"
 
-        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.option_names()])
+        placeholders = "  ".join(f"{{{p}}}" for p in self.option_names())
+        template = f"# {placeholders}\n"
         return template.format(**clean_dict)
 
 
@@ -156,7 +158,8 @@ class ReflectedBeamOptions:
     @classmethod
     def dat_header(cls) -> str:
         """Header for the direct beam options in the *_autoreduced.dat file"""
-        return "# [Data Runs]\n# %s\n" % "  ".join(["%8s" % name for name in cls.option_names()])
+        names = "  ".join(f"{name:>8}" for name in cls.option_names())
+        return f"# [Data Runs]\n# {names}\n"
 
     @staticmethod
     def filename(input_workspace: MantidWorkspace) -> str:
@@ -255,9 +258,10 @@ class ReflectedBeamOptions:
             if name == "tth":
                 value += self.tth_offset
             if isinstance(value, str):
-                clean_dict[name] = "%8s" % value
+                clean_dict[name] = f"{value!s:>8}"
             else:
-                clean_dict[name] = "%8g" % value
+                clean_dict[name] = f"{value:8g}"
 
-        template = "# %s\n" % "  ".join(["{%s}" % p for p in self.option_names()])
+        placeholders = "  ".join(f"{{{p}}}" for p in self.option_names())
+        template = f"# {placeholders}\n"
         return template.format(**clean_dict)
