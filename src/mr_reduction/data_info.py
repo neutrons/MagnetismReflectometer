@@ -851,9 +851,9 @@ class Fitter2:
 
         Parameters
         ----------
-        x_range : List[int], optional
+        x_range : list[int], optional
             The range of x-pixels to keep. Pixels outside this range are set to 0.
-        y_range : List[int], optional
+        y_range : list[int], optional
             The range of y-pixels to keep. Pixels outside this range are set to 0.
         """
         z = np.copy(self.z)
@@ -899,7 +899,7 @@ class Fitter2:
 
         Returns
         -------
-        List[int]
+        list[int]
             List of found peak positions.
         """
         f1 = ndimage.gaussian_filter(self.x_vs_counts, sigma=3)

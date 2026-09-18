@@ -80,7 +80,7 @@ def save_report(html_report: str | list[str], report_file: str):
 
     Parameters
     ----------
-    html_report : str, List[str]
+    html_report : str, list[str]
         One or more compendium of <div> and <table> elements. Has all the information from reducing a run,
         possibly including reports from more than one peak when the run contains many peaks. This could happen
         if the experiment contained more than one sample, each reflecting at a different angle.
@@ -99,7 +99,7 @@ def upload_report(html_report: str | list[str], run_number: str | int) -> reques
 
     Parameters
     ----------
-    html_report: str, List[str]
+    html_report: str, list[str]
         one or more compendium of <div> and <table> elements. Has all the information from reducing a run,
         possibly including reports from more than one peak when the run contains many peaks. This could happen
         if the experiment contained more than one sample, each reflecting at a different angle.
@@ -125,7 +125,7 @@ def process_collection(summary_content=None, report_list=None) -> tuple[str, str
     ----------
         summary_content: str
             HTML content to be displayed at the top of the report
-        report_list: List[mr_reduction.web_report.Report]
+        report_list: list[mr_reduction.web_report.Report]
             List of HTML contents to be appended at the bottom of the page
         run_number: str
             run number to associate this report with

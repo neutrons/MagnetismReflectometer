@@ -53,7 +53,7 @@ def match_run_for_cross_section(run, ipts, cross_section, ar_dir) -> list[str]:
 
     Returns
     -------
-    List[str]
+    list[str]
     """
     runpeak = RunPeakNumber(run)
     peak_number = runpeak.peak_number
@@ -143,7 +143,7 @@ def match_run_with_sequence(run, ipts, cross_section, ar_dir):
 
         Returns
         -------
-        List[str]
+        list[str]
     """
     runpeak = RunPeakNumber(run)
     peak_number = runpeak.peak_number
@@ -186,7 +186,7 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> tuple[list[f
 
     Parameters
     ----------
-    matched_runs: List[str]
+    matched_runs: list[str]
         List of RunPeakNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
         peak is present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
         stitched together.
@@ -198,8 +198,8 @@ def compute_scaling_factors(matched_runs, cross_section, ar_dir) -> tuple[list[f
 
     Returns
     -------
-    Tuple[List[float], str, str, str, str]
-        scaling_factors: List[float]
+    Tuple[list[float], str, str, str, str]
+        scaling_factors: list[float]
         direct_beam_info: str
         data_info: str
         data_buffer: str
@@ -272,14 +272,14 @@ def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) 
 
     Parameters
     ----------
-    matched_runs: List[str]
+    matched_runs: list[str]
         List of RunPeakNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
         peak is present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
         stitched together.
     cross_section: str
         polarization entry. One of "Off_Off", "On_Off", "Off_On", and "On_On". It should be the cross section
         with the highest event count.
-    scaling_factors: List[float]
+    scaling_factors: list[float]
         Numbers by which to multiply each matched reflectivity curve, when stitching
     ar_dir:
         Directory where to find matching partial scripts for the matching runs.
@@ -287,7 +287,7 @@ def apply_scaling_factors(matched_runs, cross_section, scaling_factors, ar_dir) 
 
     Returns
     -------
-    List[Tuple[str, str]]
+    list[Tuple[str, str]]
         Rescaled reflectiviy profiles of the other cross-sections. One entry per cross section other than
         input `cross_section`, e.g ('On_Off', '0.02344 5.666 ....'), ("On_On", '')
     """
@@ -361,7 +361,7 @@ def write_reflectivity_cross_section(
         runs to be stitched together.
     cross_section: str
         Polarization entry. One of "Off_Off", "On_Off", "Off_On", or "On_On"
-    matched_runs: List[str]
+    matched_runs: list[str]
         List of RunPeakNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
         peak is present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
         stitched together.
@@ -402,11 +402,11 @@ def plot_combined(matched_runs, scaling_factors, ar_dir, publish=True):
 
      Parameters
      ----------
-     matched_runs: List[str]
+     matched_runs: list[str]
          List of RunPeakNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
          peak is present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
          stitched together.
-     scaling_factors: List[float]
+     scaling_factors: list[float]
          Numbers by which to multiply each matched reflectivity curve, when stitching
     ar_dir:
          Directory where to find reflectivity profiles for each cross section of the matching runs.
@@ -477,10 +477,10 @@ def combined_curves(run, ipts, ar_dir):
 
     Returns
     -------
-    Tuple[List[str], List[float], List[str]]
-        matched_runs: List[str] Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
-        scaling_factors: List[float] numbers by which to multiply each matched reflectivity curve, when stitching
-        file_list: List[str]] paths to the stitched reflectivity files, one file for each cross section.
+    Tuple[list[str], list[float], list[str]]
+        matched_runs: list[str] Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
+        scaling_factors: list[float] numbers by which to multiply each matched reflectivity curve, when stitching
+        file_list: list[str]] paths to the stitched reflectivity files, one file for each cross section.
     """
     runpeak = RunPeakNumber(run)  # e.g. "12345", "12345_2"
     # Select the cross section with the best statistics
@@ -543,13 +543,13 @@ def combined_catalog_info(matched_runs, ipts, output_files, ar_dir, run_peak_num
 
     Parameters
     ----------
-    matched_runs: List[str]
+    matched_runs: list[str]
         List of RunPeakNumber's (e.g. ['1234', '1235'] or ['1234_2', '1235_2']) if reducing only the second
         sample present in the experiments. Runs are ordered by increasing Q, which are to be reduced and
         stitched together.
     ipts: str
         Experiment identifier (e.g. "IPTS-42666")
-    output_files: List[str]]
+    output_files: list[str]]
         Paths to the reflectivity profile files, one file for each cross section.
     ar_dir
         directory where to write the catalog file.

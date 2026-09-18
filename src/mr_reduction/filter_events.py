@@ -340,7 +340,7 @@ def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> list[Eve
 
     Returns
     -------
-    List[EventWorkspace]
+    list[EventWorkspace]
         A list of Mantid workspaces containing the filtered cross-sections.
 
     Examples

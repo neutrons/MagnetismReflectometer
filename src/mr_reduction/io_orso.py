@@ -221,7 +221,7 @@ class SequenceDataSet:
 
         Returns
         -------
-        List[OrsoDataset]
+        list[OrsoDataset]
             The list of datasets for the given runpeak or cross-section.
         """
         if self.runpeaks is not None and item in self.runpeaks:  # item is a runpeak
@@ -247,7 +247,7 @@ class SequenceDataSet:
 
         Parameters
         ----------
-        datasets : List[OrsoDataset]
+        datasets : list[OrsoDataset]
             List of input datasets to check.
 
         Returns

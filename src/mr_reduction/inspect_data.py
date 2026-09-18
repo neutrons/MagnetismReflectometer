@@ -541,15 +541,15 @@ def inspect_data(
         Width of the background on each side of the peak if UseTightBck is True. Default is 10.
     ForcePeakROI : bool, optional
         If True, use the PeakROI property as the ROI. Default is False.
-    PeakROI : List[int], optional
+    PeakROI : list[int], optional
         Pixel range defining the reflectivity peak. Default is [0, 0].
     ForceLowResPeakROI : bool, optional
         If True, use the LowResPeakROI property as the ROI. Default is False.
-    LowResPeakROI : List[int], optional
+    LowResPeakROI : list[int], optional
         Pixel range defining the low-resolution peak. Default is [0, 0].
     ForceBckROI : bool, optional
         If True, use the BckROI property as the ROI. Default is False.
-    BckROI : List[int], optional
+    BckROI : list[int], optional
         Pixel range defining the background. Default is [0, 0].
     EventThreshold : int, optional
         Minimum number of events needed to call a data set a valid direct beam. Default is 10000.

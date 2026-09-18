@@ -4,7 +4,7 @@ import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from mr_reduction.beam_options import DirectBeamOptions, ReflectedBeamOptions
 

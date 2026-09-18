@@ -27,10 +27,10 @@ def write_reduction_script(matched_runs, scaling_factors, ar_dir) -> str:
 
     Parameters
     ----------
-    matched_runs : List[str]
+    matched_runs : list[str]
         Data runs (or RunPeakNumber's) ordered by increasing Q, to be stitched together
         e.g ['1234', '1235'], ['1234_2', '1235_2']
-    scaling_factors : List[float]
+    scaling_factors : list[float]
         Numbers by which to multiply each matched reflectivity curve, when stitching
     ar_dir: str
         Directory where to write the reduction script.
