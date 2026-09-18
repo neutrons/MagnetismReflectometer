@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Optional
 
 from orsopy.fileio.data_source import Polarization as ORSOPolarization
 
