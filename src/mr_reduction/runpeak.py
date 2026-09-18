@@ -44,7 +44,7 @@ class RunPeakNumber:
         else:
             return None
 
-    def __init__(self, runpeak: str | int | "RunPeakNumber", peak_number: str | int | None = None):
+    def __init__(self, runpeak: "str | int | RunPeakNumber", peak_number: str | int | None = None):
         r"""
         A RunPeakNumber is a run number (e.g. 12345) or a combination of a run number and a peak number
         (e.g. 12335_2 for run number 12345 and peak number 2). Peak numbers start at 1, not 0.
