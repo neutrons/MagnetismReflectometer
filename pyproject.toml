@@ -222,5 +222,5 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["A", "ARG", "BLE", "E", "F", "I", "PT"]
+select = ["A", "ARG", "BLE", "E", "F", "FURB", "I", "PT", "UP"]
 ignore = ["F403", "F405", "F401"]
