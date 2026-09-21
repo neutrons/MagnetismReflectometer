@@ -1,6 +1,5 @@
 import math
 from datetime import datetime
-from typing import Dict, List, Optional, Union
 
 import numpy as np
 from mantid.utils.reflectometry.orso_helper import MantidORSODataColumns, MantidORSODataset, MantidORSOSaver
@@ -45,9 +44,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     # direct_options = DirectBeamOptions.from_workspace(workspace)
     reflected_options = ReflectedBeamOptions.from_workspace(workspace)
 
-    #
     # collect the numerical data (Q, intensity, theta)
-    #
     ws = workspace_handle(workspace)
 
     q, q_error = ws.readX(0), ws.readDx(0)
@@ -75,16 +72,14 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         data=theta_error,
     )
 
-    #
     # reduction (or stitch) algorithm history
-    #
     reduction_history = None
     for history in ws.getHistory().getAlgorithmHistories():
         if history.name() in ("MagnetismReflectometryReduction", "Stitch1D"):
             reduction_history = history
             break
 
-    def _reduction_timestamp(history: Optional[MantidAlgorithmHistory]) -> Optional[datetime]:
+    def _reduction_timestamp(history: MantidAlgorithmHistory | None) -> datetime | None:
         """Algorithm execution date (in UTC), and convert to a datetime object expressed in local time
 
         Parameters
@@ -108,9 +103,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
             )
             return None
 
-    #
     # create the dataset
-    #
     sample_logs = SampleLogs(workspace)
     cross_section_label = sample_logs["cross_section_id"]  # e.g. "Off_Off", "On_Off"
 
@@ -124,7 +117,6 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         enable_instrument_settings=True,
     )
 
-    #
     # ORSO header
     dataset.set_facility("ORNL/SNS")
     dataset.set_proposal_id(sample_logs["experiment_identifier"])
@@ -140,7 +132,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
         info.data_source.sample.name = str(sample_logs["SampleName"])
     except RuntimeError:
         logger.warning("SampleName not found in sample logs - setting to null.")
-        info.data_source.sample.name = None  # type: ignore[assignment] None is allowed, just not typed as such
+        info.data_source.sample.name = None  # type: ignore - None is allowed, just not typed as such
 
     measurement: ORSOMeasurement = info.data_source.measurement
     measurement.instrument_settings = ORSOInstrumentSettings(
@@ -153,7 +145,7 @@ def dataset_assembler(workspace: MantidWorkspace) -> MantidORSODataset:
     return dataset
 
 
-def save_cross_sections(ws_list: List[MantidWorkspace], output_path: str) -> None:
+def save_cross_sections(ws_list: list[MantidWorkspace], output_path: str) -> None:
     r"""
     Save the reflectivities for different cross-sections for a particular peak
 
@@ -191,7 +183,7 @@ class SequenceDataSet:
     but at different incident angles or wavelengths ranges.
     """
 
-    def __init__(self, filepath_sequence: Dict[str, str] | None = None):
+    def __init__(self, filepath_sequence: dict[str, str] | None = None):
         """
         Initialize the SequenceDataSet with a list of ORSO files, each containing the reflectivities
         for the different cross-sections (e.g. "Off_Off", "On_Off", etc.)
@@ -202,9 +194,9 @@ class SequenceDataSet:
         filepath_sequence
             a dictionary `filepath_sequence[runpeak] = filepath` where `runpeak` is the runpeak identifier
         """
-        self._cross_sections: Optional[List[str]] = None  # e.g. ["Off_Off", "On_Off"]
-        self.runpeaks: Optional[List[str]] = None  # e.g. ["29160", "29161", "29162"]
-        self.datasets: Dict[str, List[OrsoDataset]] = {}  # e.g. {"2916": [On_Off, On_On], "2917": [On_Off, On_On]}
+        self._cross_sections: list[str] | None = None  # e.g. ["Off_Off", "On_Off"]
+        self.runpeaks: list[str] | None = None  # e.g. ["29160", "29161", "29162"]
+        self.datasets: dict[str, list[OrsoDataset]] = {}  # e.g. {"2916": [On_Off, On_On], "2917": [On_Off, On_On]}
         if filepath_sequence is None:
             return
         for runpeak, filepath in filepath_sequence.items():
@@ -229,7 +221,7 @@ class SequenceDataSet:
 
         Returns
         -------
-        List[OrsoDataset]
+        list[OrsoDataset]
             The list of datasets for the given runpeak or cross-section.
         """
         if self.runpeaks is not None and item in self.runpeaks:  # item is a runpeak
@@ -241,11 +233,11 @@ class SequenceDataSet:
             raise KeyError(f"{item} not found in the datasets")
 
     @property
-    def cross_sections(self) -> Optional[List[str]]:
+    def cross_sections(self) -> list[str] | None:
         """Get the list of cross-section labels e.g. ["Off_Off", "On_Off"]"""
         return self._cross_sections
 
-    def is_compatible(self, datasets: List[OrsoDataset]) -> bool:
+    def is_compatible(self, datasets: list[OrsoDataset]) -> bool:
         """
         Check if the cross-section labels in the input datasets are the same as those in this SequenceDataSet, and
         whether they are in the same order.
@@ -255,7 +247,7 @@ class SequenceDataSet:
 
         Parameters
         ----------
-        datasets : List[OrsoDataset]
+        datasets : list[OrsoDataset]
             List of input datasets to check.
 
         Returns
@@ -282,7 +274,7 @@ class SequenceDataSet:
             Path to the ORSO file.
         """
         assert runpeak not in self.datasets, f"Runpeak {runpeak} already loaded"
-        datasets: List[OrsoDataset] = load_orso(filepath)  # one dataset per cross-section
+        datasets: list[OrsoDataset] = load_orso(filepath)  # one dataset per cross-section
         assert self.is_compatible(datasets), "Cross-section labels do not match the existing datasets"
         if self.cross_sections is None:  # this is the very first dataset to be loaded
             self._cross_sections = [dataset.info.data_set for dataset in datasets]
@@ -315,7 +307,7 @@ class SequenceDataSet:
 
         self.runpeaks.sort(key=qz_min)  # sort the list of runpeaks by increasing Qz values
 
-    def scale_intensities(self, scaling_factors: Dict[str, float]):
+    def scale_intensities(self, scaling_factors: dict[str, float]):
         """
         Scale the datasets by the given scaling factors.
 
@@ -334,7 +326,7 @@ class SequenceDataSet:
                 data[:, 1] *= scaling_factor  # scale the R column in-place
                 data[:, 2] *= scaling_factor  # scale the sR column in-place
 
-    def concatenate(self) -> List[OrsoDataset]:
+    def concatenate(self) -> list[OrsoDataset]:
         """
         Concatenate the datasets of all the runpeaks, for each cross-section.
 
@@ -348,7 +340,7 @@ class SequenceDataSet:
         -------
         A list of datasets, one for each cross-section.
         """
-        datasets: List[OrsoDataset] = []
+        datasets: list[OrsoDataset] = []
         for cross_section in self.cross_sections:  # iterate over the cross-sections labels
             # concatenate the numpy arrays containing the data for this cross-section for all runpeaks
             data = np.concatenate([dataset.data for dataset in self[cross_section]])
@@ -359,8 +351,8 @@ class SequenceDataSet:
 
 
 def concatenate_runs(
-    filepath_sequence: Dict[str, str], concatenated_filepath: str, scaling_factors: Dict[str, float] = None
-) -> List[OrsoDataset]:
+    filepath_sequence: dict[str, str], concatenated_filepath: str, scaling_factors: dict[str, float] = None
+) -> list[OrsoDataset]:
     """
     Concatenate the reflectivity curves for a sequence of runs or runpeaks (e.g. "29160_1", "29161_1", "29162_1"),
     and save to an ORSO file in ASCII format.
@@ -403,7 +395,7 @@ def concatenate_runs(
 class Questor:
     """Helper class to check a few things of an ORSO file, used in test functions"""
 
-    def __init__(self, filepath: str = None, datasets: List[OrsoDataset] = None):
+    def __init__(self, filepath: str = None, datasets: list[OrsoDataset] = None):
         self.datasets = datasets
         if filepath is not None:
             self.datasets = load_orso(filepath)
@@ -420,16 +412,16 @@ class Questor:
         return [i.incident_angle.magnitude for i in self.dataset_instrument_settings]
 
     @property
-    def polarizations(self) -> List[str]:
+    def polarizations(self) -> list[str]:
         """Fetch the polarization states for each dataset, e.g. 'unpolarized', 'op', 'mm'"""
         return [i.polarization.value for i in self.dataset_instrument_settings]
 
     @property
-    def cross_sections(self) -> List[str]:
+    def cross_sections(self) -> list[str]:
         """Fetch the cross section label for each dataset, e.g. 'Off_Off', 'Off_On'"""
         return [dataset.info.data_set for dataset in self.datasets]
 
-    def datasets_column(self, column_name: str = "Qz", error_column_name: str = None) -> List[np.ndarray]:
+    def datasets_column(self, column_name: str = "Qz", error_column_name: str = None) -> list[np.ndarray]:
         """
         list of column data, one list element is the column data or one of the datasets
 
@@ -483,7 +475,7 @@ class Questor:
             stored_value = getattr(self, query)
             assert_equal(stored_value, test_value)
 
-    def assert_almost_equal(self, decimal: Union[int, List[int]], partial_match: bool = False, **kwargs):
+    def assert_almost_equal(self, decimal: int | list[int], partial_match: bool = False, **kwargs):
         """
         Assert that the specified attributes of the Questor instance match the given values to a certain decimal place.
 

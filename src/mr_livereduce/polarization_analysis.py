@@ -3,7 +3,6 @@ Polarization testing code, originally from Tim C.
 """
 
 import sys
-from typing import List, Union
 
 import mantid
 import mantid.simpleapi as api
@@ -49,8 +48,8 @@ def filter_GetDI(ws):
 
 def calculate_ratios(
     workspace: MantidWorkspace,
-    delta_wl: Union[float, str] = 0.01,
-    roi: List[float] = [1, 256, 1, 256],
+    delta_wl: float | str = 0.01,
+    roi: list[float] = [1, 256, 1, 256],
     slow_filter: bool = False,
 ):
     """
@@ -129,7 +128,7 @@ def calculate_ratios(
 
 
 def intensities_in_roi_pixels(
-    workspace: MantidWorkspace, step: Union[float, str] = "0.01", roi: list[float] = [162, 175, 112, 145]
+    workspace: MantidWorkspace, step: float | str = "0.01", roi: list[float] = [162, 175, 112, 145]
 ) -> MantidWorkspace:
     """
     Returns a spectrum of normalized intensities (Counts/proton_charge) vs wavelength for

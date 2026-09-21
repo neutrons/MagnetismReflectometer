@@ -2,20 +2,16 @@
 Meta-data information for MR reduction
 """
 
-# standard library imports
 import contextlib
 import warnings
 from enum import IntEnum
-from typing import List, Optional, Tuple
 
-# third party imports
 import mantid.simpleapi as api
 import numpy as np
 import scipy.optimize as opt
 from scipy import ndimage
 from scipy.optimize import OptimizeWarning
 
-# mr_reduction imports
 from mr_reduction.inspect_data import inspect_data
 from mr_reduction.peak_finding import find_peaks, peak_prominences, peak_widths
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
@@ -69,7 +65,7 @@ def get_cross_section_label(ws, cross_section) -> str:
     if ana_label == "" and pol_label == "":
         return cross_section
     else:
-        return "%s%s" % (pol_label, ana_label)
+        return f"{pol_label}{ana_label}"
 
 
 class DataType(IntEnum):
@@ -132,7 +128,7 @@ class DataInfo:
         self,
         ws: MantidWorkspace,
         cross_section,
-        peak_number: Optional[int] = 1,
+        peak_number: int | None = 1,
         use_roi: bool = True,
         update_peak_range: bool = False,
         use_roi_bck: bool = False,
@@ -141,8 +137,8 @@ class DataInfo:
         force_peak_roi: bool = False,
         peak_roi=[0, 0],
         force_bck_roi: bool = False,
-        bck_roi: List[int] = [0, 0],
-        low_res_roi: List[int] = None,
+        bck_roi: list[int] = [0, 0],
+        low_res_roi: list[int] = None,
         force_low_res_roi: bool = False,
     ):
         """
@@ -236,7 +232,7 @@ class DataInfo:
             )
             [peak_min, peak_max], [low_res_min, low_res_max] = fitter.fit_2d_peak(**fit_ranges)
 
-            api.logger.notice("New peak: %s %s" % (peak_min, peak_max))
+            api.logger.notice(f"New peak: {peak_min} {peak_max}")
             if np.abs(peak_max - peak_min) <= 1:
                 peak_min = peak_min - 2
                 peak_max = peak_max + 2
@@ -245,6 +241,8 @@ class DataInfo:
                 low_res_max = sample_logs["low_res_max"]
                 low_res_min = max(fitter.DEAD_PIXELS, low_res_min)
                 low_res_max = min(fitter.n_y - fitter.DEAD_PIXELS, low_res_max)
+        # TODO (Glass): This else block is unreachable because improved_peaks is always True.
+        #               Consider removing it or making improved_peaks a parameter.
         else:
             peak_min = sample_logs["peak_min"]
             peak_max = sample_logs["peak_max"]
@@ -317,7 +315,7 @@ class Fitter:
         self.workspace = workspace
         self.prepare_plot_data = prepare_plot_data
         self._prepare_data()
-        api.logger.notice("Numpy version: %s" % np.__version__)
+        api.logger.notice(f"Numpy version: {np.__version__}")
 
     def _prepare_data(self):
         """
@@ -515,8 +513,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Gaussian")
-            api.logger.notice("Chi2[Gaussian] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (gauss_coef[1], gauss_coef[2]))
+            api.logger.notice(f"Chi2[Gaussian] = {_chi2}")
+            api.logger.notice(f"    {gauss_coef[1]:g} +- {gauss_coef[2]:g}")
 
     def _fit_gaussian_and_poly(self):
         """
@@ -548,7 +546,7 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Polynomial")
-            api.logger.notice("Chi2[Polynomial] = %g" % _chi2)
+            api.logger.notice(f"Chi2[Polynomial] = {_chi2:g}")
 
         # Now fit a Gaussian + background
         # A, mu_x, sigma_x, mu_y, sigma_y, background
@@ -581,8 +579,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Gaussian + polynomial")
-            api.logger.notice("Chi2[Gaussian + polynomial] = %g" % _chi2)
-            api.logger.notice("    %g +- %g" % (coef[1], coef[2]))
+            api.logger.notice(f"Chi2[Gaussian + polynomial] = {_chi2:g}")
+            api.logger.notice(f"    {coef[1]:g} +- {coef[2]:g}")
 
     def _fit_lorentz_2d(self, peak=True):
         """
@@ -618,8 +616,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("Lorentz 2D")
-            api.logger.notice("Chi2[Lorentz 2D] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (lorentz_coef[1], lorentz_coef[2]))
+            api.logger.notice(f"Chi2[Lorentz 2D] = {_chi2}")
+            api.logger.notice(f"    {lorentz_coef[1]:g} +- {lorentz_coef[2]:g}")
         return lorentz_coef
 
     def _gaussian_and_lorentzian(self, region):
@@ -651,7 +649,7 @@ class Fitter:
             api.logger.notice("Could not fit G+L")
             lorentz_coef = p0
 
-        api.logger.notice("G+L params: %s" % str(lorentz_coef))
+        api.logger.notice(f"G+L params: {str(lorentz_coef)}")
         # Keep track of the result
         theory = self.gaussian_and_fixed_lorentzian(self.coded_pixels, *lorentz_coef)
         theory = np.reshape(theory, (self.n_x, self.n_y))
@@ -661,7 +659,7 @@ class Fitter:
         # of goodness of fit because the models are imprecise.
         # Nonetheless, log an entry if the chi^2 is larger
         if _chi2 > self.guess_chi2:
-            api.logger.notice("Fitting with two peaks resulted in a larger chi^2: %g > %g" % (_chi2, self.guess_chi2))
+            api.logger.notice(f"Fitting with two peaks resulted in a larger chi^2: {_chi2:g} > {self.guess_chi2:g}")
 
         # Unless we have a crazy peak
         if lorentz_coef[1] > self.peaks[0] - 10 and lorentz_coef[1] < self.peaks[0] + 10:
@@ -677,8 +675,8 @@ class Fitter:
             th_x = np.sum(theory, 1)
             self.plot_list.append([self.x, th_x])
             self.plot_labels.append("G + Lorentz 2D")
-            api.logger.notice("Chi2[G + Lorentz] = %s" % _chi2)
-            api.logger.notice("    %g +- %g" % (lorentz_coef[1], lorentz_coef[2]))
+            api.logger.notice(f"Chi2[G + Lorentz] = {_chi2}")
+            api.logger.notice(f"    {lorentz_coef[1]:g} +- {lorentz_coef[2]:g}")
         return lorentz_coef
 
     def fit_2d_peak(self, region=None):
@@ -687,7 +685,7 @@ class Fitter:
         :param region: region of interest for the reflected peak
         """
         self.peaks = self._scan_peaks()
-        api.logger.notice("Peaks (rough scan): %s" % self.peaks)
+        api.logger.notice(f"Peaks (rough scan): {self.peaks}")
 
         # Gaussian fit
         self._fit_gaussian()
@@ -825,14 +823,14 @@ class Fitter2:
             Mantid workspace instance (or just its name) containing the pixel intensities
         """
         self.workspace = workspace_handle(workspace)
-        self.n_x: Optional[int] = None  # Number of x-pixels in the instrument's detector panel
-        self.n_y: Optional[int] = None  # Number of y-pixels in the instrument's detector panel
-        self.z: Optional[np.ndarray] = None  # 2D (n_x X n_y) array of pixel intensities
-        self.y: Optional[np.ndarray] = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
-        self.x_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus x-pixel indices
-        self.y_vs_counts: Optional[np.ndarray] = None  # 1D array intensities versus y-pixel indices
-        self.guess_x: Optional[int] = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
-        self.guess_wx: Optional[float] = None  # Initial guess for the width of the peak along the x-pixel axis
+        self.n_x: int | None = None  # Number of x-pixels in the instrument's detector panel
+        self.n_y: int | None = None  # Number of y-pixels in the instrument's detector panel
+        self.z: np.ndarray | None = None  # 2D (n_x X n_y) array of pixel intensities
+        self.y: np.ndarray | None = None  # 1D array of y-pixel indices excluding top and bottom dead pixels
+        self.x_vs_counts: np.ndarray | None = None  # 1D array intensities versus x-pixel indices
+        self.y_vs_counts: np.ndarray | None = None  # 1D array intensities versus y-pixel indices
+        self.guess_x: int | None = None  # Initial guess of the x-pixel index corresponding to the the peak maximum
+        self.guess_wx: float | None = None  # Initial guess for the width of the peak along the x-pixel axis
 
         self._prepare_data()
 
@@ -847,15 +845,15 @@ class Fitter2:
         plt.show()
 
     @contextlib.contextmanager
-    def filter_outside_roi(self, x_range: List[int] = None, y_range: List[int] = None):
+    def filter_outside_roi(self, x_range: list[int] = None, y_range: list[int] = None):
         """
         Temporarily set the counts outside the specified x and y ranges to zero
 
         Parameters
         ----------
-        x_range : List[int], optional
+        x_range : list[int], optional
             The range of x-pixels to keep. Pixels outside this range are set to 0.
-        y_range : List[int], optional
+        y_range : list[int], optional
             The range of y-pixels to keep. Pixels outside this range are set to 0.
         """
         z = np.copy(self.z)
@@ -894,14 +892,14 @@ class Fitter2:
         self.guess_x = np.argmax(self.x_vs_counts)
         self.guess_wx = 6.0
 
-    def _scan_peaks(self) -> List[int]:
+    def _scan_peaks(self) -> list[int]:
         """Scan for peaks along the X-axis.
 
         Update the guess_x and guess_ws attributes with the position and width of best peak found.
 
         Returns
         -------
-        List[int]
+        list[int]
             List of found peak positions.
         """
         f1 = ndimage.gaussian_filter(self.x_vs_counts, sigma=3)
@@ -940,7 +938,7 @@ class Fitter2:
 
         return found_peaks
 
-    def fit_2d_peak(self, x_range: List[int] = None, y_range: List[int] = None) -> Tuple[List[int], List[int]]:
+    def fit_2d_peak(self, x_range: list[int] = None, y_range: list[int] = None) -> tuple[list[int], list[int]]:
         """
         Find the boundaries of the peak along the X- and Y- axes of the instrument detector panel
 
@@ -957,7 +955,7 @@ class Fitter2:
             beam_peak = self.fit_beam_width()  # Along low-resolution Y-Pixel axis
         return spec_peak, beam_peak
 
-    def fit_peak(self) -> List[int]:
+    def fit_peak(self) -> list[int]:
         """
         Find the boundaries of the peak along the X-axis of the instrument detector panel
         """

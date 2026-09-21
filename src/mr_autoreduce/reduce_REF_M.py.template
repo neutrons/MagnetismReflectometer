@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Templated autoreduction script for REF_M"""
-# standard imports
 import argparse
 from collections import namedtuple
 import logging
@@ -9,10 +8,8 @@ import re
 import subprocess
 import sys
 import traceback
-from typing import List
 import warnings
 
-# third-party imports
 from mr_reduction.mr_reduction import ReductionProcess
 from mr_reduction.web_report import save_report, upload_report
 
@@ -104,7 +101,7 @@ def reduction_user_options():
     ReductionOptions = namedtuple('ReductionOptions', 'common, peak_count, peak1, peak2, peak3')
     return ReductionOptions(kwargs_common, peak_count, kwargs_peak_1, kwargs_peak_2, kwargs_peak_3)
 
-def reduce_events(filename=None, workspace=None, outdir=None, **other_options) -> List[str]:
+def reduce_events(filename=None, workspace=None, outdir=None, **other_options) -> list[str]:
     assert (filename is not None) or (workspace is not None), "Either filename or workspace must be provided"
     reports = list()  # autoreduction reports for each peak in the run, in HTML format
     opts = reduction_user_options()

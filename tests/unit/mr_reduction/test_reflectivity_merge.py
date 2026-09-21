@@ -26,7 +26,7 @@ def test_write_reflectivity_cross_section(tmp_path):
         output_dir=str(tmp_path),
     )
 
-    with open(output_file, "r") as file_handle:
+    with open(output_file) as file_handle:
         assert file_handle.readline().startswith("# Datafile created by QuickNXS")
 
     direct_beam_runs, data_runs, *_ = read_reduced_file(output_file)

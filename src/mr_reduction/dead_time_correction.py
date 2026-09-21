@@ -125,10 +125,10 @@ class SingleReadoutDeadTimeCorrection(PythonAlgorithm):
         if tof_min == 0 and tof_max == 0:
             tof_min = ws_event_data.getTofMin()
             tof_max = ws_event_data.getTofMax()
-        logger.notice("TOF range: %f %f" % (tof_min, tof_max))
+        logger.notice(f"TOF range: {tof_min:f} {tof_max:f}")
         _ws_sc = Rebin(
             InputWorkspace=ws_event_data,
-            Params="%s,%s,%s" % (tof_min, tof_step, tof_max),
+            Params=f"{tof_min},{tof_step},{tof_max}",
             PreserveEvents=False,
         )
 
@@ -139,7 +139,7 @@ class SingleReadoutDeadTimeCorrection(PythonAlgorithm):
         if ws_error_events is not None:
             _errors = Rebin(
                 InputWorkspace=ws_error_events,
-                Params="%s,%s,%s" % (tof_min, tof_step, tof_max),
+                Params=f"{tof_min},{tof_step},{tof_max}",
                 PreserveEvents=False,
             )
             counts_ws += _errors
@@ -162,7 +162,7 @@ class SingleReadoutDeadTimeCorrection(PythonAlgorithm):
             corr = 1 / (1 - rate * dead_time / tof_step)
 
         if np.min(corr) < 0:
-            error = "Corrupted dead time correction:\n" + "  Reflected: %s\n" % corr
+            error = "Corrupted dead time correction:\n" + f"  Reflected: {corr}\n"
             logger.error(error)
 
         counts_ws.setY(0, corr)

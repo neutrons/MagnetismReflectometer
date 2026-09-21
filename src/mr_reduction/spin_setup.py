@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Optional
 
 from orsopy.fileio.data_source import Polarization as ORSOPolarization
 
@@ -50,9 +49,7 @@ class REFMPolarizerVariant(IntEnum):
 @dataclass
 class REFMPolarizer:
     variant: REFMPolarizerVariant
-    state: Optional[REFMSpinSelectorState] = (
-        None  # None makes sense only if polarizer not installed or type is unknown
-    )
+    state: REFMSpinSelectorState | None = None  # None makes sense only if polarizer not installed or type is unknown
 
     @property
     def spin(self) -> SpinState:
@@ -87,7 +84,7 @@ class REFMAnalyzerVariant(IntEnum):
 @dataclass
 class REFMAnalyzer:
     variant: REFMAnalyzerVariant
-    state: Optional[REFMSpinSelectorState] = None  # None makes sense only if analyzer not installed or type is unknown
+    state: REFMSpinSelectorState | None = None  # None makes sense only if analyzer not installed or type is unknown
 
     @property
     def spin(self) -> SpinState:

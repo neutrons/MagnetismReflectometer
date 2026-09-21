@@ -5,7 +5,6 @@ Reduction for MR
 import os
 import time
 from io import IOBase
-from typing import List, Optional
 
 from mantid.simpleapi import (
     GroupWorkspaces,
@@ -53,14 +52,14 @@ class ReductionProcess:
         q_step=-0.02,
         const_q_cutoff=0.02,
         update_peak_range=False,
-        peak_number: Optional[int] = None,
+        peak_number: int | None = None,
         use_roi=True,
         force_peak_roi=False,
         peak_roi=[0, 0],
         use_roi_bck=False,
         force_bck_roi=False,
         bck_roi=[0, 0],
-        low_res_roi: List[int] = None,
+        low_res_roi: list[int] = None,
         force_low_res: bool = False,
         use_tight_bck=False,
         bck_offset=3,
@@ -119,7 +118,7 @@ class ReductionProcess:
         """
 
         try:
-            self.run_number: Optional[int] = int(data_run)
+            self.run_number: int | None = int(data_run)
             self.file_path = f"REF_M_{data_run}"
         except (TypeError, ValueError):
             self.run_number = None
@@ -160,7 +159,7 @@ class ReductionProcess:
         self.script = ""
 
         # "REF_M_livereduce.log" or "REF_M_autoreduce.log"
-        self.logfile: Optional[IOBase] = None  # a file handle to a log file
+        self.logfile: IOBase | None = None  # a file handle to a log file
         if logfile:  # usually path to "REF_M_livereduce.log"
             self.logfile = open(logfile, "a")
         elif debug is True:
@@ -191,7 +190,7 @@ class ReductionProcess:
         if self.output_dir is None:
             self.output_dir = f"/SNS/REF_M/{ipts}/shared/autoreduce/"
 
-    def _extract_data_info(self, xs_list: List[MantidWorkspace]):
+    def _extract_data_info(self, xs_list: list[MantidWorkspace]):
         """
         Extract data info for the cross-section with the most events
         :param list xs_list: workspace group
@@ -240,7 +239,7 @@ class ReductionProcess:
         """
         Perform the reduction
         """
-        self.log("\n\n---------- %s" % time.ctime())
+        self.log(f"\n\n---------- {time.ctime()}")
         # Load cross-sections
         _filename = None if self.data_ws is not None else self.file_path
         try:
@@ -283,16 +282,16 @@ class ReductionProcess:
                         ar_dir=self.output_dir,
                         run_peak_number=str(RunPeakNumber(self.run_number, self.peak_number)),
                     )
-                self.log("Matched runs: %s" % str(matched_run_list))
+                self.log(f"Matched runs: {str(matched_run_list)}")
                 # plotly figures for the reflectivity profile of each cross section, and embed in an <div> container
                 ref_plot = plot_combined(matched_run_list, scaling_factor_list, self.output_dir, publish=False)
-                self.log("Generated reflectivity: %s" % len(str(ref_plot)))
+                self.log(f"Generated reflectivity: {len(str(ref_plot))}")
             except Exception as e:  # noqa E722
                 self.log("Could not generate combined curve")
                 self.log(str(e))
                 logger.error(str(e))
 
-            logger.notice("Processing collection of %s reports" % len(report_list))
+            logger.notice(f"Processing collection of {len(report_list)} reports")
             html_report, _ = process_collection(summary_content=ref_plot, report_list=report_list)
         finally:
             if self.logfile:
@@ -300,7 +299,7 @@ class ReductionProcess:
 
         return html_report
 
-    def reduce_workspace_group(self, xs_list: List[MantidWorkspace]):
+    def reduce_workspace_group(self, xs_list: list[MantidWorkspace]):
         # Extract data info (find peaks, etc...)
         # This can be moved within the for-loop below re-extraction with each cross-section.
         # Generally, the peak ranges should be consistent between cross-section.
@@ -315,21 +314,22 @@ class ReductionProcess:
         sample_logs = SampleLogs(ws)
         entry = sample_logs["cross_section_id"]
         self.set_ipts(sample_logs["experiment_identifier"])
+        event_count = mtd[ws].getNumberEvents() if isinstance(ws, str) else ws.getNumberEvents()
 
         # combine run and peak number when the run contains more than one peak
         runpeak = RunPeakNumber(self.run_number, self.peak_number)
         logger.notice(
-            "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
+            f"R{runpeak} [{entry}] DATA TYPE: {data_info.data_type.name} "
+            f"[ref={data_info.cross_section}] [{event_count} events]"
         )
         self.log(
-            "R%s [%s] DATA TYPE: %s [ref=%s] [%s events]"
-            % (runpeak, entry, data_info.data_type.name, data_info.cross_section, ws.getNumberEvents())
+            f"R{runpeak} [{entry}] DATA TYPE: {data_info.data_type.name} "
+            f"[ref={data_info.cross_section}] [{event_count} events]"
         )
-        if (data_info.data_type != DataType.REFLECTED_BEAM) or (ws.getNumberEvents() < self.min_number_events):
+        if (data_info.data_type != DataType.REFLECTED_BEAM) or (event_count < self.min_number_events):
             self.log(
-                "  - skipping: data type=%s; events: %s [cutoff: %s]"
-                % (data_info.data_type.name, ws.getNumberEvents(), self.min_number_events)
+                f"  - skipping: data type={data_info.data_type.name}; events: {event_count} "
+                f"[cutoff: {self.min_number_events}]"
             )
             return [Report(ws, data_info, data_info, None, logfile=self.logfile)]
 
@@ -366,32 +366,32 @@ class ReductionProcess:
             runpeak.log_peak_number(f"r_{runpeak}")
 
         # Generate partial python script
-        self.log("Workspace r_%s: %s" % (runpeak, type(mtd["r_%s" % runpeak])))
-        write_partial_script(mtd["r_%s" % runpeak], self.output_dir, polarization_logs=self.polarization_logs)
+        self.log("Workspace r_{}: {}".format(runpeak, type(mtd[f"r_{runpeak}"])))
+        write_partial_script(mtd[f"r_{runpeak}"], self.output_dir, polarization_logs=self.polarization_logs)
 
         report_list = []
-        reflectivity_workspaces: List[MantidWorkspace] = []
+        reflectivity_workspaces: list[MantidWorkspace] = []
         for ws in xs_list:
             try:
                 if str(ws).endswith("unfiltered"):
                     continue
                 self.log(f"\n--- Run {runpeak} {str(ws)} ---\n")
                 entry = SampleLogs(ws)["cross_section_id"]
-                reflectivity = mtd["%s__reflectivity" % str(ws)]
+                reflectivity = mtd[f"{str(ws)}__reflectivity"]
                 report = Report(ws, data_info, direct_info, reflectivity, logfile=self.logfile)
                 report_list.append(report)
                 # Write output file in QuickNXS format
-                self.log("  - ready to write: %s" % self.output_dir)
+                self.log(f"  - ready to write: {self.output_dir}")
                 write_reflectivity(
                     [reflectivity],
-                    os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.dat" % (runpeak, entry)),
+                    os.path.join(self.output_dir, f"REF_M_{runpeak}_{entry}_autoreduce.dat"),
                     data_info.cross_section_label,
                 )
 
                 # Write output file in NeXus format.
                 SaveNexus(
                     InputWorkspace=reflectivity,
-                    Filename=os.path.join(self.output_dir, "REF_M_%s_%s_autoreduce.nxs.h5" % (runpeak, entry)),
+                    Filename=os.path.join(self.output_dir, f"REF_M_{runpeak}_{entry}_autoreduce.nxs.h5"),
                 )
 
                 reflectivity_workspaces.append(reflectivity)
@@ -422,21 +422,21 @@ class ReductionProcess:
         norm_run = db_finder.search()
         if norm_run is None:
             logger.warning(
-                "Run %s [%s]: Could not find direct beam with matching slit, trying with wl only" % (run_number, entry)
+                f"Run {run_number} [{entry}]: Could not find direct beam with matching slit, trying with wl only"
             )
             norm_run = db_finder.search(skip_slits=True)
         apply_norm = False
         direct_info = None
         if norm_run is None:
-            logger.warning("Run %s [%s]: Could not find direct beam run: skipping" % (run_number, entry))
+            logger.warning(f"Run {run_number} [{entry}]: Could not find direct beam run: skipping")
         else:
-            logger.notice("Run %s [%s]: Direct beam run: %s" % (run_number, entry, norm_run))
+            logger.notice(f"Run {run_number} [{entry}]: Direct beam run: {norm_run}")
 
             # Find peak in direct beam run
             for norm_entry in ["entry", "entry-Off_Off", "entry-On_Off", "entry-Off_On", "entry-On_On"]:
                 try:
                     ws_direct = LoadEventNexus(
-                        Filename="REF_M_%s" % norm_run, NXentryName=norm_entry, OutputWorkspace="MR_%s" % norm_run
+                        Filename=f"REF_M_{norm_run}", NXentryName=norm_entry, OutputWorkspace=f"MR_{norm_run}"
                     )
                     if ws_direct.getNumberEvents() > DIRECT_BEAM_EVTS_MIN:
                         direct_info = DataInfo(

@@ -1,6 +1,5 @@
 import os
 from copy import deepcopy
-from typing import List
 from unittest import mock
 
 import numpy as np
@@ -13,7 +12,7 @@ from orsopy.fileio.orso import Orso, OrsoDataset, load_orso
 from mr_reduction.io_orso import SequenceDataSet, concatenate_runs, save_cross_sections
 
 
-def assert_columns(datasets: List[OrsoDataset]):
+def assert_columns(datasets: list[OrsoDataset]):
     """Test-helper function, assert that each dataset in the list has the expected columns"""
     for dataset in datasets:
         info: Orso = dataset.info
@@ -32,7 +31,7 @@ def assert_columns(datasets: List[OrsoDataset]):
             assert info.columns[i].name == label
 
 
-def assert_instrument_settings(datasets: List[OrsoDataset], thetas, wavelengths, polarizations):
+def assert_instrument_settings(datasets: list[OrsoDataset], thetas, wavelengths, polarizations):
     """Test-helper function, assert that each dataset in the list has the expected instrument settings"""
     for i, dataset in enumerate(datasets):
         info: Orso = dataset.info
@@ -42,7 +41,7 @@ def assert_instrument_settings(datasets: List[OrsoDataset], thetas, wavelengths,
         assert instrument_settings.polarization.value == polarizations[i]
 
 
-def assert_metadata(datasets: List[OrsoDataset], title: str, sample_name: str | None):
+def assert_metadata(datasets: list[OrsoDataset], title: str, sample_name: str | None):
     """Test-helper function, assert that each dataset in the list has the expected experiment title and sample name"""
     for dataset in datasets:
         info: Orso = dataset.info
@@ -63,7 +62,7 @@ def test_save_cross_sections_single_cross_section(mock_filesystem, data_server):
     save_cross_sections([reflectivity_workspace], output_file)
 
     # load the ORSO file and check its contents
-    datasets: List[OrsoDataset] = load_orso(output_file)
+    datasets: list[OrsoDataset] = load_orso(output_file)
     assert len(datasets) == 1
     assert_columns(datasets)
     assert_instrument_settings(datasets, thetas=[0.015], wavelengths=[2.7], polarizations=["pp"])
@@ -83,7 +82,7 @@ def test_save_cross_sections_run_cross_sections(mock_filesystem, data_server):
     save_cross_sections(workspace_list, output_file)
 
     # load the ORSO file and check its contents
-    datasets: List[OrsoDataset] = load_orso(output_file)
+    datasets: list[OrsoDataset] = load_orso(output_file)
     assert len(datasets) == 2
     assert set([dataset.info.data_set for dataset in datasets]) == {"Off_Off", "On_Off"}
     assert [dataset.data.shape for dataset in datasets] == [(52, 6), (52, 6)]
@@ -101,7 +100,7 @@ def test_save_cross_sections_missing_sample_name(mock_filesystem, data_server):
     save_cross_sections([reflectivity_workspace], output_file)
 
     # load the ORSO file and check its contents
-    datasets: List[OrsoDataset] = load_orso(output_file)
+    datasets: list[OrsoDataset] = load_orso(output_file)
     assert len(datasets) == 1
     assert datasets[0].info.data_source.sample.name is None
 

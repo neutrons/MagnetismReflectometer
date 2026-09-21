@@ -1,10 +1,11 @@
 import os
 from operator import itemgetter
-from typing import List, Optional, Tuple
 
 from mantid.api import (
     AnalysisDataService,
+    WorkspaceGroup,
 )
+from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import (
     AddSampleLog,
     CreateEmptyTableWorkspace,
@@ -20,17 +21,17 @@ from mantid.simpleapi import (
 
 from mr_reduction.settings import PolarizationLogs
 from mr_reduction.simple_utils import SampleLogs, workspace_handle
-from mr_reduction.types import EventWorkspace, MantidWorkspace, WorkspaceGroup
+from mr_reduction.types import MantidWorkspace
 
 
 def extract_times(
-    times: List[int],
+    times: list[int],
     is_start: bool,
     is_sf1: bool = False,
     is_sf2: bool = False,
     is_veto1: bool = False,
     is_veto2: bool = False,
-) -> List[Tuple[int, bool, List[bool]]]:
+) -> list[tuple[int, bool, list[bool]]]:
     """
     Extract time intervals and associates them with specific device states.
 
@@ -109,7 +110,7 @@ def create_table(
     for item in change_list:
         # We have a change of state, add an entry for the state that just ended
         if specified[0] and specified[1] and not current_state[2] and not current_state[3]:
-            xs = "%s_%s" % ("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
+            xs = "{}_{}".format("On" if current_state[0] else "Off", "On" if current_state[1] else "Off")
             start = int(current_state_t0 - start_time)
             stop = item[0] - start_time
             if start < 0 and stop <= 0:
@@ -326,7 +327,7 @@ def filter_cross_sections(
     return workspace_handle(output_workspace)
 
 
-def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> List[EventWorkspace]:
+def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> list[EventWorkspace]:
     """
     Filter events according to an aggregated state log.
 
@@ -339,7 +340,7 @@ def slow_filter_cross_sections(ws: EventWorkspace, prefix: str = "") -> List[Eve
 
     Returns
     -------
-    List[EventWorkspace]
+    list[EventWorkspace]
         A list of Mantid workspaces containing the filtered cross-sections.
 
     Examples
@@ -393,7 +394,7 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
         A workspace group containing the loaded cross-sections.
     """
     ws_base_name = os.path.basename(file_path)
-    cross_sections: List[EventWorkspace] = list()
+    cross_sections: list[EventWorkspace] = list()
 
     for entry in ["Off_Off", "On_Off", "Off_On", "On_On"]:
         try:
@@ -407,9 +408,7 @@ def load_legacy_cross_sections(file_path: str, output_workspace: str) -> Workspa
     return GroupWorkspaces(InputWorkspaces=cross_sections, OutputWorkspace=output_workspace)
 
 
-def get_workspace(
-    input_workspace: Optional[MantidWorkspace] = None, file_path: Optional[str] = None
-) -> MantidWorkspace:
+def get_workspace(input_workspace: MantidWorkspace | None = None, file_path: str | None = None) -> MantidWorkspace:
     """
     Retrieve a Mantid workspace from either an existing workspace or by loading a file.
 
@@ -441,9 +440,9 @@ def get_workspace(
 
 def split_events(
     *,
-    file_path: Optional[str] = None,
-    input_workspace: Optional[MantidWorkspace] = None,
-    output_workspace: Optional[str] = None,
+    file_path: str | None = None,
+    input_workspace: MantidWorkspace | None = None,
+    output_workspace: str | None = None,
     min_event_count: int = 200,
     use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
@@ -519,9 +518,9 @@ def split_events(
 
 def split_error_events(
     *,
-    file_path: Optional[str] = None,
-    input_workspace: Optional[MantidWorkspace] = None,
-    output_workspace: Optional[str] = None,
+    file_path: str | None = None,
+    input_workspace: MantidWorkspace | None = None,
+    output_workspace: str | None = None,
     use_slow_flipper_log: bool = False,
     polarization_logs: PolarizationLogs = PolarizationLogs(),
 ) -> WorkspaceGroup:
