@@ -50,9 +50,9 @@ default-tag = "2.0.0"
 method = "minor"
 
 [tool.versioningit.format]
-distance = "{next_version}.dev{distance}"
+distance = "{next_version}.dev{committer_date:%Y%m%d%H%M%S}"
 dirty = "{version}"
-distance-dirty = "{next_version}.dev{distance}"
+distance-dirty = "{next_version}.dev{committer_date:%Y%m%d%H%M%S}"
 
 [tool.versioningit.write]
 file = "src/mr_reduction/_version.py"
