@@ -99,7 +99,7 @@ jobs:
         with:
           package-name: ${{ env.PKG_NAME }}
           local-channel: ./local-channel
-          python-version: "3.11"
+          python-version: "3.13"
           extra-channels: neutrons mantid oncat
 
       - name: Verify Conda Package
