@@ -9,6 +9,7 @@ from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import (
     AddSampleLog,
     CreateEmptyTableWorkspace,
+    ExtractMonitors,
     FilterByLogValue,
     FilterEvents,
     GenerateEventsFilter,
@@ -430,12 +431,40 @@ def get_workspace(input_workspace: MantidWorkspace | None = None, file_path: str
         If neither `input_workspace` nor `file_path` is provided.
     """
     if input_workspace is not None:
-        return workspace_handle(input_workspace)
+        workspace = workspace_handle(input_workspace)
+    elif file_path is not None:
+        workspace = LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
+    else:
+        raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+    return remove_monitor_spectra(workspace)
 
-    if file_path is not None:
-        return LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
 
-    raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+def remove_monitor_spectra(input_workspace: MantidWorkspace) -> MantidWorkspace:
+    """
+    Return a workspace containing only the detector spectra of `input_workspace`.
+
+    The accumulated events workspace delivered by the SNS live listener (Mantid 6.16.1.2 and later from
+    the ``mantid-ornl`` channel) includes the beam monitor as its first spectrum, whereas `LoadEventNexus`
+    keeps monitors out of the detector workspace. Downstream code reshapes the per-spectrum counts into the
+    304 x 256 pixel grid, so the monitor spectrum must go.
+
+    Parameters
+    ----------
+    input_workspace
+        Events workspace, or its name.
+
+    Returns
+    -------
+    MantidWorkspace
+        `input_workspace` itself when it has no monitor spectra, otherwise a new workspace with a
+        unique hidden name holding only the detector spectra.
+    """
+    workspace = workspace_handle(input_workspace)
+    spectrum_info = workspace.spectrumInfo()
+    if not any(spectrum_info.isMonitor(index) for index in range(workspace.getNumberHistograms())):
+        return workspace
+    logger.notice(f"Removing monitor spectra from workspace {workspace.name()}")
+    return ExtractMonitors(InputWorkspace=workspace, DetectorWorkspace=mtd.unique_hidden_name())
 
 
 def split_events(
@@ -483,7 +512,7 @@ def split_events(
 
     if events_workspace.getNumberEvents() < min_event_count:
         raise ValueError(
-            f"Insufficient number of reflected beam events: {input_workspace.getNumberEvents()} "
+            f"Insufficient number of reflected beam events: {events_workspace.getNumberEvents()} "
             f"(Minimum of {min_event_count} events required)"
         )
 
@@ -504,8 +533,9 @@ def split_events(
             check_devices=check_devices,
         )
 
-        # Only cleanup if the input workspace was created here and is not referenced by the output workspaces
-        if (input_workspace is None) and not (any(ws.name() == str(events_workspace) for ws in xs_list)):
+        # Only cleanup if the events workspace was created here and is not referenced by the output workspaces
+        created_here = (input_workspace is None) or (str(events_workspace) != str(workspace_handle(input_workspace)))
+        if created_here and not (any(ws.name() == str(events_workspace) for ws in xs_list)):
             AnalysisDataService.remove(str(events_workspace))
 
         # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.

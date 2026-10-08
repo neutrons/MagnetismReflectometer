@@ -1,8 +1,14 @@
 import pytest
-from mantid.simpleapi import LoadEventNexus, LoadNexus, mtd
+from mantid.simpleapi import AppendSpectra, LoadEmptyInstrument, LoadEventNexus, LoadNexus, mtd
 from mantid.utils.logging import capture_logs
 
-from mr_reduction.filter_events import create_table, filter_cross_sections, split_error_events, split_events
+from mr_reduction.filter_events import (
+    create_table,
+    filter_cross_sections,
+    remove_monitor_spectra,
+    split_error_events,
+    split_events,
+)
 
 
 def test_create_table():
@@ -67,6 +73,38 @@ class TestCrossSectionList:
         assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
 
     @pytest.mark.datarepo
+    def test_split_events_from_workspace_with_monitor_spectrum(
+        self, data_server, temp_workspace_name, clean_workspace
+    ):
+        """
+        The accumulated events workspace delivered by the SNS live listener includes the beam monitor as its
+        first spectrum. The cross-section workspaces must contain only the 304 x 256 detector spectra.
+        """
+        events = temp_workspace_name()
+        LoadEventNexus(
+            Filename=data_server.path_to("REF_M_44380.nxs.h5"),
+            OutputWorkspace=events,
+            LoadMonitors=True,
+            MonitorsLoadOnly="Events",
+        )
+        monitors = clean_workspace(f"{events}_monitors")
+        # monitor spectrum first, as in the live-listener workspace (the monitor has detector ID -1)
+        workspace = AppendSpectra(
+            InputWorkspace1=monitors, InputWorkspace2=events, OutputWorkspace=temp_workspace_name(), MergeLogs=False
+        )
+        assert workspace.getNumberHistograms() == 304 * 256 + 1
+        xs_list = split_events(input_workspace=workspace, min_event_count=100)
+        clean_workspace(xs_list)
+        run_number = int(workspace.getRunNumber())
+        assert list(xs_list.getNames()) == [f"{run_number}_Off_Off"]
+        for ws in xs_list:
+            clean_workspace(ws)
+            assert ws.getNumberHistograms() == 304 * 256
+            spectrum_info = ws.spectrumInfo()
+            assert not any(spectrum_info.isMonitor(i) for i in range(ws.getNumberHistograms()))
+        assert mtd.doesExist(workspace.name()), "the caller's input workspace must not be deleted"
+
+    @pytest.mark.datarepo
     def test_split_events_from_filename(self, data_server):
         """
         Test the function that retrieves the list of cross sections from a nexus file.
@@ -118,6 +156,25 @@ class TestGetErrorList:
         err_list = split_error_events(input_workspace=workspace)
         run_number = int(workspace.getRunNumber())
         assert list(err_list.getNames()) == [f"{run_number}_err_On_Off", f"{run_number}_err_Off_Off"]
+
+
+class TestRemoveMonitorSpectra:
+    def test_monitor_spectrum_removed(self, temp_workspace_name, clean_workspace):
+        """LoadEmptyInstrument includes the REF_M monitor, like the live-listener workspace does."""
+        workspace = LoadEmptyInstrument(
+            InstrumentName="REF_M", OutputWorkspace=temp_workspace_name(), MakeEventWorkspace=True
+        )
+        assert workspace.getNumberHistograms() == 304 * 256 + 1
+        detectors_only = clean_workspace(remove_monitor_spectra(workspace))
+        assert mtd[detectors_only].getNumberHistograms() == 304 * 256
+        assert detectors_only != workspace.name()
+
+    def test_no_monitor_spectra_is_a_no_op(self, temp_workspace_name, clean_workspace):
+        workspace = LoadEmptyInstrument(
+            InstrumentName="REF_M", OutputWorkspace=temp_workspace_name(), MakeEventWorkspace=True
+        )
+        detectors_only = clean_workspace(remove_monitor_spectra(workspace))
+        assert remove_monitor_spectra(detectors_only).name() == detectors_only
 
 
 if __name__ == "__main__":
