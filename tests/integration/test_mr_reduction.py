@@ -4,7 +4,7 @@ import shutil
 
 import numpy as np
 import pytest
-from mantid.simpleapi import AddSampleLog, CreateSampleWorkspace
+from mantid.simpleapi import AddSampleLog, CreateSampleWorkspace, SetInstrumentParameter
 
 import mr_reduction.mr_reduction as mr
 from mr_reduction import io_orso
@@ -220,8 +220,11 @@ class TestReduction:
     def test_reduce_ValueError_insufficient_event_count(self):
         r"""Test that the minimum number of events is enforced"""
 
-        # create an empty events workspace
+        # create an empty events workspace, with the detector pixel grid parameters mr_reduction expects
         ws = CreateSampleWorkspace(WorkspaceType="Event", NumEvents=0)
+        for parameter, value in (("number-of-x-pixels", "304.0"), ("number-of-y-pixels", "256.0")):
+            # a value with a decimal point is stored as double, which is what getNumberParameter() reads
+            SetInstrumentParameter(ws, ParameterName=parameter, ParameterType="Number", Value=value)
 
         # add some mr_red required sample logs
         AddSampleLog(ws, "Polarizer", LogText="0", LogType="Number")
