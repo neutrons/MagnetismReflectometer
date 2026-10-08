@@ -441,12 +441,16 @@ def get_workspace(input_workspace: MantidWorkspace | None = None, file_path: str
 
 def remove_monitor_spectra(input_workspace: MantidWorkspace) -> MantidWorkspace:
     """
-    Return a workspace containing only the detector spectra of `input_workspace`.
+    Remove monitor spectra from `input_workspace` when it has more spectra than detector pixels.
 
-    The accumulated events workspace delivered by the SNS live listener (Mantid 6.16.1.2 and later from
-    the ``mantid-ornl`` channel) includes the beam monitor as its first spectrum, whereas `LoadEventNexus`
-    keeps monitors out of the detector workspace. Downstream code reshapes the per-spectrum counts into the
-    304 x 256 pixel grid, so the monitor spectrum must go.
+    The accumulated events workspace delivered by the SNS live listener of Mantid 6.16.1.2 and later from
+    the ``mantid-ornl`` channel (mantid commit 5093c8192) includes the beam monitor as its first spectrum,
+    whereas `LoadEventNexus` keeps monitors out of the detector workspace. Downstream code reshapes the
+    per-spectrum counts into the pixel grid (304 x 256 for REF_M), so the extra spectrum must go.
+
+    Workspaces whose spectrum count already matches the pixel count are returned unchanged, even if the
+    first spectrum is mapped to the monitor. That is the layout produced by earlier live listeners,
+    which sized the buffer for the pixels only, and reduction has always handled it.
 
     Parameters
     ----------
@@ -456,10 +460,16 @@ def remove_monitor_spectra(input_workspace: MantidWorkspace) -> MantidWorkspace:
     Returns
     -------
     MantidWorkspace
-        `input_workspace` itself when it has no monitor spectra, otherwise a new workspace with a
+        `input_workspace` itself when nothing needs removing, otherwise a new workspace with a
         unique hidden name holding only the detector spectra.
     """
     workspace = workspace_handle(input_workspace)
+    instrument = workspace.getInstrument()
+    n_pixels = int(instrument.getNumberParameter("number-of-x-pixels")[0]) * int(
+        instrument.getNumberParameter("number-of-y-pixels")[0]
+    )
+    if workspace.getNumberHistograms() <= n_pixels:
+        return workspace
     spectrum_info = workspace.spectrumInfo()
     if not any(spectrum_info.isMonitor(index) for index in range(workspace.getNumberHistograms())):
         return workspace

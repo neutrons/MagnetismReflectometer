@@ -176,6 +176,18 @@ class TestRemoveMonitorSpectra:
         detectors_only = clean_workspace(remove_monitor_spectra(workspace))
         assert remove_monitor_spectra(detectors_only).name() == detectors_only
 
+    @pytest.mark.datarepo
+    def test_pixel_count_layout_left_unchanged(self, data_server, clean_workspace):
+        """
+        Live listeners before Mantid 6.16.1.2 sized the buffer for the pixels only but mapped the monitor to the
+        first spectrum (REF_M_44316.nxs was saved from one). Reduction has always handled that layout, so it is
+        left as is.
+        """
+        workspace = mtd[clean_workspace(data_server.load_nexus_processed("REF_M_44316.nxs"))]
+        assert workspace.getNumberHistograms() == 304 * 256
+        assert workspace.spectrumInfo().isMonitor(0)
+        assert remove_monitor_spectra(workspace).name() == workspace.name()
+
 
 if __name__ == "__main__":
     pytest.main([__file__])
