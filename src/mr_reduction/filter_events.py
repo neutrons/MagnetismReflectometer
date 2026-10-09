@@ -9,6 +9,7 @@ from mantid.dataobjects import EventWorkspace
 from mantid.simpleapi import (
     AddSampleLog,
     CreateEmptyTableWorkspace,
+    ExtractMonitors,
     FilterByLogValue,
     FilterEvents,
     GenerateEventsFilter,
@@ -430,12 +431,50 @@ def get_workspace(input_workspace: MantidWorkspace | None = None, file_path: str
         If neither `input_workspace` nor `file_path` is provided.
     """
     if input_workspace is not None:
-        return workspace_handle(input_workspace)
+        workspace = workspace_handle(input_workspace)
+    elif file_path is not None:
+        workspace = LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
+    else:
+        raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+    return remove_monitor_spectra(workspace)
 
-    if file_path is not None:
-        return LoadEventNexus(Filename=file_path, OutputWorkspace="raw_events")
 
-    raise ValueError("Either 'file_path' or 'input_workspace' must be provided")
+def remove_monitor_spectra(input_workspace: MantidWorkspace) -> MantidWorkspace:
+    """
+    Remove monitor spectra from `input_workspace` when it has more spectra than detector pixels.
+
+    The accumulated events workspace delivered by the SNS live listener of Mantid 6.16.1.2 and later from
+    the ``mantid-ornl`` channel (mantid commit 5093c8192) includes the beam monitor as its first spectrum,
+    whereas `LoadEventNexus` keeps monitors out of the detector workspace. Downstream code reshapes the
+    per-spectrum counts into the pixel grid (304 x 256 for REF_M), so the extra spectrum must go.
+
+    Workspaces whose spectrum count already matches the pixel count are returned unchanged, even if the
+    first spectrum is mapped to the monitor. That is the layout produced by earlier live listeners,
+    which sized the buffer for the pixels only, and reduction has always handled it.
+
+    Parameters
+    ----------
+    input_workspace
+        Events workspace, or its name.
+
+    Returns
+    -------
+    MantidWorkspace
+        `input_workspace` itself when nothing needs removing, otherwise a new workspace with a
+        unique hidden name holding only the detector spectra.
+    """
+    workspace = workspace_handle(input_workspace)
+    instrument = workspace.getInstrument()
+    n_pixels = int(instrument.getNumberParameter("number-of-x-pixels")[0]) * int(
+        instrument.getNumberParameter("number-of-y-pixels")[0]
+    )
+    if workspace.getNumberHistograms() <= n_pixels:
+        return workspace
+    spectrum_info = workspace.spectrumInfo()
+    if not any(spectrum_info.isMonitor(index) for index in range(workspace.getNumberHistograms())):
+        return workspace
+    logger.notice(f"Removing monitor spectra from workspace {workspace.name()}")
+    return ExtractMonitors(InputWorkspace=workspace, DetectorWorkspace=mtd.unique_hidden_name())
 
 
 def split_events(
@@ -483,7 +522,7 @@ def split_events(
 
     if events_workspace.getNumberEvents() < min_event_count:
         raise ValueError(
-            f"Insufficient number of reflected beam events: {input_workspace.getNumberEvents()} "
+            f"Insufficient number of reflected beam events: {events_workspace.getNumberEvents()} "
             f"(Minimum of {min_event_count} events required)"
         )
 
@@ -504,8 +543,9 @@ def split_events(
             check_devices=check_devices,
         )
 
-        # Only cleanup if the input workspace was created here and is not referenced by the output workspaces
-        if (input_workspace is None) and not (any(ws.name() == str(events_workspace) for ws in xs_list)):
+        # Only cleanup if the events workspace was created here and is not referenced by the output workspaces
+        created_here = (input_workspace is None) or (str(events_workspace) != str(workspace_handle(input_workspace)))
+        if created_here and not (any(ws.name() == str(events_workspace) for ws in xs_list)):
             AnalysisDataService.remove(str(events_workspace))
 
         # If we have no cross section info, treat the data as unpolarized and use Off_Off as the label.
