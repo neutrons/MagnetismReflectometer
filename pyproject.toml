@@ -67,8 +67,7 @@ name = "mr_reduction"
 platforms = ["linux-64"]
 channels = [
   "conda-forge",
-  "mantid-ornl",
-  # "mantid",
+  "mantid",
   "oncat",
   "neutrons",
   "https://prefix.dev/pixi-build-backends",
@@ -90,7 +89,7 @@ versioningit = "*"
 
 [tool.pixi.dependencies]
 argcomplete = "*"
-mantid = ">=6.16.1.2,<6.17.0"
+mantid = ">=7.0.0,<7.1.0"
 plot-publisher = ">=1.5,<2.0"
 flask = "*"
 gunicorn = "*"
@@ -98,6 +97,7 @@ pandas = "*"
 pyoncat = "*"
 requests = "*"
 pytz = "*"
+pre-commit = ">=4.6.2,<5"
 
 [tool.pixi.pypi-dependencies]
 mr_reduction = { path = ".", editable = true }
@@ -105,7 +105,7 @@ webdriver-manager = "*"
 
 # Conda packages (no PyPi) to be enumerated within the conda package to be built.
 [tool.pixi.package.run-dependencies]
-mantid = ">=6.16.1.2,<6.17.0"
+mantid = ">=7.0.0,<7.1.0"
 plot-publisher = ">=1.5,<2.0"
 flask = "*"
 gunicorn = "*"
