@@ -97,7 +97,6 @@ pandas = "*"
 pyoncat = "*"
 requests = "*"
 pytz = "*"
-pre-commit = ">=4.6.2,<5"
 
 [tool.pixi.pypi-dependencies]
 mr_reduction = { path = ".", editable = true }
